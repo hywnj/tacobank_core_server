@@ -7,10 +7,7 @@ import com.almagest_dev.tacobank_core_server.presentation.dto.FriendRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.FriendResponseDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,133 +19,236 @@ public class FriendService {
         this.friendRepository = friendRepository;
     }
 
+    private void checkActionPermission(Friend friend, String action, String currentUserId) {
+        // 현재 사용자가 요청자(Requester) 또는 수신자(Receiver)인지 확인
+        boolean isRequester = currentUserId.equals(friend.getRequesterId());
+        boolean isReceiver = currentUserId.equals(friend.getReceiverId());
+
+        // 디버깅을 위한 출력 코드
+        System.out.println("=== Debugging checkActionPermission ===");
+        System.out.println("currentUserId: " + currentUserId);
+        System.out.println("friend.getRequesterId(): " + friend.getRequesterId());
+        System.out.println("friend.getReceiverId(): " + friend.getReceiverId());
+        System.out.println("isRequester: " + isRequester);
+        System.out.println("isReceiver: " + isReceiver);
+        System.out.println("friend.getStatus(): " + friend.getStatus());
+        System.out.println("action: " + action);
+        System.out.println("======================================");
+
+
+        switch (friend.getStatus()) {
+            case "REQ":
+                // REQ 상태에서는 추가 동작을 수행하지 않도록 제한
+                throw new IllegalStateException("요청 중인 상태에서는 추가 동작을 수행할 수 없습니다.");
+
+            case "REQ_RECEIVED":
+                // REQ_RECEIVED 상태에서는 요청을 수락하거나 거절할 수 있도록 설정
+                if (!action.equals("accept") && !action.equals("reject")) {
+                    throw new IllegalStateException("요청 수신 상태에서는 수락과 거절만 가능합니다.");
+                }
+                break;
+
+            case "ACC":
+                // 수락 상태에서는 요청과 거절이 불가능하고, 차단, 차단 해제, 좋아요, 좋아요 취소, 삭제만 가능
+                if (action.equals("request") || action.equals("reject") || action.equals("accept")) {
+                    throw new IllegalStateException("수락 상태에서는 요청과 거절이 불가능합니다.");
+                }
+                break;
+
+            case "REJ":
+                // 거절 상태에서는 재요청만 가능
+                if (!action.equals("request")) {
+                    throw new IllegalStateException("거절 상태에서는 재요청만 가능합니다.");
+                }
+                break;
+
+            case "BLOCKED":
+                // 요청자가 unblock 작업을 수행할 수 있도록 설정
+                if (!isRequester || !action.equals("unblock")) {
+                    throw new IllegalStateException("차단 상태에서는 차단 해제만 가능합니다.");
+                }
+                break;
+
+            case "BLOCKED_BY":
+                // 차단 당한 사용자는 차단 해제를 포함한 모든 작업을 할 수 없음
+                if (isReceiver && (action.equals("unblock") || action.equals("request") || action.equals("accept") ||
+                        action.equals("reject") || action.equals("delete") || action.equals("like") || action.equals("unlike"))) {
+                    throw new IllegalStateException("해당 사용자에게 차단 당했습니다. 추가 동작이 불가 합니다.");
+                }
+                break;
+
+            case "NONE":
+                // 차단 해제 상태에서는 재요청만 가능
+                if (!action.equals("request")) {
+                    throw new IllegalStateException("친구 해제 상태에서는 재요청만 가능합니다.");
+                }
+                break;
+
+            case "DEL":
+                // 삭제 상태에서는 재요청만 가능
+                if (!action.equals("request")) {
+                    throw new IllegalStateException("삭제 상태에서는 재요청만 가능합니다.");
+                }
+                break;
+
+            default:
+                throw new IllegalArgumentException("알 수 없는 상태입니다."+  friend.getStatus());
+        }
+    }
+
     @Transactional
     public void requestFriend(FriendRequestDto requestDto) {
-        Optional<Friend> existingFriend = friendRepository.findByRequesterIdAndReceiverId(
-                requestDto.getRequesterId(), requestDto.getReceiverId()
-        );
 
-        if (existingFriend.isPresent()) {
-            Friend friend = existingFriend.get();
-
-            // 차단된 사용자에게는 친구 요청을 보낼 수 없음
-            if ("BAN".equals(friend.getStatus())) {
-                throw new IllegalStateException("차단해체 후 친구 요청을 보낼 수 있습니다.");
-            }
-
-            if("BLOCKED_BY".equals(friend.getStatus())) {
-                throw new IllegalStateException("현재 차단 상태입니다. 친구 요청을 보낼 수 없습니다.");
-            }
-
-            // 이미 친구 요청을 보냈거나 친구 관계가 존재하는 경우 중복 요청 방지
-            if (!"REJ".equals(friend.getStatus()) && !"DEL".equals(friend.getStatus()) && !"NONE".equals(friend.getStatus())) {
-                throw new IllegalStateException("이미 친구 요청을 보냈거나 친구 관계가 존재합니다.");
-            }
-
-            // 상태가 "거절" 또는 "삭제"라면, 새로운 요청으로 업데이트
-            friend.setStatus("REQ");
-            friend.setUpdatedDate(LocalDateTime.now());
-            friendRepository.save(friend);
-            return;
+        // 요청자와 수신자가 동일한 경우 예외 처리
+        if (requestDto.getRequesterId().equals(requestDto.getReceiverId())) {
+            throw new IllegalStateException("자신에게 친구 요청을 보낼 수 없습니다.");
         }
 
-        // 기존 관계가 없을 경우 새로운 친구 요청 생성
-        Friend newFriend = new Friend();
-        newFriend.setRequesterId(requestDto.getRequesterId());
-        newFriend.setReceiverId(requestDto.getReceiverId());
-        newFriend.setStatus("REQ"); // 요청 상태 설정
-        newFriend.setLiked("N"); // 기본적으로 좋아요는 "N"
-        newFriend.setCreatedDate(LocalDateTime.now());
-        newFriend.setUpdatedDate(LocalDateTime.now());
-        friendRepository.save(newFriend);
-    }
-
-    @Transactional
-    public void acceptFriend(FriendRequestDto requestDto) {
-        Friend friend = friendRepository.findByRequesterIdAndReceiverId(requestDto.getRequesterId(), requestDto.getReceiverId())
-                .orElseThrow(() -> new IllegalArgumentException("친구 요청 정보가 존재하지 않습니다."));
-        friend.setStatus("ACC"); // 수락 상태로 설정
-        friendRepository.save(friend);
-    }
-
-    @Transactional
-    public void rejectFriend(FriendRequestDto requestDto) {
-        Friend friend = friendRepository.findByRequesterIdAndReceiverId(requestDto.getRequesterId(), requestDto.getReceiverId())
-                .orElseThrow(() -> new IllegalArgumentException("친구 요청 정보가 존재하지 않습니다."));
-        friend.setStatus("REJ"); // 거절 상태로 설정
-        friendRepository.save(friend);
-    }
-
-    @Transactional
-    public void blockFriend(FriendRequestDto requestDto) {
-        // 요청자가 친구를 차단하는 관계 설정
         Friend friend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getRequesterId(), requestDto.getReceiverId()
         ).orElseGet(() -> new Friend(requestDto.getRequesterId(), requestDto.getReceiverId()));
 
-        friend.setStatus("BAN"); // 차단 상태로 설정
-        friend.setLiked("N"); // 좋아요 상태를 취소
+        // 요청 중복 방지 예외 처리
+        // String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
+        String currentUserId = "1"; // 임시로 현재 사용자 ID 설정
+        checkActionPermission(friend, "request", currentUserId);
+
+        // 기존 요청 상태 확인
+        Friend reverseFriend = friendRepository.findByRequesterIdAndReceiverId(
+                requestDto.getReceiverId(), requestDto.getRequesterId()
+        ).orElse(null);
+
+        friend.setStatus("REQ");
         friendRepository.save(friend);
 
-        // 차단당한 친구가 요청자에게 친구 요청을 보내지 못하도록 상태 설정
+        // 반대 상태 저장 - 상대방이 요청받은 상태로 설정
+        if (reverseFriend == null) {
+            reverseFriend = new Friend(requestDto.getReceiverId(), requestDto.getRequesterId());
+        }
+        reverseFriend.setStatus("REQ_RECEIVED");
+        friendRepository.save(reverseFriend);
+    }
+
+    @Transactional
+    public void acceptFriend(FriendRequestDto requestDto) {
+        Friend friend = friendRepository.findByRequesterIdAndReceiverId(
+                requestDto.getRequesterId(), requestDto.getReceiverId()
+        ).orElseThrow(() -> new IllegalArgumentException("친구 요청이 없습니다."));
+
+        String currentUserId = "1";
+        checkActionPermission(friend, "accept", currentUserId);
+
+        friend.setStatus("ACC");
+        friendRepository.save(friend);
+
+        // 반대 관계 상태를 수락 상태로 설정
         Friend reverseFriend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getReceiverId(), requestDto.getRequesterId()
         ).orElseGet(() -> new Friend(requestDto.getReceiverId(), requestDto.getRequesterId()));
+        reverseFriend.setStatus("ACC");
+        friendRepository.save(reverseFriend);
+    }
 
-        reverseFriend.setStatus("BLOCKED_BY"); // 차단당한 관계 표시
+    @Transactional
+    public void rejectFriend(FriendRequestDto requestDto) {
+        Friend friend = friendRepository.findByRequesterIdAndReceiverId(
+                requestDto.getRequesterId(), requestDto.getReceiverId()
+        ).orElseThrow(() -> new IllegalArgumentException("친구 요청이 없습니다."));
+
+        String currentUserId = "1";
+        checkActionPermission(friend, "reject", currentUserId);
+
+        friend.setStatus("REJ");
+        friendRepository.save(friend);
+
+        // 반대 관계 상태를 NONE으로 설정하여 요청을 보낼 수 있게 초기화
+        Friend reverseFriend = friendRepository.findByRequesterIdAndReceiverId(
+                requestDto.getReceiverId(), requestDto.getRequesterId()
+        ).orElseGet(() -> new Friend(requestDto.getReceiverId(), requestDto.getRequesterId()));
+        reverseFriend.setStatus("NONE");
+        friendRepository.save(reverseFriend);
+    }
+
+    @Transactional
+    public void deleteFriend(FriendRequestDto requestDto) {
+        Friend friend = friendRepository.findByRequesterIdAndReceiverId(
+                requestDto.getRequesterId(), requestDto.getReceiverId()
+        ).orElseThrow(() -> new IllegalArgumentException("친구 관계가 존재하지 않습니다."));
+
+        String currentUserId = "1";
+        checkActionPermission(friend, "delete", currentUserId);
+
+        friend.setStatus("DEL");
+        friend.setLiked("N");
+        friendRepository.save(friend);
+
+        // 반대 관계 상태를 NONE으로 설정
+        Friend reverseFriend = friendRepository.findByRequesterIdAndReceiverId(
+                requestDto.getReceiverId(), requestDto.getRequesterId()
+        ).orElseGet(() -> new Friend(requestDto.getReceiverId(), requestDto.getRequesterId()));
+        reverseFriend.setStatus("NONE");
+        friendRepository.save(reverseFriend);
+    }
+
+    @Transactional
+    public void blockFriend(FriendRequestDto requestDto) {
+        String currentUserId = "1";
+
+        Friend friend = friendRepository.findByRequesterIdAndReceiverId(
+                requestDto.getRequesterId(), requestDto.getReceiverId()
+        ).orElseGet(() -> new Friend(requestDto.getRequesterId(), requestDto.getReceiverId()));
+        checkActionPermission(friend, "block", currentUserId);
+        friend.setStatus("BLOCKED");
+        friend.setLiked("N");
+        friendRepository.save(friend);
+
+        Friend reverseFriend = friendRepository.findByRequesterIdAndReceiverId(
+                requestDto.getReceiverId(), requestDto.getRequesterId()
+        ).orElseGet(() -> new Friend(requestDto.getReceiverId(), requestDto.getRequesterId()));
+        reverseFriend.setStatus("BLOCKED_BY");
         reverseFriend.setLiked("N");
         friendRepository.save(reverseFriend);
     }
 
     @Transactional
     public void unblockFriend(FriendRequestDto requestDto) {
-        // 요청자가 차단을 해제하는 관계 처리
-        friendRepository.findByRequesterIdAndReceiverId(
-                requestDto.getRequesterId(), requestDto.getReceiverId()
-        ).ifPresent(friend -> {
-            if ("BAN".equals(friend.getStatus())) { // 차단을 설정한 관계만 해제 가능
-                friend.setStatus("NONE"); // 기본 상태로 변경
-                friendRepository.save(friend);
-            } else {
-                throw new IllegalStateException("차단을 설정한 사용자만 해제할 수 있습니다.");
-            }
-        });
-
-        // 상대방이 요청자를 차단당한 관계로 표시한 경우 해제
-        friendRepository.findByRequesterIdAndReceiverId(
-                requestDto.getReceiverId(), requestDto.getRequesterId()
-        ).ifPresent(reverseFriend -> {
-            if ("BLOCKED_BY".equals(reverseFriend.getStatus())) {
-                reverseFriend.setStatus("NONE"); // 기본 상태로 변경
-                friendRepository.save(reverseFriend);
-            }
-        });
-    }
-
-
-    @Transactional
-    public void deleteFriend(FriendRequestDto requestDto) {
         Friend friend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getRequesterId(), requestDto.getReceiverId()
-        ).orElseThrow(() -> new IllegalArgumentException("친구 정보가 존재하지 않습니다."));
+        ).orElseThrow(() -> new IllegalArgumentException("차단된 관계가 없습니다."));
 
-        friend.setStatus("DEL"); // 삭제 상태로 설정
-        friend.setLiked("N"); // 좋아요 상태를 취소
-        friendRepository.save(friend);
+        String currentUserId = "1";
+        checkActionPermission(friend, "unblock", currentUserId);
+
+        if ("BAN".equals(friend.getStatus()) && currentUserId.equals(friend.getRequesterId())) {
+            friend.setStatus("NONE");
+            friendRepository.save(friend);
+
+            Friend reverseFriend = friendRepository.findByRequesterIdAndReceiverId(
+                    requestDto.getReceiverId(), requestDto.getRequesterId()
+            ).orElseThrow(() -> new IllegalArgumentException("차단된 관계가 없습니다."));
+            reverseFriend.setStatus("NONE");
+            friendRepository.save(reverseFriend);
+        } else {
+            throw new IllegalStateException("차단한 사용자만 차단 해제를 할 수 있습니다.");
+        }
     }
 
     @Transactional
     public void likeFriend(FriendRequestDto requestDto) {
         Friend friend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getRequesterId(), requestDto.getReceiverId()
-        ).orElseThrow(() -> new IllegalArgumentException("친구 정보가 존재하지 않습니다."));
+        ).orElseThrow(() -> new IllegalArgumentException("친구 관계가 존재하지 않습니다."));
 
-        // 상태가 DEL이나 BAN인 경우 좋아요를 막음
-        if ("DEL".equals(friend.getStatus()) || "BAN".equals(friend.getStatus())) {
-            throw new IllegalStateException("삭제되거나 차단된 친구에게는 좋아요를 누를 수 없습니다.");
+        if ("Y".equals(friend.getLiked())) {
+            throw new IllegalStateException("이미 좋아요를 누른 상태입니다.");
         }
 
-        friend.setLiked("Y"); // 좋아요 상태로 설정
+        // 좋아요 가능한 상태인지 확인
+        // String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
+        String currentUserId = "1";
+        checkActionPermission(friend, "like",currentUserId);
+
+        friend.setLiked("Y"); // 좋아요 상태 설정
         friendRepository.save(friend);
     }
 
@@ -156,14 +256,18 @@ public class FriendService {
     public void unlikeFriend(FriendRequestDto requestDto) {
         Friend friend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getRequesterId(), requestDto.getReceiverId()
-        ).orElseThrow(() -> new IllegalArgumentException("친구 정보가 존재하지 않습니다."));
+        ).orElseThrow(() -> new IllegalArgumentException("친구 관계가 존재하지 않습니다."));
 
-        // 상태가 DEL이나 BAN인 경우 좋아요 취소를 막음
-        if ("DEL".equals(friend.getStatus()) || "BAN".equals(friend.getStatus())) {
-            throw new IllegalStateException("삭제되거나 차단된 친구에게는 좋아요 취소를 할 수 없습니다.");
+        if ("N".equals(friend.getLiked())) {
+            throw new IllegalStateException("이미 좋아요 취소 상태입니다.");
         }
 
-        friend.setLiked("N"); // 좋아요 상태를 취소
+        // 좋아요 취소 가능한 상태인지 확인
+        // String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
+        String currentUserId = "1";
+        checkActionPermission(friend, "unlike",currentUserId);
+
+        friend.setLiked("N"); // 좋아요 취소 상태 설정
         friendRepository.save(friend);
     }
 
