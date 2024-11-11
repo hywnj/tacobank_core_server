@@ -22,10 +22,10 @@ public class Friend {
     private Long id;
 
     @Column(columnDefinition = "BIGINT COMMENT '친구를 요청한 사람 ID'")
-    private String requesterId;
+    private Long requesterId;
 
     @Column(columnDefinition = "BIGINT COMMENT '친구를 요청을 받은 사람 ID'")
-    private String receiverId;
+    private Long receiverId;
 
     @Column(columnDefinition = "VARCHAR(1) COMMENT '즐겨찾기 여부'")
     private String liked;
@@ -50,7 +50,7 @@ public class Friend {
         this.updatedDate = LocalDateTime.now();
     }
 
-    public Friend(String requesterId, String receiverId) {
+    public Friend(Long requesterId, Long receiverId) {
         this.requesterId = requesterId;
         this.receiverId = receiverId;
         this.status = "NONE"; // 기본 상태 설정
