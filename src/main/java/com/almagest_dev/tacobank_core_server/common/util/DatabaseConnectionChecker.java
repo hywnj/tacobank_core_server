@@ -1,4 +1,4 @@
-package com.almagest_dev.tacobank_core_server.shared.utils.initChecker;
+package com.almagest_dev.tacobank_core_server.common.util;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
