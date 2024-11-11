@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/business/friends")
+@RequestMapping("/core/friends")
 public class FriendController {
 
     private final FriendService friendService;
@@ -61,10 +61,15 @@ public class FriendController {
         return ResponseEntity.ok("친구를 삭제하였습니다.");
     }
 
-    // 친구 목록 조회
-    @GetMapping("/list/{userId}")
-    public ResponseEntity<List<FriendResponseDto>> getFriendList(@PathVariable String userId) {
-        List<FriendResponseDto> friends = friendService.getFriendList(userId);
+    @GetMapping("/blocked")
+    public ResponseEntity<List<FriendResponseDto>> getBlockedFriends() {
+        List<FriendResponseDto> blockedFriends = friendService.getBlockedFriends();
+        return ResponseEntity.ok(blockedFriends);
+    }
+
+    @GetMapping("/list")
+    public ResponseEntity<List<FriendResponseDto>> getFriendList() {
+        List<FriendResponseDto> friends = friendService.getFriendList();
         return ResponseEntity.ok(friends);
     }
 

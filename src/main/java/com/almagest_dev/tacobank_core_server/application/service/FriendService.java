@@ -19,22 +19,19 @@ public class FriendService {
         this.friendRepository = friendRepository;
     }
 
-    private void checkActionPermission(Friend friend, String action, String currentUserId) {
+    // 현재 사용자 ID를 가져오는 메서드 (추후 인증 추가 시 수정)
+    private Long getCurrentUserId() {
+        // String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
+        return 1L; // 임시로 현재 사용자 ID를 1로 설정하여 테스트용으로 사용
+    }
+
+    private void checkActionPermission(Friend friend, String action) {
         // 현재 사용자가 요청자(Requester) 또는 수신자(Receiver)인지 확인
-        boolean isRequester = currentUserId.equals(friend.getRequesterId());
-        boolean isReceiver = currentUserId.equals(friend.getReceiverId());
-
-        // 디버깅을 위한 출력 코드
-        System.out.println("=== Debugging checkActionPermission ===");
-        System.out.println("currentUserId: " + currentUserId);
-        System.out.println("friend.getRequesterId(): " + friend.getRequesterId());
-        System.out.println("friend.getReceiverId(): " + friend.getReceiverId());
-        System.out.println("isRequester: " + isRequester);
-        System.out.println("isReceiver: " + isReceiver);
-        System.out.println("friend.getStatus(): " + friend.getStatus());
-        System.out.println("action: " + action);
-        System.out.println("======================================");
-
+        Long currentUserId = getCurrentUserId();
+//        boolean isRequester = currentUserId.equals(friend.getRequesterId());
+//        boolean isReceiver = currentUserId.equals(friend.getReceiverId());
+        boolean isRequester = friend.getRequesterId().equals(getCurrentUserId());
+        boolean isReceiver = friend.getReceiverId().equals(getCurrentUserId());
 
         switch (friend.getStatus()) {
             case "REQ":
@@ -71,7 +68,7 @@ public class FriendService {
 
             case "BLOCKED_BY":
                 // 차단 당한 사용자는 차단 해제를 포함한 모든 작업을 할 수 없음
-                if (isReceiver && (action.equals("unblock") || action.equals("request") || action.equals("accept") ||
+                if (isReceiver && (action.equals("block") || action.equals("unblock") || action.equals("request") || action.equals("accept") ||
                         action.equals("reject") || action.equals("delete") || action.equals("like") || action.equals("unlike"))) {
                     throw new IllegalStateException("해당 사용자에게 차단 당했습니다. 추가 동작이 불가 합니다.");
                 }
@@ -109,24 +106,57 @@ public class FriendService {
         ).orElseGet(() -> new Friend(requestDto.getRequesterId(), requestDto.getReceiverId()));
 
         // 요청 중복 방지 예외 처리
-        // String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
-        String currentUserId = "1"; // 임시로 현재 사용자 ID 설정
-        checkActionPermission(friend, "request", currentUserId);
+        checkActionPermission(friend, "request");
 
         // 기존 요청 상태 확인
         Friend reverseFriend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getReceiverId(), requestDto.getRequesterId()
         ).orElse(null);
 
-        friend.setStatus("REQ");
-        friendRepository.save(friend);
+        if (reverseFriend != null) {
+            if ("REQ".equals(reverseFriend.getStatus())) {
+                throw new IllegalStateException("상대방이 이미 요청을 보낸 상태입니다.");
+            }
+            if ("REQ_RECEIVED".equals(reverseFriend.getStatus())) {
+                throw new IllegalStateException("이미 요청을 한 상태입니다.");
+            }
 
-        // 반대 상태 저장 - 상대방이 요청받은 상태로 설정
-        if (reverseFriend == null) {
+            // 상대방이 ACC 상태일 경우, 바로 친구 관계 설정
+            if ("ACC".equals(reverseFriend.getStatus()) && "DEL".equals(friend.getStatus())) {
+                friend.setStatus("ACC");
+                reverseFriend.setStatus("ACC");
+            }
+            else if ("DEL".equals(reverseFriend.getStatus())) {
+                // 둘 다 DEL 상태일 경우, 요청-수락 상태로 전환
+                friend.setStatus("REQ");
+                reverseFriend.setStatus("REQ_RECEIVED");
+            }
+            // 둘 다 NONE 상태일 경우, REQ - REQ_RECEIVED 상태로 설정
+            else if ("NONE".equals(friend.getStatus()) && "NONE".equals(reverseFriend.getStatus())) {
+                friend.setStatus("REQ");
+                reverseFriend.setStatus("REQ_RECEIVED");
+            }
+
+            else if ("NONE".equals(friend.getStatus()) && "REJ".equals(reverseFriend.getStatus())) {
+                friend.setStatus("REQ");
+                reverseFriend.setStatus("REQ_RECEIVED");
+            }
+
+            else if ("REJ".equals(friend.getStatus()) && "NONE".equals(reverseFriend.getStatus())) {
+                friend.setStatus("REQ");
+                reverseFriend.setStatus("REQ_RECEIVED");
+            }
+        } else {
+            // 반대 관계가 없는 경우, REQ - REQ_RECEIVED 상태로 초기화
+            friend.setStatus("REQ");
             reverseFriend = new Friend(requestDto.getReceiverId(), requestDto.getRequesterId());
+            reverseFriend.setStatus("REQ_RECEIVED");
         }
-        reverseFriend.setStatus("REQ_RECEIVED");
-        friendRepository.save(reverseFriend);
+
+        // 저장
+        friendRepository.save(friend);
+        friendRepository.save(reverseFriend); // 반대 상태 저장
+
     }
 
     @Transactional
@@ -135,8 +165,7 @@ public class FriendService {
                 requestDto.getRequesterId(), requestDto.getReceiverId()
         ).orElseThrow(() -> new IllegalArgumentException("친구 요청이 없습니다."));
 
-        String currentUserId = "1";
-        checkActionPermission(friend, "accept", currentUserId);
+        checkActionPermission(friend, "accept");
 
         friend.setStatus("ACC");
         friendRepository.save(friend);
@@ -155,8 +184,7 @@ public class FriendService {
                 requestDto.getRequesterId(), requestDto.getReceiverId()
         ).orElseThrow(() -> new IllegalArgumentException("친구 요청이 없습니다."));
 
-        String currentUserId = "1";
-        checkActionPermission(friend, "reject", currentUserId);
+        checkActionPermission(friend, "reject");
 
         friend.setStatus("REJ");
         friendRepository.save(friend);
@@ -175,8 +203,7 @@ public class FriendService {
                 requestDto.getRequesterId(), requestDto.getReceiverId()
         ).orElseThrow(() -> new IllegalArgumentException("친구 관계가 존재하지 않습니다."));
 
-        String currentUserId = "1";
-        checkActionPermission(friend, "delete", currentUserId);
+        checkActionPermission(friend, "delete");
 
         friend.setStatus("DEL");
         friend.setLiked("N");
@@ -186,18 +213,24 @@ public class FriendService {
         Friend reverseFriend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getReceiverId(), requestDto.getRequesterId()
         ).orElseGet(() -> new Friend(requestDto.getReceiverId(), requestDto.getRequesterId()));
-        reverseFriend.setStatus("NONE");
+
+        // 상대방의 상태가 DEL이라면 DEL로 유지, 그렇지 않으면 ACC로 설정
+        if ("DEL".equals(reverseFriend.getStatus())) {
+            reverseFriend.setStatus("DEL");
+        } else {
+            reverseFriend.setStatus("ACC");
+        }
         friendRepository.save(reverseFriend);
     }
 
+
     @Transactional
     public void blockFriend(FriendRequestDto requestDto) {
-        String currentUserId = "1";
 
         Friend friend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getRequesterId(), requestDto.getReceiverId()
         ).orElseGet(() -> new Friend(requestDto.getRequesterId(), requestDto.getReceiverId()));
-        checkActionPermission(friend, "block", currentUserId);
+        checkActionPermission(friend, "block");
         friend.setStatus("BLOCKED");
         friend.setLiked("N");
         friendRepository.save(friend);
@@ -216,10 +249,10 @@ public class FriendService {
                 requestDto.getRequesterId(), requestDto.getReceiverId()
         ).orElseThrow(() -> new IllegalArgumentException("차단된 관계가 없습니다."));
 
-        String currentUserId = "1";
-        checkActionPermission(friend, "unblock", currentUserId);
+        Long currentUserId = getCurrentUserId();
+        checkActionPermission(friend, "unblock");
 
-        if ("BAN".equals(friend.getStatus()) && currentUserId.equals(friend.getRequesterId())) {
+        if ("BLOCKED".equals(friend.getStatus()) && currentUserId.equals(friend.getRequesterId())) {
             friend.setStatus("NONE");
             friendRepository.save(friend);
 
@@ -244,9 +277,7 @@ public class FriendService {
         }
 
         // 좋아요 가능한 상태인지 확인
-        // String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
-        String currentUserId = "1";
-        checkActionPermission(friend, "like",currentUserId);
+        checkActionPermission(friend, "like");
 
         friend.setLiked("Y"); // 좋아요 상태 설정
         friendRepository.save(friend);
@@ -263,22 +294,24 @@ public class FriendService {
         }
 
         // 좋아요 취소 가능한 상태인지 확인
-        // String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
-        String currentUserId = "1";
-        checkActionPermission(friend, "unlike",currentUserId);
+        checkActionPermission(friend, "unlike");
 
         friend.setLiked("N"); // 좋아요 취소 상태 설정
         friendRepository.save(friend);
     }
 
-    public List<FriendResponseDto> getFriendList(String userId) {
-        // 친구 목록 조회 - 상태가 ACC인 친구만 가져옴
-        List<Friend> friends = friendRepository.findByRequesterIdAndStatusOrReceiverIdAndStatus(userId, "ACC", userId, "ACC");
+    // 친구 목록 조회
+    public List<FriendResponseDto> getFriendList() {
+        Long currentUserId = getCurrentUserId();
+        List<Friend> friends = friendRepository.findByRequesterIdAndStatusOrReceiverIdAndStatus(currentUserId, "ACC", currentUserId, "ACC");
+        return friends.stream().map(FriendResponseDto::new).collect(Collectors.toList());
+    }
 
-        // Friend 엔티티를 FriendResponseDto로 변환하여 반환
-        return friends.stream()
-                .map(friend -> new FriendResponseDto(friend))
-                .collect(Collectors.toList());
+    // 차단한 사용자 목록 조회
+    public List<FriendResponseDto> getBlockedFriends() {
+        Long currentUserId = getCurrentUserId();
+        List<Friend> blockedFriends = friendRepository.findByRequesterIdAndStatus(currentUserId, "BLOCKED");
+        return blockedFriends.stream().map(FriendResponseDto::new).collect(Collectors.toList());
     }
 
 }

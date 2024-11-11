@@ -9,9 +9,12 @@ import java.util.Optional;
 
 public interface FriendRepository extends JpaRepository<Friend, Long> {
 
-    Optional<Friend> findByRequesterIdAndReceiverId(String requesterId, String receiverId);
+    Optional<Friend> findByRequesterIdAndReceiverId(Long requesterId, Long receiverId);
 
     // 요청한 사람의 친구 또는 요청받은 사람의 친구 중 상태가 'ACC'인 목록 조회
-    List<Friend> findByRequesterIdAndStatusOrReceiverIdAndStatus(String requesterId, String status1, String receiverId, String status2);
+    List<Friend> findByRequesterIdAndStatusOrReceiverIdAndStatus(Long requesterId, String status1, Long receiverId, String status2);
+
+    // 현재 사용자가 차단한 친구 목록 조회 메서드
+    List<Friend> findByRequesterIdAndStatus(Long requesterId, String status);
 
 }

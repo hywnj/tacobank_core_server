@@ -30,17 +30,8 @@ public class GroupMember {
     @JoinColumn(name = "member_id", columnDefinition = "BIGINT NOT NULL COMMENT '멤버 ID'")
     private Member member;
 
-    @Column(columnDefinition = "VARCHAR(1) COMMENT '초대 여부'")
-    private String invited;
-
-    @Column(columnDefinition = "VARCHAR(1) COMMENT '승인 여부'")
-    private String accepted;
-
-    @Column(columnDefinition = "VARCHAR(1) COMMENT '차단 여부'")
-    private String banned;
-
-    @Column(columnDefinition = "VARCHAR(1) COMMENT '탈퇴 여부'")
-    private String exited;
+    @Column(columnDefinition = "VARCHAR(10) COMMENT '상태'")
+    private String status;
 
     @Column(columnDefinition = "DATETIME NOT NULL COMMENT '생성일자'")
     private LocalDateTime createdDate;

@@ -45,4 +45,15 @@ public class Group {
     @OneToMany(mappedBy = "payGroup", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<GroupMember> payGroups; // 그룹 구성원의 정산그룹 ID
 
+    @PrePersist
+    protected void onCreate() {
+        this.createdDate = LocalDateTime.now();
+        this.updatedDate = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedDate = LocalDateTime.now();
+    }
+
 }

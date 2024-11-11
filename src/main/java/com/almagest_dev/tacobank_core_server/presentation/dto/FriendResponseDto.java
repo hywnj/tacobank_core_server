@@ -9,8 +9,8 @@ import lombok.Getter;
 @AllArgsConstructor
 public class FriendResponseDto {
     private Long id;
-    private String requesterId;
-    private String receiverId;
+    private Long requesterId;
+    private Long receiverId;
     private String status;
     private String liked;
 
