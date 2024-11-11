@@ -1,15 +1,15 @@
 spring:
   application:
-    name: business_server
+    name: tacobank_core_server
   datasource:
-    url: jdbc:mariadb://localhost:3306/tacobank_db
-    username: root
-    password: 1234
     driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://{DB_HOST}:{DB_PORT}/{DB_NAME}?useSSL=false&useServerPrepStmts=true&useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul
+    username: {DB_USERNAME}
+    password: {DB_PASSWORD}
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: create
     database-platform: org.hibernate.dialect.MariaDBDialect
 
   data:
@@ -34,8 +34,6 @@ management:
   health:
     db:
       enabled: true  # 데이터베이스 연결 상태 확인
-    redis:
-      enabled: true  # Redis 연결 상태 확인
 
 server:
-  port: 8081
+  port: 8080
