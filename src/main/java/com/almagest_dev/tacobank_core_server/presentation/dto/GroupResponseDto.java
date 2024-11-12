@@ -1,15 +1,18 @@
 package com.almagest_dev.tacobank_core_server.presentation.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class GroupResponseDto {
     private Long groupId;
     private String groupName;
     private String customized;
     private String activated;
-
-    public GroupResponseDto(Long groupId, String groupName, String customized, String activated) {
-        this.groupId = groupId;
-        this.groupName = groupName;
-        this.customized = customized;
-        this.activated = activated;
-    }
+    private List<GroupMemberResponseDto> members;
 }

@@ -39,5 +39,16 @@ public class GroupMember {
     @Column (columnDefinition = "DATETIME NOT NULL COMMENT '수정일자'")
     private LocalDateTime updatedDate;
 
+    @PrePersist
+    protected void onCreate() {
+        this.createdDate = LocalDateTime.now();
+        this.updatedDate = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedDate = LocalDateTime.now();
+    }
+
 
 }

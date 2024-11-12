@@ -28,8 +28,6 @@ public class FriendService {
     private void checkActionPermission(Friend friend, String action) {
         // 현재 사용자가 요청자(Requester) 또는 수신자(Receiver)인지 확인
         Long currentUserId = getCurrentUserId();
-//        boolean isRequester = currentUserId.equals(friend.getRequesterId());
-//        boolean isReceiver = currentUserId.equals(friend.getReceiverId());
         boolean isRequester = friend.getRequesterId().equals(getCurrentUserId());
         boolean isReceiver = friend.getReceiverId().equals(getCurrentUserId());
 

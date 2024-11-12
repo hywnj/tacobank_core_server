@@ -1,5 +1,12 @@
 package com.almagest_dev.tacobank_core_server.presentation.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class GroupMemberResponseDto {
     private Long id;
     private Long groupId;
