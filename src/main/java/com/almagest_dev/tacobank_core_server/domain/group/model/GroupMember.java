@@ -30,7 +30,7 @@ public class GroupMember {
     @JoinColumn(name = "member_id", columnDefinition = "BIGINT NOT NULL COMMENT '멤버 ID'")
     private Member member;
 
-    @Column(columnDefinition = "VARCHAR(10) COMMENT '상태'")
+    @Column(columnDefinition = "VARCHAR(30) COMMENT '상태'")
     private String status;
 
     @Column(columnDefinition = "DATETIME NOT NULL COMMENT '생성일자'")

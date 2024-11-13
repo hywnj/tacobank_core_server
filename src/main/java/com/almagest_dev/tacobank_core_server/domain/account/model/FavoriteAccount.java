@@ -9,15 +9,13 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-
 @Entity
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "account")
-public class Account {
-
+@Table(name = "favorite_account")
+public class FavoriteAccount {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -35,12 +33,6 @@ public class Account {
     @Column(columnDefinition = "VARCHAR(5) COMMENT '은행코드'")
     private String bankCode;
 
-    @Column(columnDefinition = "VARCHAR(1) COMMENT '본인 인증 여부'")
-    private String verificated;
-
-    @Column(columnDefinition = "VARCHAR(40) COMMENT '계좌 핀테크 이용번호'")
-    private String fintechUseNum;
-
     @Column(columnDefinition = "DATETIME NOT NULL COMMENT '등록일자'")
     private LocalDateTime createdDate;
 
@@ -57,5 +49,4 @@ public class Account {
     protected void onUpdate() {
         this.updatedDate = LocalDateTime.now();
     }
-
 }

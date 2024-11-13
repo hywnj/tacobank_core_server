@@ -35,7 +35,7 @@ public class GroupService {
 
     public Long getCurrentUserId() {
         // String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
-        return 3L; // 테스트용 임시 사용자 ID
+        return 1L; // 테스트용 임시 사용자 ID
     }
 
     @Transactional

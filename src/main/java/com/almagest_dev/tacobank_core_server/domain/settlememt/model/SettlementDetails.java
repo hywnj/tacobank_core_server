@@ -1,6 +1,6 @@
 package com.almagest_dev.tacobank_core_server.domain.settlememt.model;
 
-import com.almagest_dev.tacobank_core_server.domain.group.model.Group;
+import com.almagest_dev.tacobank_core_server.domain.group.model.GroupMember;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -14,27 +14,25 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "settlement")
-public class Settlement {
+@Table(name = "settlement_details")
+public class SettlementDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pay_group_id", columnDefinition = "BIGINT NOT NULL COMMENT '정산그룹 ID'")
-    private Group payGroup;
+    @JoinColumn(name = "settlement_id", columnDefinition = "BIGINT NOT NULL COMMENT '정산ID'")
+    private Settlement settlement;
 
-    @Column(name = "receipt_id", columnDefinition = "BIGINT COMMENT '영수증 ID'")
-    private Long receiptId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_member_id", columnDefinition = "BIGINT NOT NULL COMMENT '구성원 ID'")
+    private GroupMember groupMember;
 
-    @Column(name = "settlement_account_id", columnDefinition = "BIGINT COMMENT '정산받을 계좌아이디'")
-    private Long settlementAccountId;
+    @Column(name = "settlement_amount", columnDefinition = "INT COMMENT '개별 정산금액'")
+    private Integer settlementAmount;
 
-    @Column(name = "settlement_total_amount", columnDefinition = "INT COMMENT '정산총액'")
-    private Integer settlementTotalAmount;
-
-    @Column(name = "settlement_status", columnDefinition = "VARCHAR(1) COMMENT '정산상태'")
+    @Column(name = "settlement_status", columnDefinition = "VARCHAR(1) COMMENT '개별 정산상태'")
     private String settlementStatus;
 
     @Column(columnDefinition = "DATETIME NOT NULL COMMENT '생성일자'")
