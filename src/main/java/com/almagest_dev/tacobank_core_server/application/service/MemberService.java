@@ -1,18 +1,20 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
+import com.almagest_dev.tacobank_core_server.common.exception.InvalidVerificationException;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
-import com.almagest_dev.tacobank_core_server.presentation.dto.FindEmailRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.MemberResponseDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.ResetPasswordRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.UpdateMemberRequestDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.sms.SmsAuthUtil;
+import com.almagest_dev.tacobank_core_server.presentation.dto.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class MemberService {
     private final MemberRepository memberRepository;
+    private final SmsAuthUtil smsAuthUtil;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * ID로 Member 조회
@@ -45,16 +47,35 @@ public class MemberService {
 
 
     /**
-     * 비밀번호 재설정 확인
+     * 비밀번호 재설정: 본인 인증 & 인증번호 발송
      */
-    public void resetPassword(ResetPasswordRequestDto requestDto) {
+    public void findPasswordAndSendSmsAuth(FindPasswordRequestDto requestDto) {
         // 1. 멤버 확인
         Member member = memberRepository.findByEmailAndTel(requestDto.getEmail(), requestDto.getTel())
                 .orElseThrow(() -> new IllegalArgumentException("회원 정보를 찾을 수 없습니다."));
-        // @TODO 문자 인증번호 발송 및 인증 절차
 
-        // @TODO 인증 성공시, 기존 비밀번호를 새로운 비밀번호로 재설정 허용 (기존 비밀번호 삭제?)
+        // 2. 문자 인증번호 발송 및 인증 요청
+        smsAuthUtil.sendVerificationCode(member.getTel());
+    }
 
+    /**
+     * 비밀번호 재설정: 인증번호 검증 & 새로운 비밀번호로 설정
+     */
+    public void confirmPassword(ResetPasswordRequestDto requestDto) {
+        // 1. 멤버 확인
+        Member member = memberRepository.findByIdAndDeleted(requestDto.getMemberId(), "N")
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        // 2. 인증번호 검증
+        if (!smsAuthUtil.verifyCode(requestDto.getTel(), requestDto.getInputCode())) {
+            throw new InvalidVerificationException("인증 번호가 일치하지 않습니다.");
+        }
+
+        // 3. 비밀번호 Update & 저장
+        String encodedPassword = passwordEncoder.encode(requestDto.getNewPassword());
+        member.changePassword(encodedPassword);
+
+        memberRepository.save(member);
     }
 
     /**
