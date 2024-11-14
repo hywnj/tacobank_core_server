@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class SettlementRequestDto {
     private Long groupId; // 정산 그룹 ID
     private Integer totalAmount; // 총 정산 금액
+    private Long accountId;
 }

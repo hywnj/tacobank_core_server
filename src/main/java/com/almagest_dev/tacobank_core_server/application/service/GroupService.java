@@ -33,15 +33,15 @@ public class GroupService {
         this.memberRepository = memberRepository;
     }
 
-    public Long getCurrentUserId() {
-        // String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
-        return 1L; // 테스트용 임시 사용자 ID
+    private void validateLeader(Long userId, Group group) {
+        if (!group.getLeader().getId().equals(userId)) {
+            throw new IllegalStateException("그룹장만 수행할 수 있는 작업입니다.");
+        }
     }
 
     @Transactional
-    public GroupResponseDto createGroup(GroupRequestDto requestDto) {
-        Long leaderId = getCurrentUserId();
-        Member leader = memberRepository.findById(leaderId)
+    public GroupResponseDto createGroup(Long userId, GroupRequestDto requestDto) {
+        Member leader = memberRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("그룹장을 찾을 수 없습니다."));
 
         Group group = new Group();
@@ -55,12 +55,11 @@ public class GroupService {
             group.setName(requestDto.getGroupName());
         }
 
-        final Group savedGroup = groupRepository.save(group); // group을 final로 선언하여 저장
+        final Group savedGroup = groupRepository.save(group);
 
-        // 그룹 멤버 추가 로직
+        addGroupLeaderAsMember(savedGroup, leader);
         addMembersToGroup(savedGroup, requestDto.getFriendIds());
 
-        // GroupMemberResponseDto 리스트 생성
         List<GroupMemberResponseDto> memberDtos = savedGroup.getPayGroups().stream()
                 .map(member -> new GroupMemberResponseDto(
                         member.getId(),
@@ -71,6 +70,15 @@ public class GroupService {
                 .collect(Collectors.toList());
 
         return new GroupResponseDto(savedGroup.getId(), savedGroup.getName(), savedGroup.getCustomized(), savedGroup.getActivated(), memberDtos);
+    }
+
+    // 그룹장을 그룹 멤버로 추가하는 메서드
+    private void addGroupLeaderAsMember(Group group, Member leader) {
+        GroupMember groupLeaderMember = new GroupMember();
+        groupLeaderMember.setPayGroup(group);
+        groupLeaderMember.setMember(leader);
+        groupLeaderMember.setStatus("ACCEPTED");
+        groupMemberRepository.save(groupLeaderMember);
     }
 
     private void addMembersToGroup(Group group, List<Long> friendIds) {
@@ -86,30 +94,21 @@ public class GroupService {
     }
 
     @Transactional
-    public void deleteGroup(Long groupId) {
-        Long leaderId = getCurrentUserId();
+    public void deleteGroup(Long userId, Long groupId) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new IllegalArgumentException("그룹을 찾을 수 없습니다."));
-
-        if (!group.getLeader().getId().equals(leaderId)) {
-            throw new IllegalStateException("그룹장만 그룹을 삭제할 수 있습니다.");
-        }
-
+        validateLeader(userId, group);
         groupRepository.delete(group);
     }
 
     @Transactional
-    public void inviteFriend(Long groupId, Long friendId) {
-        Long leaderId = getCurrentUserId();
+    public void inviteFriend(Long userId, Long groupId, Long friendId) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new IllegalArgumentException("그룹을 찾을 수 없습니다."));
+        validateLeader(userId, group);
 
-        if (!group.getLeader().getId().equals(leaderId)) {
-            throw new IllegalStateException("그룹장만 초대할 수 있습니다.");
-        }
-
-        List<Long> inviteableFriendIds = getInviteableFriends(leaderId).stream()
-                .map(friend -> friend.getRequesterId().equals(leaderId) ? friend.getReceiverId() : friend.getRequesterId())
+        List<Long> inviteableFriendIds = getInviteableFriends(userId).stream()
+                .map(friend -> friend.getRequesterId().equals(userId) ? friend.getReceiverId() : friend.getRequesterId())
                 .toList();
 
         if (!inviteableFriendIds.contains(friendId)) {
@@ -135,20 +134,16 @@ public class GroupService {
         }
     }
 
-    public List<Friend> getInviteableFriends(Long leaderId) {
+    public List<Friend> getInviteableFriends(Long userId) {
         return friendRepository.findByRequesterIdAndStatusOrReceiverIdAndStatus(
-                leaderId, "ACC", leaderId, "ACC");
+                userId, "ACC", userId, "ACC");
     }
 
     @Transactional
-    public void expelMember(Long groupId, Long memberId) {
-        Long leaderId = getCurrentUserId();
+    public void expelMember(Long userId, Long groupId, Long memberId) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new IllegalArgumentException("그룹을 찾을 수 없습니다."));
-
-        if (!group.getLeader().getId().equals(leaderId)) {
-            throw new IllegalStateException("그룹장만 멤버를 추방할 수 있습니다.");
-        }
+        validateLeader(userId, group);
 
         GroupMember groupMember = groupMemberRepository.findByPayGroupIdAndMemberId(groupId, memberId)
                 .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
@@ -162,9 +157,8 @@ public class GroupService {
     }
 
     @Transactional
-    public void acceptInvitation(Long groupId) {
-        Long memberId = getCurrentUserId();
-        GroupMember groupMember = groupMemberRepository.findByPayGroupIdAndMemberId(groupId, memberId)
+    public void acceptInvitation(Long userId, Long groupId) {
+        GroupMember groupMember = groupMemberRepository.findByPayGroupIdAndMemberId(groupId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("초대를 찾을 수 없습니다."));
 
         if ("ACCEPTED".equals(groupMember.getStatus())) {
@@ -179,9 +173,8 @@ public class GroupService {
     }
 
     @Transactional
-    public void rejectInvitation(Long groupId) {
-        Long memberId = getCurrentUserId();
-        GroupMember groupMember = groupMemberRepository.findByPayGroupIdAndMemberId(groupId, memberId)
+    public void rejectInvitation(Long userId, Long groupId) {
+        GroupMember groupMember = groupMemberRepository.findByPayGroupIdAndMemberId(groupId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("초대를 찾을 수 없습니다."));
 
         if (!"INVITED".equals(groupMember.getStatus())) {
@@ -197,9 +190,8 @@ public class GroupService {
     }
 
     @Transactional
-    public void leaveGroup(Long groupId) {
-        Long memberId = getCurrentUserId();
-        GroupMember groupMember = groupMemberRepository.findByPayGroupIdAndMemberId(groupId, memberId)
+    public void leaveGroup(Long userId, Long groupId) {
+        GroupMember groupMember = groupMemberRepository.findByPayGroupIdAndMemberId(groupId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("그룹 멤버를 찾을 수 없습니다."));
 
         if ("EXPELLED".equals(groupMember.getStatus())) {
@@ -214,9 +206,8 @@ public class GroupService {
         groupMemberRepository.save(groupMember);
     }
 
-    public List<GroupResponseDto> getMyGroups() {
-        Long memberId = getCurrentUserId();
-        List<Group> myGroups = groupRepository.findByLeaderIdOrMemberId(memberId);
+    public List<GroupResponseDto> getMyGroups(Long userId) {
+        List<Group> myGroups = groupRepository.findByLeaderIdOrMemberId(userId);
 
         return myGroups.stream()
                 .map(group -> new GroupResponseDto(
@@ -236,9 +227,8 @@ public class GroupService {
                 .collect(Collectors.toList());
     }
 
-    public List<GroupMemberResponseDto> getPendingInvitations() {
-        Long memberId = getCurrentUserId();
-        List<GroupMember> pendingInvitations = groupMemberRepository.findByMemberIdAndStatus(memberId, "INVITED");
+    public List<GroupMemberResponseDto> getPendingInvitations(Long userId) {
+        List<GroupMember> pendingInvitations = groupMemberRepository.findByMemberIdAndStatus(userId, "INVITED");
 
         return pendingInvitations.stream()
                 .map(member -> new GroupMemberResponseDto(

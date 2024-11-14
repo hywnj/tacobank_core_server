@@ -19,17 +19,10 @@ public class FriendService {
         this.friendRepository = friendRepository;
     }
 
-    // 현재 사용자 ID를 가져오는 메서드 (추후 인증 추가 시 수정)
-    private Long getCurrentUserId() {
-        // String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
-        return 1L; // 임시로 현재 사용자 ID를 1로 설정하여 테스트용으로 사용
-    }
-
-    private void checkActionPermission(Friend friend, String action) {
+    private void checkActionPermission(Friend friend, String action, Long userId) {
         // 현재 사용자가 요청자(Requester) 또는 수신자(Receiver)인지 확인
-        Long currentUserId = getCurrentUserId();
-        boolean isRequester = friend.getRequesterId().equals(getCurrentUserId());
-        boolean isReceiver = friend.getReceiverId().equals(getCurrentUserId());
+        boolean isRequester = friend.getRequesterId().equals(userId);
+        boolean isReceiver = friend.getReceiverId().equals(userId);
 
         switch (friend.getStatus()) {
             case "REQ":
@@ -91,8 +84,16 @@ public class FriendService {
         }
     }
 
+    private void validateUserId(Long userId, Long requesterId) {
+        if (!userId.equals(requesterId)) {
+            throw new IllegalArgumentException("userId와 requesterId가 일치하지 않습니다.");
+        }
+    }
+
     @Transactional
-    public void requestFriend(FriendRequestDto requestDto) {
+    public void requestFriend(Long userId, FriendRequestDto requestDto) {
+
+        validateUserId(userId, requestDto.getRequesterId());
 
         // 요청자와 수신자가 동일한 경우 예외 처리
         if (requestDto.getRequesterId().equals(requestDto.getReceiverId())) {
@@ -104,7 +105,7 @@ public class FriendService {
         ).orElseGet(() -> new Friend(requestDto.getRequesterId(), requestDto.getReceiverId()));
 
         // 요청 중복 방지 예외 처리
-        checkActionPermission(friend, "request");
+        checkActionPermission(friend, "request", userId);
 
         // 기존 요청 상태 확인
         Friend reverseFriend = friendRepository.findByRequesterIdAndReceiverId(
@@ -158,12 +159,15 @@ public class FriendService {
     }
 
     @Transactional
-    public void acceptFriend(FriendRequestDto requestDto) {
+    public void acceptFriend(Long userId, FriendRequestDto requestDto) {
+
+        validateUserId(userId, requestDto.getRequesterId());
+
         Friend friend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getRequesterId(), requestDto.getReceiverId()
         ).orElseThrow(() -> new IllegalArgumentException("친구 요청이 없습니다."));
 
-        checkActionPermission(friend, "accept");
+        checkActionPermission(friend, "accept",userId);
 
         friend.setStatus("ACC");
         friendRepository.save(friend);
@@ -177,12 +181,15 @@ public class FriendService {
     }
 
     @Transactional
-    public void rejectFriend(FriendRequestDto requestDto) {
+    public void rejectFriend(Long userId,FriendRequestDto requestDto) {
+
+        validateUserId(userId, requestDto.getRequesterId());
+
         Friend friend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getRequesterId(), requestDto.getReceiverId()
         ).orElseThrow(() -> new IllegalArgumentException("친구 요청이 없습니다."));
 
-        checkActionPermission(friend, "reject");
+        checkActionPermission(friend, "reject",userId);
 
         friend.setStatus("REJ");
         friendRepository.save(friend);
@@ -196,12 +203,13 @@ public class FriendService {
     }
 
     @Transactional
-    public void deleteFriend(FriendRequestDto requestDto) {
+    public void deleteFriend(Long userId,FriendRequestDto requestDto) {
+        validateUserId(userId, requestDto.getRequesterId());
         Friend friend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getRequesterId(), requestDto.getReceiverId()
         ).orElseThrow(() -> new IllegalArgumentException("친구 관계가 존재하지 않습니다."));
 
-        checkActionPermission(friend, "delete");
+        checkActionPermission(friend, "delete",userId);
 
         friend.setStatus("DEL");
         friend.setLiked("N");
@@ -223,12 +231,13 @@ public class FriendService {
 
 
     @Transactional
-    public void blockFriend(FriendRequestDto requestDto) {
+    public void blockFriend(Long userId,FriendRequestDto requestDto) {
+        validateUserId(userId, requestDto.getRequesterId());
 
         Friend friend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getRequesterId(), requestDto.getReceiverId()
         ).orElseGet(() -> new Friend(requestDto.getRequesterId(), requestDto.getReceiverId()));
-        checkActionPermission(friend, "block");
+        checkActionPermission(friend, "block",userId);
         friend.setStatus("BLOCKED");
         friend.setLiked("N");
         friendRepository.save(friend);
@@ -242,15 +251,15 @@ public class FriendService {
     }
 
     @Transactional
-    public void unblockFriend(FriendRequestDto requestDto) {
+    public void unblockFriend(Long userId,FriendRequestDto requestDto) {
+        validateUserId(userId, requestDto.getRequesterId());
         Friend friend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getRequesterId(), requestDto.getReceiverId()
         ).orElseThrow(() -> new IllegalArgumentException("차단된 관계가 없습니다."));
 
-        Long currentUserId = getCurrentUserId();
-        checkActionPermission(friend, "unblock");
+        checkActionPermission(friend, "unblock",userId);
 
-        if ("BLOCKED".equals(friend.getStatus()) && currentUserId.equals(friend.getRequesterId())) {
+        if ("BLOCKED".equals(friend.getStatus()) && userId.equals(friend.getRequesterId())) {
             friend.setStatus("NONE");
             friendRepository.save(friend);
 
@@ -265,7 +274,8 @@ public class FriendService {
     }
 
     @Transactional
-    public void likeFriend(FriendRequestDto requestDto) {
+    public void likeFriend(Long userId,FriendRequestDto requestDto) {
+        validateUserId(userId, requestDto.getRequesterId());
         Friend friend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getRequesterId(), requestDto.getReceiverId()
         ).orElseThrow(() -> new IllegalArgumentException("친구 관계가 존재하지 않습니다."));
@@ -275,14 +285,15 @@ public class FriendService {
         }
 
         // 좋아요 가능한 상태인지 확인
-        checkActionPermission(friend, "like");
+        checkActionPermission(friend, "like",userId);
 
         friend.setLiked("Y"); // 좋아요 상태 설정
         friendRepository.save(friend);
     }
 
     @Transactional
-    public void unlikeFriend(FriendRequestDto requestDto) {
+    public void unlikeFriend(Long userId,FriendRequestDto requestDto) {
+        validateUserId(userId, requestDto.getRequesterId());
         Friend friend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getRequesterId(), requestDto.getReceiverId()
         ).orElseThrow(() -> new IllegalArgumentException("친구 관계가 존재하지 않습니다."));
@@ -292,23 +303,21 @@ public class FriendService {
         }
 
         // 좋아요 취소 가능한 상태인지 확인
-        checkActionPermission(friend, "unlike");
+        checkActionPermission(friend, "unlike",userId);
 
         friend.setLiked("N"); // 좋아요 취소 상태 설정
         friendRepository.save(friend);
     }
 
     // 친구 목록 조회
-    public List<FriendResponseDto> getFriendList() {
-        Long currentUserId = getCurrentUserId();
-        List<Friend> friends = friendRepository.findByRequesterIdAndStatusOrReceiverIdAndStatus(currentUserId, "ACC", currentUserId, "ACC");
+    public List<FriendResponseDto> getFriendList(Long userId) {
+        List<Friend> friends = friendRepository.findByRequesterIdAndStatusOrReceiverIdAndStatus(userId, "ACC", userId, "ACC");
         return friends.stream().map(FriendResponseDto::new).collect(Collectors.toList());
     }
 
     // 차단한 사용자 목록 조회
-    public List<FriendResponseDto> getBlockedFriends() {
-        Long currentUserId = getCurrentUserId();
-        List<Friend> blockedFriends = friendRepository.findByRequesterIdAndStatus(currentUserId, "BLOCKED");
+    public List<FriendResponseDto> getBlockedFriends(Long userId) {
+        List<Friend> blockedFriends = friendRepository.findByRequesterIdAndStatus(userId, "BLOCKED");
         return blockedFriends.stream().map(FriendResponseDto::new).collect(Collectors.toList());
     }
 

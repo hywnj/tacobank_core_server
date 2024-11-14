@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -43,7 +44,8 @@ public class Group {
     private LocalDateTime updatedDate;
 
     @OneToMany(mappedBy = "payGroup", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<GroupMember> payGroups; // 그룹 구성원의 정산그룹 ID
+//    private List<GroupMember> payGroups;
+    private List<GroupMember> payGroups = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {
