@@ -81,6 +81,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body("요청이 실패했습닌다. 다시 시도해주세요.");
     }
 
+    // 테스트베드 API 예외처리
+    @ExceptionHandler(TestbedApiException.class)
+    public ResponseEntity<String> handleTestbedApiException(TestbedApiException ex) {
+        log.warn("TestbedApiException - " + ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
     // 인증 관련 예외 처리
     @ExceptionHandler(InvalidVerificationException.class)
     public ResponseEntity<String> handleInvalidVerificationException(InvalidVerificationException ex) {
