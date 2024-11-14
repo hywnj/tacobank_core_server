@@ -12,6 +12,7 @@ import org.springframework.web.client.RestTemplate;
 public class TestbedApiClient {
     private final String TESTBED_API_URL = "https://almagest.io/fintech/api";
     private final TestbedApiUtil testbedApiUtil;
+    private final RestTemplate restTemplate;
 
     /**
      * Testbed API 요청
@@ -20,7 +21,6 @@ public class TestbedApiClient {
         // Set Request Entity (+Header)
         HttpEntity<?> requestEntity = new HttpEntity<>(requestBody, testbedApiUtil.createHeaders());
 
-        RestTemplate restTemplate = new RestTemplate();
         try {
             R response = restTemplate.postForObject(
                     TESTBED_API_URL + path,

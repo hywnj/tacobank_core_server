@@ -25,6 +25,7 @@ public class NaverSmsApiClient {
     private String NAVER_SMS_SERVICE_ID;
     private static final String NAVER_SMS_API_URL ="https://sens.apigw.ntruss.com/sms/v2";
     private final NaverApiUtil naverApiUtil;
+    private final RestTemplate restTemplate;
 
     /**
      * Naver SMS API 요청
@@ -45,7 +46,6 @@ public class NaverSmsApiClient {
         HttpEntity<NaverSmsRequestDto> requestEntity = new HttpEntity<>(requestBody, naverApiUtil.createHeaders(time));
 
         // Naver SMS API 요청
-        RestTemplate restTemplate = new RestTemplate();
         try {
             NaverSmsResponseDto response = restTemplate.postForObject(
                     NAVER_SMS_API_URL + "/services/" + NAVER_SMS_SERVICE_ID + "/messages",
