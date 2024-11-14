@@ -2,6 +2,7 @@ package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.MemberService;
 import com.almagest_dev.tacobank_core_server.presentation.dto.FindEmailRequestDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.FindPasswordRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.ResetPasswordRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.UpdateMemberRequestDto;
 import jakarta.validation.Valid;
@@ -32,13 +33,22 @@ public class MemberController {
     }
 
     /**
-     * 비밀번호 재설정
+     * 비밀번호 재설정: 본인 인증 & 인증번호 발송
      */
-    @PostMapping("/password-reset")
-    public ResponseEntity<?> resetMemberPassword(@RequestBody @Valid ResetPasswordRequestDto requestDto) {
-        memberService.resetPassword(requestDto);
-        return ResponseEntity.ok("비밀번호 재설정");
+    @PostMapping("/password-reset/verify")
+    public ResponseEntity<?> findMemberPasswordAndSendSmsAuth(@RequestBody @Valid FindPasswordRequestDto requestDto) {
+        memberService.findPasswordAndSendSmsAuth(requestDto);
+        return ResponseEntity.ok("인증 번호를 발송했습니다.");
     }
+    /**
+     * 비밀번호 재설정: 인증번호 검증 & 새로운 비밀번호로 설정
+     */
+    @PostMapping("/password-reset/confirm")
+    public ResponseEntity<?> confirmMemberPassword(@RequestBody @Valid ResetPasswordRequestDto requestDto) {
+        memberService.confirmPassword(requestDto);
+        return ResponseEntity.ok("비밀번호 재설정이 완료되었습니다.");
+    }
+
 
     /**
      * 회원정보 수정

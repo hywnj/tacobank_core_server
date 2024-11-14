@@ -69,8 +69,10 @@ public class Member {
     public void changeName(String name) {
         this.name = name;
     }
-
     public void changeTel(String tel) {
         this.tel = tel;
+    }
+    public void changePassword(String password) {
+        this.password = password;
     }
 }

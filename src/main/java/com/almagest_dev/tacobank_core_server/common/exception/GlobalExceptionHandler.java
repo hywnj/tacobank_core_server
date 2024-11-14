@@ -10,9 +10,10 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.UnsupportedEncodingException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -56,6 +57,35 @@ public class GlobalExceptionHandler {
         log.warn("DataIntegrityViolationException - " + ex.getMessage());
         ExceptionResponseDTO response = new ExceptionResponseDTO("Bad Request", "필수 데이터가 누락되었거나 잘못된 데이터가 입력되었습니다.");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+    @ExceptionHandler(SmsSendFailedException.class) // SMS 전송시 예외처리
+    public ResponseEntity<?> handleSmsSendFailedException(SmsSendFailedException ex) {
+        log.warn("SmsSendFailedException - " + ex.getMessage());
+        ExceptionResponseDTO response = new ExceptionResponseDTO("Bad Request", "문자 발송이 실패했습니다. 다시 시도해주세요.");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    // 네이버 API 예외처리
+    @ExceptionHandler(NaverApiException.class)
+    public ResponseEntity<String> handleNaverApiException(NaverApiException ex) {
+        log.warn("NaverApiException - " + ex.getMessage());
+        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
+
+        // 발생 원인에 따른 상태 코드 설정
+        if (ex.getCause() instanceof UnsupportedEncodingException ||
+                ex.getCause() instanceof NoSuchAlgorithmException ||
+                ex.getCause() instanceof InvalidKeyException) {
+            status = HttpStatus.BAD_REQUEST;
+        }
+
+        return ResponseEntity.status(status).body("요청이 실패했습닌다. 다시 시도해주세요.");
+    }
+
+    // 인증 관련 예외 처리
+    @ExceptionHandler(InvalidVerificationException.class)
+    public ResponseEntity<String> handleInvalidVerificationException(InvalidVerificationException ex) {
+        log.warn("InvalidVerificationException - " + ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 
     // 포괄적인 서버 오류 처리
