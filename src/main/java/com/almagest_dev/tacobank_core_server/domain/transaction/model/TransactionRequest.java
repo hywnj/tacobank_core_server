@@ -36,6 +36,15 @@ public class TransactionRequest {
     @Column(columnDefinition = "BIGINT COMMENT '출금 계좌 ID'")
     private Long accountId;
 
+    @Column(columnDefinition = "VARCHAR(5) NOT NULL COMMENT '출금 은행코드'")
+    private String depositBankCode;
+
+    @Column(columnDefinition = "VARCHAR(20) NOT NULL COMMENT '출금 계좌번호'")
+    private String depositAccountNum;
+
+    @Column(columnDefinition = "VARCHAR(20) NOT NULL COMMENT '출금 예금주'")
+    private String depositAccountHolder;
+
     @Column(columnDefinition = "VARCHAR(10) NOT NULL COMMENT '입금인자 출력문구'")
     private String printContent;
 
@@ -65,13 +74,5 @@ public class TransactionRequest {
 
     @Column(columnDefinition = "DATETIME ON UPDATE CURRENT_TIMESTAMP COMMENT '거래 응답일시'")
     private LocalDateTime responseDate;
-
-    // Request : Transaction Success = 1 : N
-    @OneToMany(mappedBy = "transactionRequest")
-    private List<TransactionSuccess> transactionSuccesses;
-
-    // Request : Transaction Fail = 1 : N
-    @OneToMany(mappedBy = "transactionRequest")
-    private List<TransactionFail> transactionFails;
 
 }
