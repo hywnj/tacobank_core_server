@@ -1,4 +1,4 @@
-package com.almagest_dev.tacobank_core_server.domain.transaction.model;
+package com.almagest_dev.tacobank_core_server.domain.transfer.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -6,14 +6,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Entity
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "transaction_request")
-public class TransactionRequest {
+@Table(name = "transfer")
+public class Transfer {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
