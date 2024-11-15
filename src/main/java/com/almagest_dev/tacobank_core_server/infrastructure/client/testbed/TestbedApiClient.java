@@ -2,11 +2,15 @@ package com.almagest_dev.tacobank_core_server.infrastructure.client.testbed;
 
 import com.almagest_dev.tacobank_core_server.common.exception.TestbedApiException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TestbedApiClient {
@@ -19,7 +23,9 @@ public class TestbedApiClient {
      */
     public <T, R> R  requestApi(T requestBody, String path, Class<R> responseType) {
         // Set Request Entity (+Header)
-        HttpEntity<?> requestEntity = new HttpEntity<>(requestBody, testbedApiUtil.createHeaders());
+        HttpHeaders headers = testbedApiUtil.createHeaders();
+        HttpEntity<?> requestEntity = new HttpEntity<>(requestBody, headers);
+        log.info("TestbedApiClient::requestApi Request Header - " + headers + " | Body - " + requestBody);
 
         try {
             R response = restTemplate.postForObject(
@@ -27,10 +33,10 @@ public class TestbedApiClient {
                     requestEntity,
                     responseType
             );
-
+            log.info("TestbedApiClient::requestApi Response - " + response);
             return response;
 
-        } catch (HttpServerErrorException ex) {
+        } catch (HttpClientErrorException | HttpServerErrorException ex) {
             throw new TestbedApiException(ex.getMessage(), ex);
         }
     }
