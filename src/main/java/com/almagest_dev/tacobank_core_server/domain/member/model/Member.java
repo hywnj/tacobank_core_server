@@ -39,6 +39,9 @@ public class Member {
     @Column(columnDefinition = "VARCHAR(1) DEFAULT 'N' NOT NULL COMMENT '탈퇴 여부(탈퇴시, Y)'")
     private String deleted;
 
+    @Column(columnDefinition = "VARCHAR(255) COMMENT '출금 비밀번호'")
+    private String transferPin;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", columnDefinition = "BIGINT COMMENT '권한 ID'")
     private Role role;
