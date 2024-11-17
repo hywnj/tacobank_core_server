@@ -1,22 +1,18 @@
 package com.almagest_dev.tacobank_core_server.presentation.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class TransferSessionData {
-    private Long depositMemberId;           // 출금 멤버 아이디
-    private String userFinanceId;           // 사용자 금융 식별번호
-    private Long depositAccountId;          // 출금 계좌 아이디
-    private String depositFintechUseNum;    // 계좌 핀테크 이용번호
+public class TransferRequestDto {
+    private String idempotencyKey;          // 중복 방지 키
+    private Long depositMemberId;           // 송금하는 사용자 ID (출금 사용자)
+    private Long depositAccountId;          // 출금 계좌 ID
     private String depositAccountNum;       // 출금 계좌 번호
     private String depositAccountHolder;    // 출금 예금주
     private String depositBankCode;         // 출금 은행 코드
     private String receiverAccountNum;      // 입금(수취) 계좌 번호
     private String receiverAccountHolder;   // 입금(수취) 예금주(수취인)
     private String receiverBankCode;        // 입금(수취) 은행 코드
-    private String amount;                  // 송금액
+    private Integer amount;                 // 송금액
+    private String printContent;            // 입금자 출력 문구
 }
