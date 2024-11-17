@@ -1,10 +1,7 @@
 package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.MemberService;
-import com.almagest_dev.tacobank_core_server.presentation.dto.FindEmailRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.FindPasswordRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.ResetPasswordRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.UpdateMemberRequestDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -66,5 +63,14 @@ public class MemberController {
     public ResponseEntity<?> deleteMember(@PathVariable Long id) {
         memberService.deactivateMember(id);
         return ResponseEntity.ok("회원 탈퇴가 완료되었습니다.");
+    }
+
+    /**
+     * 출금 비밀번호 설정
+     */
+    @PostMapping("/transfer-pin")
+    public ResponseEntity<String> setTransferPin(@RequestBody @Valid SetPinRequestDto requestDto) {
+        memberService.setTransferPin(requestDto);
+        return ResponseEntity.ok("Transfer PIN 설정 완료");
     }
 }

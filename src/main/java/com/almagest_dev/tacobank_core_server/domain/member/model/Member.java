@@ -77,4 +77,7 @@ public class Member {
     public void changePassword(String password) {
         this.password = password;
     }
+    public void changeTransferPin(String transferPin) {
+        this.transferPin = transferPin;
+    }
 }

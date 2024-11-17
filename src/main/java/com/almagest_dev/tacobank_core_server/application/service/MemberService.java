@@ -6,9 +6,11 @@ import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepo
 import com.almagest_dev.tacobank_core_server.infrastructure.sms.SmsAuthUtil;
 import com.almagest_dev.tacobank_core_server.presentation.dto.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MemberService {
@@ -115,5 +117,23 @@ public class MemberService {
 
         member.deactivate(); // 회원상태 비활성화
         memberRepository.save(member);
+    }
+
+    /**
+     * 출금 비밀번호 설정
+     */
+    public void setTransferPin(SetPinRequestDto requestDto) {
+        log.info("MemberService::setTransferPin START");
+
+        // Member 조회
+        Member member = memberRepository.findByIdAndDeleted(requestDto.getMemberId(), "N")
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        // 비밀번호 해싱 및 저장
+        String encodedPin = passwordEncoder.encode(requestDto.getTransferPin());
+        member.changeTransferPin(encodedPin);
+        memberRepository.save(member);
+
+        log.info("MemberService::setTransferPin END - Transfer PIN 설정 완료");
     }
 }
