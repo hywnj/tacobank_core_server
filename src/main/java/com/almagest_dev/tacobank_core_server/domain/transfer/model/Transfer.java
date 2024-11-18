@@ -111,29 +111,34 @@ public class Transfer {
     }
     // Transfer 업데이트 메서드
     public Transfer updateTransfer(String apiTranId, String status, String responseCode, String responseMessage, String responseDate) {
+
+        // apiTranDtm 변환: "20190910101921567" -> "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
+        LocalDateTime formattedResponseDate = LocalDateTime.parse(
+                responseDate.substring(0, 14), // 초 단위까지만 파싱
+                DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
+        );
+
         return new Transfer(
-                this.id,                      // 기존 ID 유지
-                this.transactionId,           // 기존 거래 ID 유지
-                this.idempotencyKey,          // 기존 중복 방지 키 유지
-                apiTranId,               // 기존 API 요청 ID 유지
-                this.settlementId,            // 기존 정산 ID 유지
-                this.memberId,                // 기존 송금 요청자 유지
-                this.accountId,               // 기존 출금 계좌 유지
-                this.depositBankCode,         // 기존 출금 은행 유지
-                this.depositAccountNum,       // 기존 출금 계좌 번호 유지
-                this.depositAccountHolder,    // 기존 출금 예금주 유지
-                this.printContent,            // 기존 입금인자 유지
-                this.receiverBankCode,        // 기존 수신 은행 유지
-                this.receiverAccountNum,      // 기존 수신 계좌 번호 유지
-                this.receiverAccountHolder,   // 기존 수신 예금주 유지
-                this.amount,                  // 기존 송금 금액 유지
-                status,                       // 업데이트된 상태
-                responseCode,                 // 업데이트된 응답 코드
-                responseMessage,              // 업데이트된 응답 메시지
-                this.requestedDate,           // 기존 요청 일시 유지
-                responseDate != null
-                        ? LocalDateTime.parse(responseDate, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"))
-                        : LocalDateTime.now()
+                this.id,                        // 기존 ID 유지
+                this.transactionId,             // 기존 거래 ID 유지
+                this.idempotencyKey,            // 기존 중복 방지 키 유지
+                apiTranId,                      // 기존 API 요청 ID 유지
+                this.settlementId,              // 기존 정산 ID 유지
+                this.memberId,                  // 기존 송금 요청자 유지
+                this.accountId,                 // 기존 출금 계좌 유지
+                this.depositBankCode,           // 기존 출금 은행 유지
+                this.depositAccountNum,         // 기존 출금 계좌 번호 유지
+                this.depositAccountHolder,      // 기존 출금 예금주 유지
+                this.printContent,              // 기존 입금인자 유지
+                this.receiverBankCode,          // 기존 수신 은행 유지
+                this.receiverAccountNum,        // 기존 수신 계좌 번호 유지
+                this.receiverAccountHolder,     // 기존 수신 예금주 유지
+                this.amount,                    // 기존 송금 금액 유지
+                status,                         // 업데이트된 상태
+                responseCode,                   // 업데이트된 응답 코드
+                responseMessage,                // 업데이트된 응답 메시지
+                this.requestedDate,             // 기존 요청 일시 유지
+                formattedResponseDate           // 거래 응답(송금) 일시
         );
     }
 

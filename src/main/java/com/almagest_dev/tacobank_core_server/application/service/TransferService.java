@@ -1,5 +1,6 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
+import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
 import com.almagest_dev.tacobank_core_server.common.exception.TransferPasswordValidationException;
 import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.AccountRepository;
@@ -192,12 +193,13 @@ public class TransferService {
         // 응답 반환
 
 
+
         log.info("TransferService::transfer END");
     }
 
     @Transactional
-    public void processTransferTransaction(Transfer transfer, TransferRequestDto requestDto,
-                                           TransferSessionData sessionData, String sessionKey) {
+    public CoreResponseDto<TransferResponseDto> processTransferTransaction(Transfer transfer, TransferRequestDto requestDto,
+                                                                           TransferSessionData sessionData, String sessionKey) {
         log.info("TransferService - [{}] transfer processTransferTransaction START", sessionKey);
         try {
             // 테스트베드 송금 요청 Body 세팅
@@ -227,16 +229,42 @@ public class TransferService {
             log.info("TransferService - [{}] transfer processTransferTransaction Testbed API Response : {}", sessionKey, apiResponse);
 
             // @TODO testbed 응답코드 분류 받기 | 실패인 경우에도 apiTranDtm은 내려주는지 | 상세 내용이 메시지에 출력되는지 여부 & 어떤 종류가 있는지
-            // 테스트베드 응답 코드 처리
+            // 테스트베드 응답 코드 처리 & 응답 반환
+            CoreResponseDto<TransferResponseDto> response;
             String apiTranId = apiResponse.getApiTranId();
             if ("A0000".equals(apiResponse.getRspCode())) {
+                // 성공
                 log.info("TransferService - [{}] transfer processTransferTransaction Success", sessionKey);
                 updateTransferStatus(transfer, apiTranId, "S", apiResponse.getRspCode(), apiResponse.getRspMessage(), apiResponse.getApiTranDtm());
+
+                // TransferResponseDto 생성
+                TransferResponseDto successResponse = TransferResponseDto.create(
+                        transfer.getIdempotencyKey(),
+                        apiResponse.getApiTranDtm(),
+                        transfer.getMemberId(),
+                        transfer.getAccountId(),
+                        transfer.getDepositAccountNum(),
+                        transfer.getDepositAccountHolder(),
+                        transfer.getDepositBankCode(),
+                        transfer.getReceiverAccountNum(),
+                        transfer.getReceiverAccountHolder(),
+                        transfer.getReceiverBankCode(),
+                        transfer.getAmount()
+                );
+
+                response = new CoreResponseDto<>("success", "송금이 완료되었습니다.", successResponse);
+
             } else {
+                // 실패
                 log.info("TransferService - [{}] transfer processTransferTransaction Fail : {}", sessionKey, apiResponse.getRspMessage());
                 updateTransferStatus(transfer, apiTranId, "F", apiResponse.getRspCode(), apiResponse.getRspMessage(), apiResponse.getApiTranDtm());
+
+                response = new CoreResponseDto<>("fail", "송금에 실패하였습니다. (" + apiResponse.getRspMessage() + ")", null);
             }
+
+            log.info("TransferService - [{}] transfer processTransferTransaction response - {}", sessionKey, response);
             log.info("TransferService - [{}] transfer processTransferTransaction END", sessionKey);
+            return response;
 
         } catch (Exception ex) {
             log.error("TransferService - [{}] transfer processTransferTransaction Exception : {}", sessionKey, ex.getMessage());
@@ -244,6 +272,9 @@ public class TransferService {
             updateTransferStatus(transfer, "", "F", "ERR001", "송금 처리 중 오류 발생", LocalDateTime.now().toString());
 
             throw ex; // 예외 재발생
+        } finally {
+            // Redis 세션 삭제
+            redisTemplate.delete(sessionKey);
         }
     }
     private void updateTransferStatus(Transfer transfer, String apiTranId, String status, String responseCode, String responseMessage, String apiTranDtm) {
