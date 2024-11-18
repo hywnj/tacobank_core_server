@@ -1,6 +1,5 @@
 package com.almagest_dev.tacobank_core_server.presentation.controller;
 
-
 import com.almagest_dev.tacobank_core_server.presentation.dto.FriendRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.FriendResponseDto;
 import com.almagest_dev.tacobank_core_server.application.service.FriendService;
@@ -19,63 +18,72 @@ public class FriendController {
         this.friendService = friendService;
     }
 
-    @PostMapping("/{userId}/request")
-    public ResponseEntity<String> requestFriend(@PathVariable Long userId, @RequestBody FriendRequestDto requestDto) {
-        friendService.requestFriend(userId, requestDto);
+    @PostMapping("/request")
+    public ResponseEntity<String> requestFriend(@RequestBody FriendRequestDto requestDto) {
+        friendService.requestFriend(requestDto.getRequesterId(), requestDto);
         return ResponseEntity.ok("친구 요청이 성공적으로 처리되었습니다.");
     }
 
-    @PostMapping("/{userId}/accept")
-    public ResponseEntity<String> acceptFriend(@PathVariable Long userId, @RequestBody FriendRequestDto requestDto) {
-        friendService.acceptFriend(userId, requestDto);
+    @PostMapping("/accept")
+    public ResponseEntity<String> acceptFriend(@RequestBody FriendRequestDto requestDto) {
+        friendService.acceptFriend(requestDto.getRequesterId(), requestDto);
         return ResponseEntity.ok("친구 요청을 수락하였습니다.");
     }
 
-    @PostMapping("/{userId}/reject")
-    public ResponseEntity<String> rejectFriend(@PathVariable Long userId, @RequestBody FriendRequestDto requestDto) {
-        friendService.rejectFriend(userId, requestDto);
+    @PostMapping("/reject")
+    public ResponseEntity<String> rejectFriend(@RequestBody FriendRequestDto requestDto) {
+        friendService.rejectFriend(requestDto.getRequesterId(), requestDto);
         return ResponseEntity.ok("친구 요청을 거절하였습니다.");
     }
 
-    @PostMapping("/{userId}/block")
-    public ResponseEntity<String> blockFriend(@PathVariable Long userId, @RequestBody FriendRequestDto requestDto) {
-        friendService.blockFriend(userId, requestDto);
+    @PostMapping("/block")
+    public ResponseEntity<String> blockFriend(@RequestBody FriendRequestDto requestDto) {
+        friendService.blockFriend(requestDto.getRequesterId(), requestDto);
         return ResponseEntity.ok("친구를 차단하였습니다.");
     }
 
-    @PostMapping("/{userId}/unblock")
-    public ResponseEntity<String> unblockFriend(@PathVariable Long userId, @RequestBody FriendRequestDto requestDto) {
-        friendService.unblockFriend(userId, requestDto);
+    @PostMapping("/unblock")
+    public ResponseEntity<String> unblockFriend(@RequestBody FriendRequestDto requestDto) {
+        friendService.unblockFriend(requestDto.getRequesterId(), requestDto);
         return ResponseEntity.ok("친구 차단을 해제하였습니다.");
     }
 
-    @PostMapping("/{userId}/delete")
-    public ResponseEntity<String> deleteFriend(@PathVariable Long userId, @RequestBody FriendRequestDto requestDto) {
-        friendService.deleteFriend(userId, requestDto);
+    @PostMapping("/delete")
+    public ResponseEntity<String> deleteFriend(@RequestBody FriendRequestDto requestDto) {
+        friendService.deleteFriend(requestDto.getRequesterId(), requestDto);
         return ResponseEntity.ok("친구를 삭제하였습니다.");
     }
 
-    @GetMapping("/{userId}/blocked")
-    public ResponseEntity<List<FriendResponseDto>> getBlockedFriends(@PathVariable Long userId) {
-        List<FriendResponseDto> blockedFriends = friendService.getBlockedFriends(userId);
+    @GetMapping("/blocked")
+    public ResponseEntity<List<FriendResponseDto>> getBlockedFriends(@RequestBody FriendRequestDto requestDto) {
+        List<FriendResponseDto> blockedFriends = friendService.getBlockedFriends(requestDto.getRequesterId());
         return ResponseEntity.ok(blockedFriends);
     }
 
-    @GetMapping("/{userId}/list")
-    public ResponseEntity<List<FriendResponseDto>> getFriendList(@PathVariable Long userId) {
-        List<FriendResponseDto> friends = friendService.getFriendList(userId);
+
+    @GetMapping("/list")
+    public ResponseEntity<List<FriendResponseDto>> getFriendList(@RequestBody FriendRequestDto requestDto) {
+        Long requesterId = requestDto.getRequesterId(); // 요청 본문에서 requesterId 추출
+        List<FriendResponseDto> friends = friendService.getFriendList(requesterId);
         return ResponseEntity.ok(friends);
     }
 
-    @PostMapping("/{userId}/like")
-    public ResponseEntity<String> likeFriend(@PathVariable Long userId, @RequestBody FriendRequestDto requestDto) {
-        friendService.likeFriend(userId, requestDto);
+    @PostMapping("/like")
+    public ResponseEntity<String> likeFriend(@RequestBody FriendRequestDto requestDto) {
+        friendService.likeFriend(requestDto.getRequesterId(), requestDto);
         return ResponseEntity.ok("친구에게 좋아요를 눌렀습니다.");
     }
 
-    @PostMapping("/{userId}/unlike")
-    public ResponseEntity<String> unlikeFriend(@PathVariable Long userId, @RequestBody FriendRequestDto requestDto) {
-        friendService.unlikeFriend(userId, requestDto);
+    @PostMapping("/unlike")
+    public ResponseEntity<String> unlikeFriend(@RequestBody FriendRequestDto requestDto) {
+        friendService.unlikeFriend(requestDto.getRequesterId(), requestDto);
         return ResponseEntity.ok("친구에게 좋아요 취소를 했습니다.");
+    }
+
+    @GetMapping("/received/list")
+    public ResponseEntity<List<FriendResponseDto>> getReceivedFriendRequestsByBody(@RequestBody FriendRequestDto requestDto) {
+        Long requesterId = requestDto.getRequesterId();// JSON 본문에서 requestId 추출
+        List<FriendResponseDto> receivedRequests = friendService.getReceivedFriendRequests(requesterId);
+        return ResponseEntity.ok(receivedRequests);
     }
 }

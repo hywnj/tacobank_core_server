@@ -2,9 +2,8 @@ package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.TransferService;
 import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.ReceiverInquiryRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.TransferPasswordRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.TransferRequestDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.TransactionListResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +11,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -45,5 +46,15 @@ public class TransferController {
     public ResponseEntity<?> transfer(@RequestBody @Valid TransferRequestDto requestDto) {
         transferService.transfer(requestDto);
         return null;
+    }
+
+
+    /**
+     * 거래내역조회
+     */
+    @PostMapping("/history")
+    public ResponseEntity<List<TransactionResponseDto>> getTransactionHistory(@RequestBody MemberRequestDto request) {
+        List<TransactionResponseDto> response = transferService.getTransactionHistory(request.getMemberId());
+        return ResponseEntity.ok(response);
     }
 }

@@ -8,6 +8,9 @@ import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
 import com.almagest_dev.tacobank_core_server.domain.transfer.model.Transfer;
 import com.almagest_dev.tacobank_core_server.domain.transfer.repository.TransferRepository;
+import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.TransactionDetailDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.TransactionListRequestDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.TransactionListResponseDto;
 import com.almagest_dev.tacobank_core_server.infrastructure.client.testbed.TestbedApiClient;
 import com.almagest_dev.tacobank_core_server.infrastructure.encryption.EncryptionUtil;
 import com.almagest_dev.tacobank_core_server.presentation.dto.*;
@@ -25,8 +28,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -342,5 +347,60 @@ public class TransferService {
             throw new RuntimeException("Redis 수정 중 오류", e);
         }
     }
+
+
+    /**
+     * 거래 내역 조회
+     */
+    public List<TransactionResponseDto> getTransactionHistory(Long memberId) {
+        // Step 1: Member ID를 통해 userFinanceId 조회
+        String userFinanceId = getUserFinanceIdByMemberId(memberId);
+
+        // Step 2: 거래 목록 조회 요청
+        TransactionListRequestDto requestDto = new TransactionListRequestDto();
+        requestDto.setFintechUseNum(userFinanceId);
+        requestDto.setInquiryType("A"); // 기본 조회 타입
+        requestDto.setInquiryBase("D"); // 날짜 기준
+        requestDto.setFromDate("20240101"); // 예시값 (시작 날짜)
+        requestDto.setToDate("20241231");   // 예시값 (끝 날짜)
+        requestDto.setFromTime("000000");   // 예시값 (시작 시간)
+        requestDto.setToTime("235959");     // 예시값 (끝 시간)
+        requestDto.setSortOrder("D");       // 내림차순
+        requestDto.setTranDtime("20241118120000"); // 예시값 (거래 시간)
+
+        TransactionListResponseDto responseDto = testbedApiClient.requestApi(
+                requestDto,
+                "/fintech/api/openbank/tranlist",
+                TransactionListResponseDto.class
+        );
+
+        // Step 3: 응답 데이터 처리 및 변환
+        return responseDto.getResList().stream()
+                .map(this::mapToTransactionResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    private String getUserFinanceIdByMemberId(Long memberId) {
+        // Member 정보를 Repository를 통해 조회
+        return memberRepository.findById(memberId)
+                .map(Member::getUserFinanceId) // Member 객체의 userFinanceId 필드 추출
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+    }
+
+    private TransactionResponseDto mapToTransactionResponseDto(TransactionDetailDto detailDto) {
+        TransactionResponseDto dto = new TransactionResponseDto();
+
+        String tranDate = detailDto.getTranDate(); // 이미 String 타입으로 반환
+        String tranTime = detailDto.getTranTime(); // 이미 String 타입으로 반환
+
+        dto.setTranNum(Long.valueOf(tranDate + tranTime)); // 거래 고유 ID 생성
+        dto.setType(detailDto.getTranType());
+        dto.setPrintContent(detailDto.getPrintContent());
+        dto.setAmount(Double.valueOf(detailDto.getTranAmt())); // String 타입으로 처리
+        dto.setAfterBalanceAmount(Double.valueOf(detailDto.getAfterBalanceAmt())); // String 타입으로 처리
+        dto.setTranDateTime(tranDate + " " + tranTime); // 날짜와 시간을 결합하여 설정
+        return dto;
+    }
+
 
 }

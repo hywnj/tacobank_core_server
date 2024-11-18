@@ -3,6 +3,8 @@ package com.almagest_dev.tacobank_core_server.application.service;
 
 import com.almagest_dev.tacobank_core_server.domain.friend.model.Friend;
 import com.almagest_dev.tacobank_core_server.domain.friend.repository.FriendRepository;
+import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
+import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
 import com.almagest_dev.tacobank_core_server.presentation.dto.FriendRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.FriendResponseDto;
 import org.springframework.stereotype.Service;
@@ -14,9 +16,11 @@ import java.util.stream.Collectors;
 public class FriendService {
 
     private final FriendRepository friendRepository;
+    private final MemberRepository memberRepository;
 
-    public FriendService(FriendRepository friendRepository) {
+    public FriendService(FriendRepository friendRepository, MemberRepository memberRepository) {
         this.friendRepository = friendRepository;
+        this.memberRepository = memberRepository;
     }
 
     private void checkActionPermission(Friend friend, String action, Long userId) {
@@ -310,15 +314,50 @@ public class FriendService {
     }
 
     // 친구 목록 조회
-    public List<FriendResponseDto> getFriendList(Long userId) {
-        List<Friend> friends = friendRepository.findByRequesterIdAndStatusOrReceiverIdAndStatus(userId, "ACC", userId, "ACC");
-        return friends.stream().map(FriendResponseDto::new).collect(Collectors.toList());
+    public List<FriendResponseDto> getFriendList(Long requesterId) {
+        List<Friend> friends = friendRepository.findByRequesterIdAndStatus(requesterId, "ACC");
+
+        return friends.stream()
+                .map(friend -> {
+                    Long friendId = friend.getReceiverId(); // requester_id가 요청자로 있는 친구의 receiver_id 가져오기
+                    String liked = friend.getLiked();
+                    String friendName = memberRepository.findById(friendId)
+                            .map(Member::getName)
+                            .orElse("Unknown");
+                    return new FriendResponseDto(friendId, friendName, liked);
+                })
+                .distinct() // 중복 제거
+                .collect(Collectors.toList());
     }
 
-    // 차단한 사용자 목록 조회
-    public List<FriendResponseDto> getBlockedFriends(Long userId) {
-        List<Friend> blockedFriends = friendRepository.findByRequesterIdAndStatus(userId, "BLOCKED");
-        return blockedFriends.stream().map(FriendResponseDto::new).collect(Collectors.toList());
+    // 차단된 사용자 목록 조회 (ID와 이름 포함)
+    public List<FriendResponseDto> getBlockedFriends(Long requesterId) {
+        List<Friend> blockedFriends = friendRepository.findByRequesterIdAndStatus(requesterId, "BLOCKED");
+
+        return blockedFriends.stream()
+                .map(friend -> {
+                    Long friendId = friend.getReceiverId(); // 차단된 친구의 ID
+                    String friendName = memberRepository.findById(friendId)
+                            .map(Member::getName) // 친구의 이름 가져오기
+                            .orElse("Unknown");
+                    return new FriendResponseDto(friendId, friendName, friend.getLiked()); // DTO 생성
+                })
+                .collect(Collectors.toList());
+    }
+
+    public List<FriendResponseDto> getReceivedFriendRequests(Long requesterId) {
+        // requesterId 기준으로 요청 상태가 "REQ_RECEIVED"인 데이터 조회
+        List<Friend> receivedRequests = friendRepository.findByRequesterIdAndStatus(requesterId, "REQ_RECEIVED");
+
+        return receivedRequests.stream()
+                .map(friend -> {
+                    Long friendId = friend.getReceiverId(); // 수신자 ID
+                    String friendName = memberRepository.findById(friendId)
+                            .map(Member::getName)
+                            .orElse("Unknown");
+                    return new FriendResponseDto(friendId, friendName, friend.getLiked());
+                })
+                .collect(Collectors.toList());
     }
 
 }
