@@ -43,7 +43,7 @@ public class NaverSmsApiClient {
                 , messages
         );
         // Set Request Entity (+Header)
-        HttpEntity<NaverSmsRequestDto> requestEntity = new HttpEntity<>(requestBody, naverApiUtil.createHeaders(time));
+        HttpEntity<NaverSmsRequestDto> requestEntity = new HttpEntity<>(requestBody, naverApiUtil.createSmsHeaders(time));
 
         // Naver SMS API 요청
         try {

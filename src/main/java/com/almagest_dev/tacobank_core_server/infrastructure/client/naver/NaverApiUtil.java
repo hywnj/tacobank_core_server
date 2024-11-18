@@ -22,6 +22,8 @@ public class NaverApiUtil {
     private String NAVER_SECRET_KEY;
     @Value("${naver.sms.service.id}")
     private String NAVER_SMS_SERVICE_ID;
+    @Value("${naver.ocr.api.secret}")
+    private String NAVER_OCR_SECERT;
 
     public String makeSignature(Long time) {
         String space = " ";
@@ -57,12 +59,20 @@ public class NaverApiUtil {
         }
     }
 
-    public HttpHeaders createHeaders(Long time) {
+    public HttpHeaders createSmsHeaders(Long time) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("x-ncp-apigw-timestamp", time.toString());
         headers.set("x-ncp-iam-access-key", NAVER_ACCESS_KEY);
         headers.set("x-ncp-apigw-signature-v2", makeSignature(time));
+
+        return headers;
+    }
+
+    public HttpHeaders createOcrHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        headers.set("X-OCR-SECRET", NAVER_OCR_SECERT);
 
         return headers;
     }

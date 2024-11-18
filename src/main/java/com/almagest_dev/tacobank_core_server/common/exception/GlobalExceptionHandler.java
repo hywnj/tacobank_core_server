@@ -64,6 +64,12 @@ public class GlobalExceptionHandler {
         ExceptionResponseDto response = new ExceptionResponseDto("Bad Request", "문자 발송이 실패했습니다. 다시 시도해주세요.");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
+    @ExceptionHandler(OcrSendFailedException.class) // OCR 인식시 예외처리
+    public ResponseEntity<?> handleOcrSendFailedException(OcrSendFailedException ex) {
+        log.warn("OcrSendFailedException - {}", ex.getMessage());
+        ExceptionResponseDto response = new ExceptionResponseDto("Bad Request", "영수증 인식이 실패했습니다. 다시 시도해주세요.");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
 
     // 네이버 API 예외처리
     @ExceptionHandler(NaverApiException.class)
