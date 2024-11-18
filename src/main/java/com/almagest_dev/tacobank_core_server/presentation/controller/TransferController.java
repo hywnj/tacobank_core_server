@@ -1,7 +1,10 @@
 package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.TransferService;
+import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.ReceiverInquiryRequestDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.TransferPasswordRequestDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.TransferRequestDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +24,26 @@ public class TransferController {
      */
     @PostMapping("/receiver")
     public ResponseEntity<?> inquireReceiverAccount(@RequestBody @Valid ReceiverInquiryRequestDto requestDto) {
-        transferService.inquireReceiverAccount(requestDto);
-        return ResponseEntity.ok(null);
+        return ResponseEntity.ok(
+                new CoreResponseDto<>("success", "수취인 조회 성공", transferService.inquireReceiverAccount(requestDto))
+        );
+    }
+
+    /**
+     * 출금(이체)시 비밀번호 검증
+     */
+    @PostMapping("/password/verify")
+    public ResponseEntity<?> validateTransferPassword(@RequestBody @Valid TransferPasswordRequestDto requestDto) {
+        transferService.verifyPassword(requestDto);
+        return ResponseEntity.ok(new CoreResponseDto<>("success", "비밀번호 검증 성공", null));
+    }
+
+    /**
+     * 송금
+     */
+    @PostMapping
+    public ResponseEntity<?> transfer(@RequestBody @Valid TransferRequestDto requestDto) {
+        transferService.transfer(requestDto);
+        return null;
     }
 }

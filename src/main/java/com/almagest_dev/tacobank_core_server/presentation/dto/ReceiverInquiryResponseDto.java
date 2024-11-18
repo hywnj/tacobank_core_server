@@ -1,7 +1,9 @@
 package com.almagest_dev.tacobank_core_server.presentation.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Data;
 
+@Data
 @AllArgsConstructor
 public class ReceiverInquiryResponseDto {
     private String idempotencyKey;  // 중복 방지 키

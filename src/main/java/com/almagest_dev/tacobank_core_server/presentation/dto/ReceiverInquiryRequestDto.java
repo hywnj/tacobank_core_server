@@ -16,4 +16,5 @@ public class ReceiverInquiryRequestDto {
     private String receiverBankCode;    // 입금(수취) 은행/기관 코드
     @NotBlank(message = "계좌번호를 보내주세요.")
     private String receiverAccountNum;  // 입금(수취) 계좌번호
+    private String printContent;
 }
