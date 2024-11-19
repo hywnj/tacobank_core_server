@@ -1,6 +1,7 @@
 package com.almagest_dev.tacobank_core_server.common.exception;
 
 import com.almagest_dev.tacobank_core_server.common.dto.ExceptionResponseDto;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -58,6 +59,12 @@ public class GlobalExceptionHandler {
         ExceptionResponseDto response = new ExceptionResponseDto("Bad Request", "필수 데이터가 누락되었거나 잘못된 데이터가 입력되었습니다.");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
+    @ExceptionHandler(ConstraintViolationException.class) // 데이터베이스 제약 조건을 위반 등
+    public ResponseEntity<?> handleConstraintViolationException(ConstraintViolationException ex) {
+        log.warn("ConstraintViolationException - " + ex.getMessage());
+        ExceptionResponseDto response = new ExceptionResponseDto("Bad Request", "필수 데이터가 누락되었거나 잘못된 데이터가 입력되었습니다.");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
     @ExceptionHandler(SmsSendFailedException.class) // SMS 전송시 예외처리
     public ResponseEntity<?> handleSmsSendFailedException(SmsSendFailedException ex) {
         log.warn("SmsSendFailedException - " + ex.getMessage());
@@ -71,20 +78,36 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
+    // Redis Session 예외처리
+    @ExceptionHandler(RedisSessionException.class)
+    public ResponseEntity<?> handleRedisSessionException(RedisSessionException ex) {
+        log.warn("RedisSessionException - " + ex.getMessage());
+        HttpStatus status = (ex.getStatus() == null) ? HttpStatus.INTERNAL_SERVER_ERROR : ex.getStatus();
+
+        String error = (status == HttpStatus.INTERNAL_SERVER_ERROR) ? "Internal Server Error" : "Bad Request";
+        String message = (status == HttpStatus.INTERNAL_SERVER_ERROR) ? "서버 내부 오류가 발생했습니다. 관리자에게 문의해주세요." : ex.getMessage();
+
+        ExceptionResponseDto response = new ExceptionResponseDto(error, message);
+        return ResponseEntity.status(status).body(response);
+    }
+
     // 네이버 API 예외처리
     @ExceptionHandler(NaverApiException.class)
-    public ResponseEntity<String> handleNaverApiException(NaverApiException ex) {
+    public ResponseEntity<?> handleNaverApiException(NaverApiException ex) {
         log.warn("NaverApiException - " + ex.getMessage());
+
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
+        String error = "Internal Server Error";
 
         // 발생 원인에 따른 상태 코드 설정
         if (ex.getCause() instanceof UnsupportedEncodingException ||
                 ex.getCause() instanceof NoSuchAlgorithmException ||
                 ex.getCause() instanceof InvalidKeyException) {
             status = HttpStatus.BAD_REQUEST;
+            error = "Bad Request";
         }
-
-        return ResponseEntity.status(status).body("요청이 실패했습닌다. 다시 시도해주세요.");
+        ExceptionResponseDto response = new ExceptionResponseDto(error, "요청이 실패했습니다. 관리자에게 문의해주세요.");
+        return ResponseEntity.status(status).body(response);
     }
 
     // 테스트베드 API 예외처리
@@ -107,15 +130,42 @@ public class GlobalExceptionHandler {
         ExceptionResponseDto response = new ExceptionResponseDto("Validation Exception", ex.getMessage());
         return ResponseEntity.status(ex.getHttpStatus()).body(response);
     }
+    // 송금 예외 처리
+    @ExceptionHandler(TransferException.class)
+    public ResponseEntity<?> handleTransferException(TransferException ex) {
+        log.warn("TransferException - " + ex.getMessage());
+        ExceptionResponseDto response = new ExceptionResponseDto("Transfer Exception", ex.getMessage());
+        return ResponseEntity.status(ex.getHttpStatus()).body(response);
+    }
 
     // 포괄적인 서버 오류 처리
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleServerError(Exception ex) {
-        log.warn("Exception - " + ex.getMessage());
-        ExceptionResponseDto response = new ExceptionResponseDto("Internal Server Error", "서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-        ex.printStackTrace();  // 서버 로그에 전체 오류 메시지 출력 (디버깅용)
+        // 예외 정보
+        String exceptionName = ex.getClass().getName(); // 예외 클래스 이름
+        String exceptionMessage = ex.getMessage(); // 예외 메시지
+
+        // 현재 스레드의 스택 트레이스 중 상위 3개 추출
+        StackTraceElement[] stackTrace = ex.getStackTrace();
+        String errorLocation = stackTrace.length > 0
+                ? String.format("Class: %s, Method: %s, Line: %d",
+                stackTrace[0].getClassName(),
+                stackTrace[0].getMethodName(),
+                stackTrace[0].getLineNumber())
+                : "No stack trace available";
+
+        // 로그 출력
+        log.error("Exception occurred: [{}] - {}", exceptionName, exceptionMessage);
+        log.error("Error location: {}", errorLocation);
+
+        // 전체 스택 트레이스 (디버깅 용도)
+        ex.printStackTrace();
+
+        // 사용자에게 반환할 메시지
+        ExceptionResponseDto response = new ExceptionResponseDto("Internal Server Error", "서버 내부 오류가 발생했습니다. 관리자에게 문의해주세요.");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
+
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<?> handleIllegalStateException(IllegalStateException ex) {
         log.warn("IllegalStateException - " + ex.getMessage());
