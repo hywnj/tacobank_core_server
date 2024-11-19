@@ -15,10 +15,7 @@ import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.Transacti
 import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.TransactionListResponseDto;
 import com.almagest_dev.tacobank_core_server.infrastructure.client.testbed.TestbedApiClient;
 import com.almagest_dev.tacobank_core_server.presentation.dto.*;
-import com.almagest_dev.tacobank_core_server.presentation.dto.testbed.ReceiverInquiryApiRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.testbed.ReceiverInquiryApiResponseDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.testbed.TransferApiRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.testbed.TransferApiResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.testbed.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -31,7 +28,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 
@@ -64,7 +60,7 @@ public class TransferService {
                 .orElseThrow(() -> new TransferException("인증되지 않은 계좌입니다.", HttpStatus.BAD_REQUEST));
 
         // 수취인 조회를 위한 Member 데이터 세팅
-        ReceiverInquiryApiRequestDto apiRequestDto = new ReceiverInquiryApiRequestDto(
+        ReceiverInquiryApiRequestDto receiverInquiryApiRequest = new ReceiverInquiryApiRequestDto(
                 withdrawalMember.getUserFinanceId(),
                 withdrawalAccount.getFintechUseNum(),
                 withdrawalMember.getName(),
@@ -74,20 +70,34 @@ public class TransferService {
                 "0"
         );
         // Testbed 수취인 조회 API 요청
-        log.info("TransferService::inquireReceiverAccount Call 수취 조회 API");
-        ReceiverInquiryApiResponseDto apiResponse = testbedApiClient.requestApi(
-                apiRequestDto,
+        log.info("TransferService::inquireReceiverAccount CALL 수취인 조회 API");
+        ReceiverInquiryApiResponseDto receiverInquiryApiResponse = testbedApiClient.requestApi(
+                receiverInquiryApiRequest,
                 "/openbank/recipient",
                 ReceiverInquiryApiResponseDto.class
         );
-        log.info("TransferService::inquireReceiverAccount 수취인 조회 Response : {} ", apiResponse);
+        log.info("TransferService::inquireReceiverAccount 수취인 조회 Response: {} ", receiverInquiryApiResponse);
         // 수취인 조회 실패
-        if (apiResponse.getApiTranId() == null || !apiResponse.getRspCode().equals("A0000") || apiResponse.getRecvAccountFintechUseNum() == null) {
+        if (receiverInquiryApiResponse.getApiTranId() == null || !receiverInquiryApiResponse.getRspCode().equals("A0000") || receiverInquiryApiResponse.getRecvAccountFintechUseNum() == null) {
             throw new TransferException("확인되지 않는 계좌입니다. 다시 입력해주세요.", HttpStatus.BAD_REQUEST);
         }
 
         // @TODO 출금 계좌 잔액 조회 API 요청
-        log.info("TransferService::inquireReceiverAccount 출금 계좌 잔액 조회 Request : ");
+        BalanceInquiryApiRequestDto balanceInquiryApiRequest = new BalanceInquiryApiRequestDto(
+                withdrawalMember.getUserFinanceId(),
+                withdrawalAccount.getFintechUseNum(),
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+        );
+        log.info("TransferService::inquireReceiverAccount CALL 잔액 조회 API");
+        BalanceInquiryApiResponseDto balanceInquiryApiResponse = testbedApiClient.requestApi(
+                balanceInquiryApiRequest,
+                "/openbank/account",
+                BalanceInquiryApiResponseDto.class
+        );
+        log.info("TransferService::inquireReceiverAccount 잔액 조회 Response: {} ", balanceInquiryApiResponse);
+        if (balanceInquiryApiResponse.getApiTranId() == null || !balanceInquiryApiResponse.getRspCode().equals("A0000") || balanceInquiryApiResponse.getBalanceAmt() == null) {
+            throw new TransferException("계좌 잔액조회에 실패했습니다. - " + balanceInquiryApiResponse.getRspMessage(), HttpStatus.BAD_REQUEST);
+        }
 
         // 수취인 조회 성공시 Redis Set (TTL: 20분)
         String sessionId = sessionUtils.generateSessionId(withdrawalMember.getId(), requestDto.getIdempotencyKey());
@@ -100,21 +110,22 @@ public class TransferService {
                 withdrawalAccount.getAccountNumber(),       // 출금 계좌 번호
                 withdrawalAccount.getAccountHolderName(),   // 출금 예금주
                 withdrawalAccount.getBankCode(),            // 출금 은행 코드
-                apiResponse.getRecvAccountFintechUseNum(),  // 입금(수취) 계좌 핀테크 이용번호
+                receiverInquiryApiResponse.getRecvAccountFintechUseNum(),  // 입금(수취) 계좌 핀테크 이용번호
                 requestDto.getReceiverAccountNum(),         // 입금(수취) 계좌 번호
-                apiResponse.getAccountHolderName(),         // 입금(수취) 예금주(수취인)
+                receiverInquiryApiResponse.getAccountHolderName(),         // 입금(수취) 예금주(수취인)
                 requestDto.getReceiverBankCode(),           // 입금(수취) 은행 코드
                 0,
                 false
         );
         sessionUtils.storeSessionData(TRANSFER_SESSION_PREFIX + sessionId, data, 20, TimeUnit.MINUTES);
-        log.info("TransferService::inquireReceiverAccount Redis[{}] Set : {} ", TRANSFER_SESSION_PREFIX + sessionId, apiResponse);
+        log.info("TransferService::inquireReceiverAccount Redis[{}] Set : {} ", TRANSFER_SESSION_PREFIX + sessionId, receiverInquiryApiResponse);
 
         // 클라이언트에 응답 반환
         ReceiverInquiryResponseDto response = new ReceiverInquiryResponseDto(
                 requestDto.getIdempotencyKey(),
-                withdrawalMember.getName(), // 출금 회원명
-                apiResponse.getAccountHolderName()
+                receiverInquiryApiResponse.getAccountHolderName(),
+                withdrawalAccount.getAccountNumber(),
+                Integer.parseInt(balanceInquiryApiResponse.getBalanceAmt())
         );
         log.info("TransferService::inquireReceiverAccount 수취인 조회 응답 : {} ", response);
         log.info("TransferService::inquireReceiverAccount END");
@@ -195,7 +206,7 @@ public class TransferService {
         if (!sessionData.isPasswordVerified()) {
             throw new TransferException("비밀번호 검증이 완료되지 않았습니다.", HttpStatus.BAD_REQUEST);
         }
-        log.info("TransferService - [{}] transfer sessionData :{} ", sessionKey, sessionData);
+        log.info("TransferService - [{}] transfer sessionData: {} ", sessionKey, sessionData);
 
         // 송금 요청 중복 체크
         if (transferRepository.existsByIdempotencyKeyAndStatusIn(requestDto.getIdempotencyKey(), List.of("S", "R"))) {
@@ -330,6 +341,10 @@ public class TransferService {
         }
     }
 
+    /**
+     * Transfer UPDATE
+     *  - Testbed API 요청/응답 후 DB UPDATE
+     */
     public void updateTransferStatus(Transfer transfer, String apiTranId, String status, String responseCode, String responseMessage, String apiTranDtm) {
         transfer.updateTransfer(
                 apiTranId,
