@@ -1,5 +1,6 @@
 package com.almagest_dev.tacobank_core_server.domain.member.model;
 
+import com.almagest_dev.tacobank_core_server.domain.account.model.MainAccount;
 import com.almagest_dev.tacobank_core_server.domain.group.model.Group;
 import com.almagest_dev.tacobank_core_server.domain.group.model.GroupMember;
 import jakarta.persistence.*;
@@ -21,6 +22,7 @@ public class Member {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Setter
     @Column(columnDefinition = "VARCHAR(40) COMMENT '사용자 금융 식별번호'")
     private String userFinanceId;
 
@@ -58,6 +60,9 @@ public class Member {
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<GroupMember> GroupMembers; // 그룹 구성원의 멤버 ID
 
+    @OneToOne(mappedBy = "member", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private MainAccount mainAccount;
+
     /**
      * 관련 메서드
      */
@@ -80,4 +85,9 @@ public class Member {
     public void changeTransferPin(String transferPin) {
         this.transferPin = transferPin;
     }
+
+    public Long getMainAccountId() {
+        return mainAccount != null ? mainAccount.getId() : null;
+    }
+
 }

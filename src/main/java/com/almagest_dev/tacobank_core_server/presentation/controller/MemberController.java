@@ -73,4 +73,14 @@ public class MemberController {
         memberService.setTransferPin(requestDto);
         return ResponseEntity.ok("Transfer PIN 설정 완료");
     }
+
+    /**
+     * 이메일로 친구 검색
+     */
+    @GetMapping("/search")
+    public ResponseEntity<MemberSearchResponseDto> searchMemberByEmailUsingRequestBody(
+            @RequestBody MemberSearchRequestDto requestDto) {
+        MemberSearchResponseDto memberInfo = memberService.searchMemberByEmail(requestDto.getEmail());
+        return ResponseEntity.ok(memberInfo);
+    }
 }

@@ -1,8 +1,8 @@
 package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.AccountService;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.AccountInfoDTO;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.IntegrateAccountResponseDto;
+import com.almagest_dev.tacobank_core_server.application.service.FavoriteAccountService;
+import com.almagest_dev.tacobank_core_server.presentation.dto.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,16 +14,36 @@ import java.util.List;
 public class AccountController {
 
     private final AccountService accountService;
+    private final FavoriteAccountService favoriteAccountService;
 
-    public AccountController(AccountService accountService) {
+    public AccountController(AccountService accountService, FavoriteAccountService favoriteAccountService) {
         this.accountService = accountService;
+        this.favoriteAccountService = favoriteAccountService;
     }
 
-    @PostMapping("/user/{memberId}")
-    public ResponseEntity<IntegrateAccountResponseDto> getUserAccounts(@PathVariable Long memberId) {
-        IntegrateAccountResponseDto responseDto = accountService.getUserAccounts(memberId);
-        return ResponseEntity.ok(responseDto);
+    @PostMapping("/user")
+    public ResponseEntity<AccountMemberReponseDto> getUserAccounts(@RequestBody MemberRequestDto requestDto) {
+        AccountMemberReponseDto response = accountService.getUserAccounts(requestDto);
+        return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/set-main")
+    public ResponseEntity<String> setMainAccount(@RequestBody MainAccountRequestDto requestDto) {
+        accountService.setMainAccount(requestDto);
+        return ResponseEntity.ok("메인 계좌가 설정되었습니다.");
+    }
+
+    @PostMapping("/favorite_account")
+    public ResponseEntity<String> setAndRetrieveFavoriteAccount(@RequestBody FavoriteAccountRequestDto requestDto) {
+        favoriteAccountService.setAndRetrieveFavoriteAccount(requestDto);
+        return ResponseEntity.ok("즐겨찾기 계좌로 설정되었습니다.");
+    }
+
+    @GetMapping("/favorite_account/list")
+    public ResponseEntity<List<FavoriteAccountResponseDto>> getFavoriteAccounts(@RequestBody FavoriteAccountRequestDto requestDto) {
+        Long memberId = requestDto.getMemberId(); // JSON 바디에서 memberId 추출
+        List<FavoriteAccountResponseDto> responseDtoList = favoriteAccountService.getFavoriteAccounts(memberId);
+        return ResponseEntity.ok(responseDtoList);
+    }
 
 }

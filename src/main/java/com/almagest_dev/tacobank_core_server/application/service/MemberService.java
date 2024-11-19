@@ -136,4 +136,19 @@ public class MemberService {
 
         log.info("MemberService::setTransferPin END - Transfer PIN 설정 완료");
     }
+
+    /**
+     * 이메일로 친구 검색
+     */
+    public MemberSearchResponseDto searchMemberByEmail(String email) {
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("해당 이메일로 회원을 찾을 수 없습니다."));
+
+        // Member 데이터를 MemberResponseDto로 변환하여 반환
+        return new MemberSearchResponseDto(
+                member.getId(),
+                member.getName(),
+                member.getEmail()
+        );
+    }
 }

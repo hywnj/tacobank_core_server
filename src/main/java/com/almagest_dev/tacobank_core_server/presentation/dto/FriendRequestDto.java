@@ -8,4 +8,6 @@ import lombok.Setter;
 public class FriendRequestDto {
     private Long requesterId;
     private Long receiverId;
+
+
 }

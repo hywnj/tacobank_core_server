@@ -118,7 +118,7 @@ public class GroupService {
         GroupMember existingMember = groupMemberRepository.findByPayGroupIdAndMemberId(groupId, friendId).orElse(null);
 
         if (existingMember != null) {
-            if ("LEAVED".equals(existingMember.getStatus()) || "EXPELLED".equals(existingMember.getStatus())) {
+            if ("LEAVED".equals(existingMember.getStatus()) || "EXPELLED".equals(existingMember.getStatus())||"REJECTED".equals(existingMember.getStatus())) {
                 existingMember.setStatus("INVITED");
                 groupMemberRepository.save(existingMember);
             } else {
@@ -134,9 +134,9 @@ public class GroupService {
         }
     }
 
-    public List<Friend> getInviteableFriends(Long userId) {
+    public List<Friend> getInviteableFriends(Long memberId) {
         return friendRepository.findByRequesterIdAndStatusOrReceiverIdAndStatus(
-                userId, "ACC", userId, "ACC");
+                memberId, "ACC", memberId, "ACC");
     }
 
     @Transactional
