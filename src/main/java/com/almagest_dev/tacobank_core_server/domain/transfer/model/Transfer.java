@@ -38,16 +38,19 @@ public class Transfer {
     private Long accountId;
 
     @Column(columnDefinition = "VARCHAR(5) NOT NULL COMMENT '출금 은행코드'")
-    private String depositBankCode;
+    private String withdrawalBankCode;
 
     @Column(columnDefinition = "VARCHAR(20) NOT NULL COMMENT '출금 계좌번호'")
-    private String depositAccountNum;
+    private String withdrawalAccountNum;
 
     @Column(columnDefinition = "VARCHAR(20) NOT NULL COMMENT '출금 예금주'")
-    private String depositAccountHolder;
+    private String withdrawalAccountHolder;
 
-    @Column(columnDefinition = "VARCHAR(10) NOT NULL COMMENT '입금인자 출력문구'")
-    private String printContent;
+    @Column(columnDefinition = "VARCHAR(10) NOT NULL COMMENT '출금계좌 인자내역'")
+    private String wdPrintContent;
+
+    @Column(columnDefinition = "VARCHAR(10) NOT NULL COMMENT '입금계좌 인자내역'")
+    private String rcvPrintContent;
 
     @Column(columnDefinition = "VARCHAR(5) NOT NULL COMMENT '수신 은행코드'")
     private String receiverBankCode;
@@ -82,8 +85,8 @@ public class Transfer {
     // Transfer 첫 생성 메서드
     public static Transfer createTransfer(String idempotencyKey,
                                           Long memberId, Long accountId,
-                                          String depositBankCode, String depositAccountNum, String depositAccountHolder,
-                                          String printContent,
+                                          String withdrawalBankCode, String withdrawalAccountNum, String withdrawalAccountHolder,
+                                          String wdPrintContent, String rcvPrintContent,
                                           String receiverBankCode, String receiverAccountNum, String receiverAccountHolder,
                                           Integer amount) {
         return new Transfer(
@@ -94,10 +97,11 @@ public class Transfer {
                 null,                         // settlementId 초기값 null
                 memberId,                     // 송금 요청자
                 accountId,                    // 출금 계좌 ID
-                depositBankCode,              // 출금 은행 코드
-                depositAccountNum,            // 출금 계좌 번호
-                depositAccountHolder,         // 출금 예금주
-                printContent,                 // 입금인자 출력 문구
+                withdrawalBankCode,           // 출금 은행 코드
+                withdrawalAccountNum,         // 출금 계좌 번호
+                withdrawalAccountHolder,      // 출금 예금주
+                wdPrintContent,               // 출금 계좌 인자내역
+                rcvPrintContent,              // 입금 계좌 인자내역
                 receiverBankCode,             // 수신 은행 코드
                 receiverAccountNum,           // 수신 계좌 번호
                 receiverAccountHolder,        // 수신 예금주
@@ -110,36 +114,21 @@ public class Transfer {
         );
     }
     // Transfer 업데이트 메서드
-    public Transfer updateTransfer(String apiTranId, String status, String responseCode, String responseMessage, String responseDate) {
+    public void updateTransfer(String apiTranId, String status, String responseCode, String responseMessage, String responseDate) {
 
         // apiTranDtm 변환: "20190910101921567" -> "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
-        LocalDateTime formattedResponseDate = LocalDateTime.parse(
+        LocalDateTime formattedResponseDate = (responseDate != null && !responseDate.isEmpty())
+                ? LocalDateTime.parse(
                 responseDate.substring(0, 14), // 초 단위까지만 파싱
                 DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
-        );
+        )
+                : LocalDateTime.now(); // null 또는 빈 문자열일 경우 현재 시간 사용
 
-        return new Transfer(
-                this.id,                        // 기존 ID 유지
-                this.transactionId,             // 기존 거래 ID 유지
-                this.idempotencyKey,            // 기존 중복 방지 키 유지
-                apiTranId,                      // 기존 API 요청 ID 유지
-                this.settlementId,              // 기존 정산 ID 유지
-                this.memberId,                  // 기존 송금 요청자 유지
-                this.accountId,                 // 기존 출금 계좌 유지
-                this.depositBankCode,           // 기존 출금 은행 유지
-                this.depositAccountNum,         // 기존 출금 계좌 번호 유지
-                this.depositAccountHolder,      // 기존 출금 예금주 유지
-                this.printContent,              // 기존 입금인자 유지
-                this.receiverBankCode,          // 기존 수신 은행 유지
-                this.receiverAccountNum,        // 기존 수신 계좌 번호 유지
-                this.receiverAccountHolder,     // 기존 수신 예금주 유지
-                this.amount,                    // 기존 송금 금액 유지
-                status,                         // 업데이트된 상태
-                responseCode,                   // 업데이트된 응답 코드
-                responseMessage,                // 업데이트된 응답 메시지
-                this.requestedDate,             // 기존 요청 일시 유지
-                formattedResponseDate           // 거래 응답(송금) 일시
-        );
+        this.apiTranId = apiTranId;
+        this.status = status;
+        this.responseCode = responseCode;
+        this.responseMassage = responseMessage;
+        this.responseDate = formattedResponseDate;
     }
 
 

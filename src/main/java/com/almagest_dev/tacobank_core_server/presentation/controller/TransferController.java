@@ -44,8 +44,7 @@ public class TransferController {
      */
     @PostMapping
     public ResponseEntity<?> transfer(@RequestBody @Valid TransferRequestDto requestDto) {
-        transferService.transfer(requestDto);
-        return null;
+        return ResponseEntity.ok(transferService.transfer(requestDto));
     }
 
 

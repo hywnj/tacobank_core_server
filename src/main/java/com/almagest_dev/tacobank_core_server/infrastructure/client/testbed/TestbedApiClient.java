@@ -33,6 +33,11 @@ public class TestbedApiClient {
                     requestEntity,
                     responseType
             );
+
+            if (response == null) {
+                throw new TestbedApiException("API 응답이 없습니다.");
+            }
+
             log.info("TestbedApiClient::requestApi Response - " + response);
             return response;
 
