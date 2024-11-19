@@ -1,8 +1,8 @@
 package com.almagest_dev.tacobank_core_server.infrastructure.client.dto;
 
-import lombok.Getter;
+import lombok.Data;
 
-@Getter
+@Data
 public class NaverSmsResponseDto {
     private String requestId;   // 요청 아이디
     private String requestTime; // 요청 시간 (yyyy-MM-dd'T'HH:mm:ss.SSS)

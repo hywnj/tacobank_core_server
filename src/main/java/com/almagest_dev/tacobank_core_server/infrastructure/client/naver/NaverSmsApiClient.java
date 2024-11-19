@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -32,6 +33,8 @@ public class NaverSmsApiClient {
      *  - 메시지 리스트로 받아서 요청
      */
     public NaverSmsResponseDto sendSms(List<Message> messages) {
+        log.info("NaverSmsApiClient::sendSms START");
+        log.info("NaverSmsApiClient::sendSms from - {}", NAVER_SMS_FROM_NUM);
         Long time = System.currentTimeMillis();
         // Set Request Body
         NaverSmsRequestDto requestBody = new NaverSmsRequestDto(
@@ -43,15 +46,18 @@ public class NaverSmsApiClient {
                 , messages
         );
         // Set Request Entity (+Header)
-        HttpEntity<NaverSmsRequestDto> requestEntity = new HttpEntity<>(requestBody, naverApiUtil.createSmsHeaders(time));
-
+        HttpHeaders headers = naverApiUtil.createSmsHeaders(time);
+        HttpEntity<NaverSmsRequestDto> requestEntity = new HttpEntity<>(requestBody, headers);
+        log.info("NaverSmsApiClient::sendSms Request Header - " + headers + " | Body - " + requestBody);
         // Naver SMS API 요청
         try {
+            log.info("NaverSmsApiClient::sendSms CALL Naver API");
             NaverSmsResponseDto response = restTemplate.postForObject(
                     NAVER_SMS_API_URL + "/services/" + NAVER_SMS_SERVICE_ID + "/messages",
                     requestEntity,
                     NaverSmsResponseDto.class
             );
+            log.info("NaverSmsApiClient::sendSms Response: {}", response);
 
             // 응답 결과가 실패인 경우
             if (response.getStatusName().equals("fail") || !response.getStatusCode().equals("202")) {
@@ -61,9 +67,11 @@ public class NaverSmsApiClient {
                         + " (" + response.getRequestTime() + ")");
             }
 
+            log.info("NaverSmsApiClient::sendSms END");
             return response;
 
         } catch (HttpClientErrorException | HttpServerErrorException ex) {
+            log.error("NaverSmsApiClient::sendSms Http Exception: {}, Response Body: {}", ex.getStatusCode(), ex.getResponseBodyAsString());
             throw new SmsSendFailedException(ex.getMessage(), ex);
         }
     }

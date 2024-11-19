@@ -82,7 +82,6 @@ public class TransferService {
             throw new TransferException("확인되지 않는 계좌입니다. 다시 입력해주세요.", HttpStatus.BAD_REQUEST);
         }
 
-        // @TODO 출금 계좌 잔액 조회 API 요청
         BalanceInquiryApiRequestDto balanceInquiryApiRequest = new BalanceInquiryApiRequestDto(
                 withdrawalMember.getUserFinanceId(),
                 withdrawalAccount.getFintechUseNum(),
