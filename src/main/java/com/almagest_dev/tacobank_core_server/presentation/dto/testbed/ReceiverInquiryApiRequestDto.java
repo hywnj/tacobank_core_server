@@ -7,6 +7,7 @@ import lombok.Data;
 @AllArgsConstructor
 public class ReceiverInquiryApiRequestDto {
     private String reqUserFinanceId;    // 요청 고객 사용자 금융 식별번호
+    private String reqFintechUseNum;    // 요청 계좌 식별번호
     private String reqClientName;       // 요청 고객 성명
     private String bankCodeStd;         // 입금 은행 코드
     private String accountNum;          // 입금 계좌번호
