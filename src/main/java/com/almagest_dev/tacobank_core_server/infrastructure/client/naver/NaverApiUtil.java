@@ -1,6 +1,7 @@
 package com.almagest_dev.tacobank_core_server.infrastructure.client.naver;
 
 import com.almagest_dev.tacobank_core_server.common.exception.NaverApiException;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -13,6 +14,7 @@ import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
+@Slf4j
 @Component
 public class NaverApiUtil {
 
@@ -26,10 +28,11 @@ public class NaverApiUtil {
     private String NAVER_OCR_SECERT;
 
     public String makeSignature(Long time) {
+        log.info("NaverApiUtil::makeSignature START");
         String space = " ";
         String newLine = "\n";
         String method = "POST";
-        String url = "/services/" + NAVER_SMS_SERVICE_ID + "/messages";
+        String url = "/sms/v2/services/" + NAVER_SMS_SERVICE_ID + "/messages";
         String timestamp = time.toString();
         String accessKey = NAVER_ACCESS_KEY;
         String secretKey = NAVER_SECRET_KEY;
@@ -52,6 +55,7 @@ public class NaverApiUtil {
             byte[] rawHmac = mac.doFinal(message.getBytes("UTF-8"));
             String encodeBase64String = Base64.encodeBase64String(rawHmac);
 
+            log.info("NaverApiUtil::makeSignature END");
             return encodeBase64String;
 
         } catch (UnsupportedEncodingException | NoSuchAlgorithmException | InvalidKeyException e) {
@@ -60,11 +64,13 @@ public class NaverApiUtil {
     }
 
     public HttpHeaders createSmsHeaders(Long time) {
+        log.info("NaverApiUtil::createSmsHeaders START");
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("x-ncp-apigw-timestamp", time.toString());
         headers.set("x-ncp-iam-access-key", NAVER_ACCESS_KEY);
         headers.set("x-ncp-apigw-signature-v2", makeSignature(time));
+        log.info("NaverApiUtil::createSmsHeaders END");
 
         return headers;
     }

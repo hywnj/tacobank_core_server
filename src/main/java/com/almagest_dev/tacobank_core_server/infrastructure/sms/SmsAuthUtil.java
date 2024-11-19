@@ -46,7 +46,7 @@ public class SmsAuthUtil {
         log.info("SmsAuthUtil::sendSms - CALL NaverSmsApiClient::sendSms");
         try {
             // @TODO 발신번호 등록 후 테스트 수행
-            //naverSmsApiClient.sendSms(messages);
+            naverSmsApiClient.sendSms(messages);
             log.info("SmsAuthUtil::sendVerificationCode END");
 
         } catch (SmsSendFailedException ex) {

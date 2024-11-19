@@ -1,9 +1,11 @@
 package com.almagest_dev.tacobank_core_server.infrastructure.client.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Data;
 
 import java.util.List;
 
+@Data
 @AllArgsConstructor
 public class NaverSmsRequestDto {
     private String type;                // SMS Type (SMS | LMS | MMS)
