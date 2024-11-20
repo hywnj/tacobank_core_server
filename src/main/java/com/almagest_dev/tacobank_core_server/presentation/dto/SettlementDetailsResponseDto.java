@@ -12,6 +12,7 @@ public class SettlementDetailsResponseDto {
         this.memberId = memberId;
         this.settlementAmount = settlementAmount;
         this.settlementStatus = settlementStatus;
+
     }
 
 

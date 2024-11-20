@@ -51,4 +51,7 @@ public class GroupMember {
     }
 
 
+    public void setGroup(Group group) {
+        this.payGroup = group;
+    }
 }

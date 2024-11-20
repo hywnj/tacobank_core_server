@@ -8,13 +8,11 @@ import com.almagest_dev.tacobank_core_server.domain.group.repository.GroupMember
 import com.almagest_dev.tacobank_core_server.domain.group.repository.GroupRepository;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
-import com.almagest_dev.tacobank_core_server.presentation.dto.GroupMemberResponseDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.GroupRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.GroupResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.*;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -47,20 +45,43 @@ public class GroupService {
         Group group = new Group();
         group.setLeader(leader);
         group.setActivated("Y");
-        group.setCustomized(requestDto.getCustomized());
+        group.setCustomized("Y");
+        group.setName(requestDto.getGroupName());
 
-        if ("N".equals(requestDto.getCustomized())) {
-            group.setName("Temporary Group");
-        } else {
-            group.setName(requestDto.getGroupName());
-        }
 
         final Group savedGroup = groupRepository.save(group);
 
-        addGroupLeaderAsMember(savedGroup, leader);
-        addMembersToGroup(savedGroup, requestDto.getFriendIds());
+        return new GroupResponseDto(
+                savedGroup.getId(),
+                savedGroup.getName(),
+                savedGroup.getCustomized(),
+                savedGroup.getActivated(),
+                new ArrayList<>() // 멤버 목록은 초기화 상태로 반환
+        );
+    }
 
-        List<GroupMemberResponseDto> memberDtos = savedGroup.getPayGroups().stream()
+    @Transactional
+    public GroupResponseDto createTemporaryGroup(GroupRequestDto requestDto) {
+        // 그룹장 찾기
+        Member leader = memberRepository.findById(requestDto.getLeaderId())
+                .orElseThrow(() -> new IllegalArgumentException("그룹장을 찾을 수 없습니다."));
+
+        // 그룹 생성
+        Group group = new Group();
+        group.setLeader(leader);
+        group.setActivated("N");
+        group.setCustomized("N");
+        group.setName(leader.getName() + "과 아이들");
+
+        // 저장
+        final Group savedGroup = groupRepository.save(group);
+
+        // 친구 목록 추가 (ACCEPTED 상태로)
+        if (requestDto.getFriendIds() != null && !requestDto.getFriendIds().isEmpty()) {
+            addAcceptedMembersToGroup(savedGroup, requestDto.getFriendIds());
+        }
+
+        List<GroupMemberResponseDto> memberDtos = groupMemberRepository.findByPayGroup(savedGroup).stream()
                 .map(member -> new GroupMemberResponseDto(
                         member.getId(),
                         savedGroup.getId(),
@@ -69,7 +90,28 @@ public class GroupService {
                 ))
                 .collect(Collectors.toList());
 
-        return new GroupResponseDto(savedGroup.getId(), savedGroup.getName(), savedGroup.getCustomized(), savedGroup.getActivated(), memberDtos);
+        return new GroupResponseDto(
+                savedGroup.getId(),
+                savedGroup.getName(),
+                savedGroup.getCustomized(),
+                savedGroup.getActivated(),
+                memberDtos
+        );
+    }
+
+    private void addAcceptedMembersToGroup(Group group, List<Long> friendIds) {
+        for (Long friendId : friendIds) {
+            Member friend = memberRepository.findById(friendId)
+                    .orElseThrow(() -> new IllegalArgumentException("친구를 찾을 수 없습니다."));
+
+            // GroupMember 생성
+            GroupMember groupMember = new GroupMember();
+            groupMember.setGroup(group);
+            groupMember.setMember(friend);
+            groupMember.setStatus("ACCEPTED");
+
+            groupMemberRepository.save(groupMember);
+        }
     }
 
     // 그룹장을 그룹 멤버로 추가하는 메서드
@@ -101,14 +143,14 @@ public class GroupService {
         groupRepository.delete(group);
     }
 
-    @Transactional
     public void inviteFriend(Long userId, Long groupId, Long friendId) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new IllegalArgumentException("그룹을 찾을 수 없습니다."));
         validateLeader(userId, group);
 
+        // 초대 가능한 친구 ID 목록
         List<Long> inviteableFriendIds = getInviteableFriends(userId).stream()
-                .map(friend -> friend.getRequesterId().equals(userId) ? friend.getReceiverId() : friend.getRequesterId())
+                .map(friend -> (Long) friend.get("friendId")) // Map에서 "friendId"를 가져옴
                 .toList();
 
         if (!inviteableFriendIds.contains(friendId)) {
@@ -118,7 +160,7 @@ public class GroupService {
         GroupMember existingMember = groupMemberRepository.findByPayGroupIdAndMemberId(groupId, friendId).orElse(null);
 
         if (existingMember != null) {
-            if ("LEAVED".equals(existingMember.getStatus()) || "EXPELLED".equals(existingMember.getStatus())||"REJECTED".equals(existingMember.getStatus())) {
+            if ("LEAVED".equals(existingMember.getStatus()) || "EXPELLED".equals(existingMember.getStatus())) {
                 existingMember.setStatus("INVITED");
                 groupMemberRepository.save(existingMember);
             } else {
@@ -134,9 +176,28 @@ public class GroupService {
         }
     }
 
-    public List<Friend> getInviteableFriends(Long memberId) {
-        return friendRepository.findByRequesterIdAndStatusOrReceiverIdAndStatus(
+    public List<Map<String, Object>> getInviteableFriends(Long memberId) {
+        List<Friend> friends = friendRepository.findByRequesterIdAndStatusOrReceiverIdAndStatus(
                 memberId, "ACC", memberId, "ACC");
+
+        // Set을 사용하여 중복 제거
+        Set<Map<String, Object>> uniqueFriends = friends.stream()
+                .map(friend -> {
+                    Long friendId = friend.getRequesterId().equals(memberId)
+                            ? friend.getReceiverId()
+                            : friend.getRequesterId();
+                    String friendName = memberRepository.findById(friendId)
+                            .map(Member::getName)
+                            .orElse("Unknown");
+                    Map<String, Object> friendInfo = new HashMap<>();
+                    friendInfo.put("friendId", friendId);
+                    friendInfo.put("name", friendName);
+                    return friendInfo;
+                })
+                .collect(Collectors.toSet());
+
+        // Set을 List로 변환
+        return new ArrayList<>(uniqueFriends);
     }
 
     @Transactional
@@ -238,5 +299,28 @@ public class GroupService {
                         member.getStatus()
                 ))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public GroupSearchResponseDto searchGroupByName(String groupName) {
+        // 그룹 이름으로 그룹을 조회
+        Group group = groupRepository.findByName(groupName)
+                .orElseThrow(() -> new IllegalArgumentException("해당 이름의 그룹을 찾을 수 없습니다."));
+
+        // 그룹에 속한 멤버 조회
+        List<GropuMemberSearchResponseDto> members = groupMemberRepository.findByPayGroupId(group.getId()).stream()
+                .map(groupMember -> new GropuMemberSearchResponseDto(
+                        groupMember.getMember().getId(),
+                        groupMember.getMember().getName(),
+                        groupMember.getStatus()
+                ))
+                .collect(Collectors.toList());
+
+        // 그룹 정보와 멤버 정보를 DTO로 반환
+        return new GroupSearchResponseDto(
+                group.getId(),
+                group.getName(),
+                members
+        );
     }
 }

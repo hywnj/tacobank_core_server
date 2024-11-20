@@ -5,6 +5,7 @@ import com.almagest_dev.tacobank_core_server.domain.friend.model.Friend;
 import com.almagest_dev.tacobank_core_server.presentation.dto.GroupMemberResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.GroupRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.GroupResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.GroupSearchResponseDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,9 +24,16 @@ public class GroupController {
     }
 
     // 그룹 생성
-    @PostMapping("/create")
+    @PostMapping("/create/y")
     public ResponseEntity<GroupResponseDto> createGroup(@RequestBody GroupRequestDto requestDto) {
         GroupResponseDto groupResponse = groupService.createGroup(requestDto.getLeaderId(), requestDto);
+        return ResponseEntity.ok(groupResponse);
+    }
+
+    // 임시 그룹 생성
+    @PostMapping("/create/n")
+    public ResponseEntity<GroupResponseDto> createTemporaryGroup(@RequestBody GroupRequestDto requestDto) {
+        GroupResponseDto groupResponse = groupService.createTemporaryGroup(requestDto);
         return ResponseEntity.ok(groupResponse);
     }
 
@@ -49,8 +57,8 @@ public class GroupController {
     }
 
     @GetMapping("/{memberId}/inviteable-friends")
-    public ResponseEntity<List<Friend>> getInviteableFriends(@PathVariable Long memberId) {
-        List<Friend> inviteableFriends = groupService.getInviteableFriends(memberId);
+    public ResponseEntity<List<Map<String, Object>>> getInviteableFriends(@PathVariable Long memberId) {
+        List<Map<String, Object>> inviteableFriends = groupService.getInviteableFriends(memberId);
         return ResponseEntity.ok(inviteableFriends);
     }
 
@@ -105,5 +113,12 @@ public class GroupController {
         Long userId = request.get("memberId");
         List<GroupMemberResponseDto> pendingInvitations = groupService.getPendingInvitations(userId);
         return ResponseEntity.ok(pendingInvitations);
+    }
+
+    @PostMapping("/search-group")
+    public ResponseEntity<GroupSearchResponseDto> searchGroupByName(@RequestBody Map<String, String> request) {
+        String groupName = request.get("groupName");
+        GroupSearchResponseDto groupInfo = groupService.searchGroupByName(groupName);
+        return ResponseEntity.ok(groupInfo);
     }
 }

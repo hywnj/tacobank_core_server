@@ -11,5 +11,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class SettlementResponseDto {
     private Long memberId; // 멤버 ID
-    private Integer amount; // 각 멤버의 분담 금액
+    private Integer amount;// 각 멤버의 분담 금액
+    private String memberName;
 }

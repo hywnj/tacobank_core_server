@@ -13,5 +13,8 @@ public interface SettlementDetailsRepository extends JpaRepository<SettlementDet
 
     // 특정 그룹과 사용자에 대한 정산 정보를 조회하는 메서드
     List<SettlementDetails> findByGroupMember_Member_IdAndGroupMember_PayGroup_Id(Long memberId, Long groupId);
+    List<SettlementDetails> findByGroupMember_Member_Id(Long memberId);
+    List<SettlementDetails> findBySettlement_Id(Long settlementId);
+    List<SettlementDetails> findBySettlement_IdAndSettlementStatus(Long settlementId, String settlementStatus);
 
 }

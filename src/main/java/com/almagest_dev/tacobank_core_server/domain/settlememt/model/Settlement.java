@@ -1,5 +1,6 @@
 package com.almagest_dev.tacobank_core_server.domain.settlememt.model;
 
+import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
 import com.almagest_dev.tacobank_core_server.domain.group.model.Group;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -28,8 +29,12 @@ public class Settlement {
     @Column(name = "receipt_id", columnDefinition = "BIGINT COMMENT '영수증 ID'")
     private Long receiptId;
 
-    @Column(name = "settlement_account_id", columnDefinition = "BIGINT COMMENT '정산받을 계좌아이디'")
-    private Long settlementAccountId;
+//    @Column(name = "settlement_account_id", columnDefinition = "BIGINT COMMENT '정산받을 계좌아이디'")
+//    private Long settlementAccountId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "settlement_account_id", columnDefinition = "BIGINT COMMENT '정산 받을 계좌 ID'")
+    private Account settlementAccount;
 
     @Column(name = "settlement_total_amount", columnDefinition = "INT COMMENT '정산총액'")
     private Integer settlementTotalAmount;
@@ -53,4 +58,6 @@ public class Settlement {
     protected void onUpdate() {
         this.updatedDate = LocalDateTime.now();
     }
+
+
 }

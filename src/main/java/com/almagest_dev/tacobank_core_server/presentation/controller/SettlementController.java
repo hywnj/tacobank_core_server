@@ -2,9 +2,7 @@ package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 
 import com.almagest_dev.tacobank_core_server.application.service.SettlementService;
-import com.almagest_dev.tacobank_core_server.presentation.dto.SettlementDetailsResponseDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.SettlementRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.SettlementResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.*;
 import lombok.Getter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -37,6 +35,27 @@ public class SettlementController {
 
         List<SettlementDetailsResponseDto> response = settlementService.getSettlementDetailsForMember(groupId, memberId);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/status/{memberId}")
+    public ResponseEntity<SettlementStatusResponseDto> getSettlementStatus(@PathVariable Long memberId) {
+        SettlementStatusResponseDto settlementStatus = settlementService.getSettlementStatus(memberId);
+        return ResponseEntity.ok(settlementStatus);
+    }
+
+    @GetMapping("/{settlementId}/details/{memberId}")
+    public ResponseEntity<SettlementDetailsListResponseDto> getSettlementDetails(
+            @PathVariable Long settlementId,
+            @PathVariable Long memberId
+    ) {
+        SettlementDetailsListResponseDto response = settlementService.getSettlementDetails(settlementId, memberId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{settlementId}/notify")
+    public ResponseEntity<String> notifyPendingSettlements(@PathVariable Long settlementId) {
+        settlementService.notifyPendingSettlements(settlementId);
+        return ResponseEntity.ok("정산 완료되지 않은 사용자들에게 알림을 보냈습니다.");
     }
 
 }
