@@ -2,9 +2,7 @@ package com.almagest_dev.tacobank_core_server.domain.account.repository;
 
 import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
-import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,6 +15,7 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     Optional<Account> findByAccountNumber(String accountNumber);
     List<Account> findByMember_Id(Long memberId);
 
+    List<Account> findByMember_IdAndVerificated(Long memberId, String verificated); // 특정 멤버의 출금 가능한 계좌 조회
 
 
 }
