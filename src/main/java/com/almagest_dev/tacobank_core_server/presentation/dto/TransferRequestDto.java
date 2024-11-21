@@ -9,24 +9,14 @@ public class TransferRequestDto {
     @NotBlank(message = "중복 방지 키를 보내주세요.")
     private String idempotencyKey;          // 중복 방지 키
 
-    @NotNull(message = "출금 사용자 ID를 보내주세요.")
-    private Long withdrawalMemberId;           // 송금하는 사용자 ID (출금 사용자)
-    @NotNull(message = "출금 계좌 ID를 보내주세요.")
-    private Long withdrawalAccountId;          // 출금 계좌 ID
+    @NotNull(message = "사용자 ID를 입력해주세요.")
+    private Long memberId; // 출금 사용자 ID
 
-    @NotBlank(message = "출금 계좌 번호를 보내주세요.")
-    private String withdrawalAccountNum;       // 출금 계좌 번호
-    @NotBlank(message = "출금 예금주 정보를 보내주세요.")
-    private String withdrawalAccountHolder;    // 출금 예금주
-    @NotBlank(message = "출금 은행 코드를 보내주세요.")
-    private String withdrawalBankCode;         // 출금 은행 코드
+    @NotNull(message = "출금 정보가 없습니다.")
+    private WithdrawalDetails withdrawalDetails;
 
-    @NotBlank(message = "입금 계좌 번호를 보내주세요.")
-    private String receiverAccountNum;      // 입금(수취) 계좌 번호
-    @NotBlank(message = "입금 예금주 정보를 보내주세요.")
-    private String receiverAccountHolder;   // 입금(수취) 예금주(수취인)
-    @NotBlank(message = "입금 은행 코드를 보내주세요.")
-    private String receiverBankCode;        // 입금(수취) 은행 코드
+    @NotNull(message = "입금 정보가 없습니다.")
+    private ReceiverDetails receiverDetails;
 
     @NotNull(message = "송금액을 보내주세요.")
     private int amount;                 // 송금액
