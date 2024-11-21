@@ -1,17 +1,23 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
+import com.almagest_dev.tacobank_core_server.domain.account.model.FavoriteAccount;
 import com.almagest_dev.tacobank_core_server.domain.account.model.MainAccount;
+import com.almagest_dev.tacobank_core_server.domain.account.repository.FavoriteAccountRepository;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.MainAccountRepository;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
 import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.AccountRepository;
+import com.almagest_dev.tacobank_core_server.domain.transfer.model.Transfer;
+import com.almagest_dev.tacobank_core_server.domain.transfer.repository.TransferRepository;
 import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.AccountInfoDTO;
 import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.IntegrateAccountRequestDto;
 import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.IntegrateAccountResponseDto;
 import com.almagest_dev.tacobank_core_server.infrastructure.client.testbed.TestbedApiClient;
 import com.almagest_dev.tacobank_core_server.presentation.dto.*;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,14 +31,17 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final TestbedApiClient testbedApiClient;
     private final MainAccountRepository mainAccountRepository;
+    private final FavoriteAccountRepository favoriteAccountRepository;
+    private final TransferRepository transferRepository;
     private final TransferService transferService;
 
-
-    public AccountService(MemberRepository memberRepository, AccountRepository accountRepository, TestbedApiClient testbedApiClient, MainAccountRepository mainAccountRepository, TransferService transferService) {
+    public AccountService(MemberRepository memberRepository, AccountRepository accountRepository, TestbedApiClient testbedApiClient, MainAccountRepository mainAccountRepository, FavoriteAccountRepository favoriteAccountRepository, TransferRepository transferRepository, TransferService transferService) {
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
         this.testbedApiClient = testbedApiClient;
         this.mainAccountRepository = mainAccountRepository;
+        this.favoriteAccountRepository = favoriteAccountRepository;
+        this.transferRepository = transferRepository;
         this.transferService = transferService;
     }
 
@@ -58,7 +67,7 @@ public class AccountService {
     public void updateMainAccount(MainAccountRequestDto requestDto) {
         // 기존 MainAccount 조회
         MainAccount mainAccount = mainAccountRepository.findByMemberId(requestDto.getMemberId())
-             .orElseThrow(() -> new IllegalArgumentException("메인 계좌가 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("메인 계좌가 존재하지 않습니다."));
 
         // 계좌 변경
         Account account = accountRepository.findByIdAndMember(requestDto.getAccountId(), mainAccount.getMember())
@@ -179,5 +188,36 @@ public class AccountService {
 
         response.setAccountList(accountList);
         return response;
+    }
+
+    /**
+     * 즐겨찾기, 최근 이체 계좌 조회
+     */
+    public TransferOptionsResponseDto getTransferOptions(Long memberId) {
+        Member member = memberRepository.findByIdAndDeleted(memberId, "N")
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        // 즐겨찾기 계좌 (모두 조회)
+        List<FavoriteAccount> favoriteAccounts = favoriteAccountRepository.findAllByMember(member);
+        List<AccountDto> favoriteAccountDtos = favoriteAccounts.stream()
+                .map(account -> new AccountDto(
+                        account.getAccountHolderName(),
+                        account.getAccountNumber(),
+                        account.getBankCode()
+                ))
+                .toList();
+
+        // 타코뱅크 서비스에서 최근 이체한 내역 5개 조회
+        Pageable pageable = PageRequest.of(0, 5); // 최근 5개
+        List<Transfer> recentTransfers = transferRepository.findTop5DistinctByMemberIdAndStatus(memberId, "S", pageable);
+        List<AccountDto> recentAccountDtos = recentTransfers.stream()
+                .map(transfer -> new AccountDto(
+                        transfer.getReceiverAccountHolder(),
+                        transfer.getReceiverAccountNum(),
+                        transfer.getReceiverBankCode()
+                ))
+                .toList();
+
+        return new TransferOptionsResponseDto(favoriteAccountDtos, recentAccountDtos);
     }
 }

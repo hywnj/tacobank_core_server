@@ -2,6 +2,7 @@ package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.AccountService;
 import com.almagest_dev.tacobank_core_server.application.service.FavoriteAccountService;
+import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -59,6 +60,14 @@ public class AccountController {
     }
 
 
+    /**
+     * 즐겨찾기, 최근 이체 계좌 조회
+     */
+    @GetMapping("/transfer-options/{memberId}")
+    public ResponseEntity<?> getTransferOptions(@PathVariable Long memberId) {
+        TransferOptionsResponseDto response = accountService.getTransferOptions(memberId);
+        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "계좌 조회 성공", response));
+    }
 
 
 }
