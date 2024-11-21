@@ -25,19 +25,6 @@ public class SettlementController {
         return ResponseEntity.ok("정산 요청이 완료되었습니다.");
     }
 
-    @GetMapping("/{groupId}/details")
-    public List<SettlementDetailsResponseDto> getSettlementDetailsByGroupId(@PathVariable Long groupId) {
-        return settlementService.getSettlementDetailsByGroupId(groupId);
-    }
-
-    @GetMapping("/details/{groupId}/{memberId}")
-    public ResponseEntity<List<SettlementDetailsResponseDto>> getSettlementDetailsForMember(
-            @PathVariable Long groupId,
-            @PathVariable Long memberId) {
-
-        List<SettlementDetailsResponseDto> response = settlementService.getSettlementDetailsForMember(groupId, memberId);
-        return ResponseEntity.ok(response);
-    }
 
     @GetMapping("/status/{memberId}")
     public ResponseEntity<SettlementStatusResponseDto> getSettlementStatus(@PathVariable Long memberId) {
@@ -54,10 +41,13 @@ public class SettlementController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{settlementId}/notify")
-    public ResponseEntity<String> notifyPendingSettlements(@PathVariable Long settlementId) {
-        settlementService.notifyPendingSettlements(settlementId);
-        return ResponseEntity.ok("정산 완료되지 않은 사용자들에게 알림을 보냈습니다.");
+    @PostMapping("/{settlementId}/notify/{memberId}")
+    public ResponseEntity<String> notifyPendingSettlementForMember(
+            @PathVariable Long settlementId,
+            @PathVariable Long memberId
+    ) {
+        settlementService.notifyPendingSettlementForMember(settlementId, memberId);
+        return ResponseEntity.ok("해당 사용자에게 정산 알림을 보냈습니다.");
     }
 
 }

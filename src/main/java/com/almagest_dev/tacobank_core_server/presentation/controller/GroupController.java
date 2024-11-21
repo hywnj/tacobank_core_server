@@ -21,14 +21,14 @@ public class GroupController {
     }
 
     // 그룹 생성
-    @PostMapping("/create/y")
+    @PostMapping
     public ResponseEntity<GroupResponseDto> createGroup(@RequestBody GroupRequestDto requestDto) {
         GroupResponseDto groupResponse = groupService.createGroup(requestDto.getLeaderId(), requestDto);
         return ResponseEntity.ok(groupResponse);
     }
 
     // 그룹 삭제 (그룹장만 가능)
-    @DeleteMapping("/delete")
+    @DeleteMapping
     public ResponseEntity<String> deleteGroup(@RequestBody Map<String, Long> request) {
         Long userId = request.get("memberId");
         Long groupId = request.get("groupId");
@@ -46,7 +46,7 @@ public class GroupController {
         return ResponseEntity.ok("초대 신청이 완료되었습니다.");
     }
 
-    @GetMapping("/{memberId}/inviteable-friends")
+    @GetMapping("/{memberId}/friends/list")
     public ResponseEntity<List<Map<String, Object>>> getInviteableFriends(@PathVariable Long memberId) {
         List<Map<String, Object>> inviteableFriends = groupService.getInviteableFriends(memberId);
         return ResponseEntity.ok(inviteableFriends);
@@ -90,21 +90,21 @@ public class GroupController {
     }
 
     // 내가 속한 그룹 목록 조회
-    @PostMapping("/my-groups")
+    @PostMapping("/my-group/list")
     public List<MyGroupsResponseDto> getMyGroups(@RequestBody MyGroupsRequestDto request) {
         Long memberId = request.getMemberId();
         return groupService.getMyGroups(memberId);
     }
 
     // 초대 대기 목록 조회 (초대를 수락하지 않은 목록)
-    @PostMapping("/pending-invitations")
+    @PostMapping("/invitations")
     public ResponseEntity<List<GroupMemberResponseDto>> getPendingInvitations(@RequestBody Map<String, Long> request) {
         Long userId = request.get("memberId");
         List<GroupMemberResponseDto> pendingInvitations = groupService.getPendingInvitations(userId);
         return ResponseEntity.ok(pendingInvitations);
     }
 
-    @PostMapping("/search-group")
+    @PostMapping("/search")
     public ResponseEntity<GroupSearchResponseDto> searchGroupByName(@RequestBody Map<String, String> request) {
         String groupName = request.get("groupName");
         GroupSearchResponseDto groupInfo = groupService.searchGroupByName(groupName);

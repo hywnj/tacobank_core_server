@@ -83,4 +83,20 @@ public class FavoriteAccountService {
                 favoriteAccount.getBankCode()
         )).collect(Collectors.toList());
     }
+
+    @Transactional
+    public void cancelFavoriteAccount(FavoriteAccountRequestDto requestDto) {
+        // Step 1: Member 조회
+        Member member = memberRepository.findById(requestDto.getMemberId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        // Step 2: FavoriteAccount 조회
+        FavoriteAccount favoriteAccount = favoriteAccountRepository.findByMemberAndAccountNumber(member, requestDto.getAccountNumber())
+                .orElseThrow(() -> new IllegalArgumentException("즐겨찾기에 등록되지 않은 계좌입니다."));
+
+        // Step 3: 즐겨찾기 계좌 삭제
+        favoriteAccountRepository.delete(favoriteAccount);
+    }
+
+
 }

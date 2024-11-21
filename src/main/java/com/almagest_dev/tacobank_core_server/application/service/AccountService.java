@@ -53,6 +53,22 @@ public class AccountService {
         mainAccountRepository.save(mainAccount);
     }
 
+
+    @Transactional
+    public void updateMainAccount(MainAccountRequestDto requestDto) {
+        // 기존 MainAccount 조회
+        MainAccount mainAccount = mainAccountRepository.findByMemberId(requestDto.getMemberId())
+             .orElseThrow(() -> new IllegalArgumentException("메인 계좌가 존재하지 않습니다."));
+
+        // 계좌 변경
+        Account account = accountRepository.findByIdAndMember(requestDto.getAccountId(), mainAccount.getMember())
+                .orElseThrow(() -> new IllegalArgumentException("해당 계좌가 존재하지 않거나 회원의 계좌가 아닙니다."));
+
+        // 기존 엔티티 업데이트
+        mainAccount.setAccount(account);
+        mainAccountRepository.save(mainAccount);
+    }
+
     @Transactional
     public AccountMemberReponseDto getUserAccounts(MemberRequestDto memberRequestDto) {
         // 멤버 조회

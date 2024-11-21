@@ -29,7 +29,7 @@ public class SettlementDetails {
     @JoinColumn(name = "group_member_id", columnDefinition = "BIGINT NOT NULL COMMENT '구성원 ID'")
     private GroupMember groupMember;
 
-    @Column(name = "settlement_amount", columnDefinition = "INT COMMENT '개별 정산금액'")
+    @Column(name = "settlement_amount", columnDefinition = "INT NOT NULL COMMENT '개별 정산금액'")
     private Integer settlementAmount;
 
     @Column(name = "settlement_status", columnDefinition = "VARCHAR(1) COMMENT '개별 정산상태'")

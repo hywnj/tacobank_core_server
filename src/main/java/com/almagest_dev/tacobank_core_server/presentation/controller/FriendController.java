@@ -48,7 +48,7 @@ public class FriendController {
         return ResponseEntity.ok("친구 차단을 해제하였습니다.");
     }
 
-    @PostMapping("/delete")
+    @PostMapping
     public ResponseEntity<String> deleteFriend(@RequestBody FriendRequestDto requestDto) {
         friendService.deleteFriend(requestDto.getRequesterId(), requestDto);
         return ResponseEntity.ok("친구를 삭제하였습니다.");

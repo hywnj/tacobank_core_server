@@ -17,4 +17,6 @@ public interface SettlementDetailsRepository extends JpaRepository<SettlementDet
     List<SettlementDetails> findBySettlement_Id(Long settlementId);
     List<SettlementDetails> findBySettlement_IdAndSettlementStatus(Long settlementId, String settlementStatus);
 
+    Optional<SettlementDetails> findBySettlement_IdAndGroupMember_Member_IdAndSettlementStatus(
+            Long settlementId, Long memberId, String settlementStatus);
 }

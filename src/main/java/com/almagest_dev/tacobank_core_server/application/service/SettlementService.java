@@ -52,14 +52,7 @@ public class SettlementService {
         this.accountRepository = accountRepository;
         this.memberRepository = memberRepository;
     }
-
-    private Long getMainAccountIdForMember(Long memberId) {
-        return mainAccountRepository.findByMemberId(memberId)
-                .map(MainAccount::getAccount)
-                .map(Account::getId)
-                .orElse(null);
-    }
-
+    
     public void processSettlementRequest(SettlementRequestDto request) {
         Group group;
 
@@ -132,28 +125,6 @@ public class SettlementService {
     }
 
 
-    public List<SettlementDetailsResponseDto> getSettlementDetailsByGroupId(Long groupId) {
-        List<SettlementDetails> settlementDetails = settlementDetailsRepository.findByGroupId(groupId);
-        return settlementDetails.stream()
-                .map(detail -> new SettlementDetailsResponseDto(
-                        detail.getGroupMember().getMember().getId(),
-                        detail.getSettlementAmount(),
-                        detail.getSettlementStatus()))
-                .collect(Collectors.toList());
-    }
-
-    public List<SettlementDetailsResponseDto> getSettlementDetailsForMember(Long groupId, Long memberId) {
-        List<SettlementDetails> detailsList = settlementDetailsRepository.findByGroupMember_Member_IdAndGroupMember_PayGroup_Id(memberId, groupId);
-
-        return detailsList.stream()
-                .map(detail -> new SettlementDetailsResponseDto(
-                        detail.getGroupMember().getMember().getId(),
-                        detail.getSettlementAmount(),
-                        detail.getSettlementStatus()
-                ))
-                .collect(Collectors.toList());
-    }
-
     public SettlementStatusResponseDto getSettlementStatus(Long memberId) {
         // 내가 만든 정산 리스트
         List<MyCreatedSettlementDto> createdSettlements = settlementRepository.findByPayGroup_Leader_Id(memberId).stream()
@@ -217,18 +188,15 @@ public class SettlementService {
         return new SettlementDetailsListResponseDto(settlement.getId(), settlementDetails);
     }
 
-    public void notifyPendingSettlements(Long settlementId) {
+    public void notifyPendingSettlementForMember(Long settlementId, Long memberId) {
+        // 특정 Settlement와 관련된 특정 Member의 정산 정보 조회
+        SettlementDetails pendingDetail = settlementDetailsRepository.findBySettlement_IdAndGroupMember_Member_IdAndSettlementStatus(
+                settlementId, memberId, "N"
+        ).orElseThrow(() -> new IllegalStateException("해당 멤버의 정산 정보가 없거나 이미 완료된 정산입니다."));
 
-        List<SettlementDetails> pendingDetails = settlementDetailsRepository.findBySettlement_IdAndSettlementStatus(settlementId, "N");
-
-        if (pendingDetails.isEmpty()) {
-            throw new IllegalStateException("정산 완료되지 않은 사용자가 없습니다.");
-        }
-
-        for (SettlementDetails detail : pendingDetails) {
-            String message = String.format("정산 요청이 아직 완료되지 않았습니다. 요청 금액: %d원", detail.getSettlementAmount());
-            notificationService.sendNotification(detail.getGroupMember().getMember(), message);
-        }
+        // 알림 전송
+        String message = String.format("정산 요청이 아직 완료되지 않았습니다. 요청 금액: %d원", pendingDetail.getSettlementAmount());
+        notificationService.sendNotification(pendingDetail.getGroupMember().getMember(), message);
     }
 
 }
