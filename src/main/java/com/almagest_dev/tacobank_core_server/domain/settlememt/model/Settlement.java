@@ -2,6 +2,7 @@ package com.almagest_dev.tacobank_core_server.domain.settlememt.model;
 
 import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
 import com.almagest_dev.tacobank_core_server.domain.group.model.Group;
+import com.almagest_dev.tacobank_core_server.domain.receipt.model.Receipt;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Getter
@@ -47,6 +49,9 @@ public class Settlement {
 
     @Column (columnDefinition = "DATETIME NOT NULL COMMENT '수정일자'")
     private LocalDateTime updatedDate;
+
+    @OneToMany(mappedBy = "settlement")
+    private List<Receipt> receipts;
 
     @PrePersist
     protected void onCreate() {
