@@ -3,6 +3,7 @@ package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.SettlementService;
 import com.almagest_dev.tacobank_core_server.presentation.dto.*;
+import com.almagest_dev.tacobank_core_server.presentation.dto.settlement.SettlementRequestDto;
 import lombok.Getter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,9 +19,10 @@ public class SettlementController {
         this.settlementService = settlementService;
     }
 
-    @PostMapping("/calculate")
-    public List<SettlementResponseDto> calculateSettlement(@RequestBody SettlementRequestDto request) {
-        return settlementService.calculateSettlement(request);
+    @PostMapping("/request")
+    public ResponseEntity<String> requestSettlement(@RequestBody SettlementRequestDto request) {
+        settlementService.processSettlementRequest(request);
+        return ResponseEntity.ok("정산 요청이 완료되었습니다.");
     }
 
     @GetMapping("/{groupId}/details")

@@ -12,4 +12,5 @@ public class GroupMemberResponseDto {
     private Long groupId;
     private Long memberId;
     private String status;
+    private String groupName;
 }

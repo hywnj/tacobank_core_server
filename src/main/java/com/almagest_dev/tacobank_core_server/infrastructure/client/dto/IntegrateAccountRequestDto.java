@@ -4,7 +4,8 @@ import lombok.Data;
 
 @Data
 public class IntegrateAccountRequestDto {
-    private String userFinanceId; // 사용자 금융 ID
+    private String userFinanceId;// 사용자 금융 ID
+    private String userName;
     private String inquiryBankType;
     private String traceNo; // 추적 번호
 }

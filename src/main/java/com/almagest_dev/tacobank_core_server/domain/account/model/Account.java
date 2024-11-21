@@ -29,7 +29,7 @@ public class Account {
     @Column(columnDefinition = "VARCHAR(20) COMMENT '계좌번호'")
     private String accountNumber;
 
-    @Column(columnDefinition = "VARCHAR(20) COMMENT '예금주'")
+    @Column(columnDefinition = "VARCHAR(255) COMMENT '예금주'")
     private String accountHolderName;
 
     @Column(columnDefinition = "VARCHAR(5) COMMENT '은행코드'")

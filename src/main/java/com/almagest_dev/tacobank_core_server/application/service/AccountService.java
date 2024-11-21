@@ -60,11 +60,12 @@ public class AccountService {
                 .orElseThrow(() -> new IllegalArgumentException("Member not found"));
 
         String userFinanceId = member.getUserFinanceId();
+        String userName = member.getName();
         IntegrateAccountResponseDto responseDto;
 
         if (userFinanceId == null || userFinanceId.isEmpty()) {
             // 최초 요청 - memberId를 기반으로 요청
-            responseDto = fetchAccountsFromApi(memberRequestDto.getMemberId().toString());
+            responseDto = fetchAccountsFromApi(memberRequestDto.getMemberId().toString(), userName);
             userFinanceId = responseDto.getUserFinanceId();
 
             // 응답받은 userFinanceId 저장
@@ -73,7 +74,7 @@ public class AccountService {
             System.out.println("Saved userFinanceId: " + userFinanceId);
         } else {
             // 이후 요청 - userFinanceId를 기반으로 요청
-            responseDto = fetchAccountsFromApi(userFinanceId);
+            responseDto = fetchAccountsFromApi(userFinanceId, userName);
         }
 
         // 계좌 정보 저장 (최초 1회만)
@@ -88,9 +89,10 @@ public class AccountService {
         return mapToMemberResponseDto(member, responseDto);
     }
 
-    private IntegrateAccountResponseDto fetchAccountsFromApi(String userFinanceId) {
+    private IntegrateAccountResponseDto fetchAccountsFromApi(String userFinanceId, String userName) {
         IntegrateAccountRequestDto requestDto = new IntegrateAccountRequestDto();
         requestDto.setUserFinanceId(userFinanceId);
+        requestDto.setUserName(userName);
         requestDto.setInquiryBankType("A");
 
         IntegrateAccountResponseDto responseDto = testbedApiClient.requestApi(

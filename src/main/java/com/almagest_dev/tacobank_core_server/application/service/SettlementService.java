@@ -8,12 +8,16 @@ import com.almagest_dev.tacobank_core_server.domain.group.model.Group;
 import com.almagest_dev.tacobank_core_server.domain.group.model.GroupMember;
 import com.almagest_dev.tacobank_core_server.domain.group.repository.GroupMemberRepository;
 import com.almagest_dev.tacobank_core_server.domain.group.repository.GroupRepository;
+import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
+import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
 import com.almagest_dev.tacobank_core_server.domain.settlememt.model.Settlement;
 import com.almagest_dev.tacobank_core_server.domain.settlememt.model.SettlementDetails;
 import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementDetailsRepository;
 import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementRepository;
 import com.almagest_dev.tacobank_core_server.presentation.dto.*;
 
+import com.almagest_dev.tacobank_core_server.presentation.dto.settlement.SettlementMemberDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.settlement.SettlementRequestDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,11 +37,12 @@ public class SettlementService {
     private final MainAccountRepository mainAccountRepository;
     private final NotificationService notificationService;
     private final AccountRepository accountRepository;
+    private final MemberRepository memberRepository;
 
 
     public SettlementService(GroupRepository groupRepository, GroupMemberRepository groupMemberRepository,
                              SettlementRepository settlementRepository, SettlementDetailsRepository settlementDetailsRepository,
-                             MainAccountRepository mainAccountRepository, NotificationService notificationService, AccountRepository accountRepository) {
+                             MainAccountRepository mainAccountRepository, NotificationService notificationService, AccountRepository accountRepository, MemberRepository memberRepository) {
         this.groupRepository = groupRepository;
         this.groupMemberRepository = groupMemberRepository;
         this.settlementRepository = settlementRepository;
@@ -45,7 +50,7 @@ public class SettlementService {
         this.mainAccountRepository = mainAccountRepository;
         this.notificationService = notificationService;
         this.accountRepository = accountRepository;
-
+        this.memberRepository = memberRepository;
     }
 
     private Long getMainAccountIdForMember(Long memberId) {
@@ -55,48 +60,77 @@ public class SettlementService {
                 .orElse(null);
     }
 
+    public void processSettlementRequest(SettlementRequestDto request) {
+        Group group;
 
-    public List<SettlementResponseDto> calculateSettlement(SettlementRequestDto request) {
-        // Fetch group information
-        Group group = groupRepository.findById(request.getGroupId())
-                .orElseThrow(() -> new IllegalArgumentException("그룹이 존재하지 않습니다."));
+        // 1. 그룹 확인 또는 생성
+        if (request.getGroupId() == null) {
+            // 친구 선택으로 그룹 생성
+            group = createTemporaryGroup(request);
+        } else {
+            // 기존 그룹 조회
+            group = groupRepository.findById(request.getGroupId())
+                    .orElseThrow(() -> new IllegalArgumentException("그룹이 존재하지 않습니다."));
+        }
 
-        // Fetch all ACCEPTED group members including the leader
-        List<GroupMember> acceptedMembers = groupMemberRepository.findByPayGroupAndStatus(group, "ACCEPTED");
+        // 선택된 계좌 확인
+        Account selectedAccount = accountRepository.findById(request.getSettlementAccountId())
+                .orElseThrow(() -> new IllegalArgumentException("선택된 계좌가 존재하지 않습니다."));
 
-        Long leaderId = group.getLeader().getId();
-        Account leaderMainAccount = accountRepository.findById(getMainAccountIdForMember(leaderId))
-                .orElseThrow(() -> new IllegalStateException("그룹장의 메인 계좌를 찾을 수 없습니다."));
-
-        int totalMembers = acceptedMembers.size()+1;
-        int perMemberAmount = request.getTotalAmount() / totalMembers;
-
+        // 2. 정산 데이터 생성 및 저장
         Settlement settlement = new Settlement();
         settlement.setPayGroup(group);
-        settlement.setSettlementAccount(leaderMainAccount);
+        settlement.setSettlementAccount(selectedAccount);
         settlement.setSettlementTotalAmount(request.getTotalAmount());
         settlement.setSettlementStatus("N");
         settlementRepository.save(settlement);
 
-        List<SettlementResponseDto> settlementList = new ArrayList<>();
+        // 3. 개인 멤버별 정산 데이터 저장
+        for (SettlementMemberDto memberDto : request.getMemberAmounts()) {
+            GroupMember groupMember = groupMemberRepository.findByPayGroupAndMemberId(group, memberDto.getMemberId())
+                    .orElseThrow(() -> new IllegalArgumentException("그룹에 해당 멤버가 존재하지 않습니다."));
 
-        for (GroupMember member : acceptedMembers) {
-            System.out.println("Saving settlement detail for member ID: " + member.getMember().getId());
-            SettlementDetails settlementDetail = new SettlementDetails();
-            settlementDetail.setSettlement(settlement);
-            settlementDetail.setGroupMember(member);
-            settlementDetail.setSettlementAmount(perMemberAmount);
-            settlementDetail.setSettlementStatus("N");
-            settlementDetailsRepository.saveAndFlush(settlementDetail);
+            SettlementDetails settlementDetails = new SettlementDetails();
+            settlementDetails.setSettlement(settlement);
+            settlementDetails.setGroupMember(groupMember);
+            settlementDetails.setSettlementAmount(memberDto.getAmount());
+            settlementDetails.setSettlementStatus("N");
+            settlementDetailsRepository.save(settlementDetails);
 
-            String message = String.format("정산 요청이 도착했습니다. 요청 금액: %d원", perMemberAmount);
-            notificationService.sendNotification(member.getMember(), message);
+            // 알림 전송
+            String message = String.format("정산 요청이 도착했습니다. 요청 금액: %d원", memberDto.getAmount());
+            notificationService.sendNotification(groupMember.getMember(), message);
+        }
+    }
 
-            settlementList.add(new SettlementResponseDto(member.getMember().getId(), perMemberAmount, member.getMember().getName()));
+    private Group createTemporaryGroup(SettlementRequestDto request) {
+        // 그룹장 찾기
+        Member leader = groupRepository.findLeaderById(request.getLeaderId())
+                .orElseThrow(() -> new IllegalArgumentException("그룹장을 찾을 수 없습니다."));
+
+        // 그룹 생성
+        Group group = new Group();
+        group.setLeader(leader);
+        group.setName(leader.getName() + "과 아이들");
+        group.setActivated("N");
+        group.setCustomized("N");
+        groupRepository.save(group);
+
+        // 친구 목록 추가
+        for (Long friendId : request.getFriendIds()) {
+            Member friend = memberRepository.findMemberById(friendId)
+                    .orElseThrow(() -> new IllegalArgumentException("친구를 찾을 수 없습니다."));
+
+            GroupMember groupMember = new GroupMember();
+            groupMember.setPayGroup(group);
+            groupMember.setMember(friend);
+            groupMember.setStatus("ACCEPTED");
+            groupMemberRepository.save(groupMember);
         }
 
-        return settlementList;
+        return group;
     }
+
 
     public List<SettlementDetailsResponseDto> getSettlementDetailsByGroupId(Long groupId) {
         List<SettlementDetails> settlementDetails = settlementDetailsRepository.findByGroupId(groupId);

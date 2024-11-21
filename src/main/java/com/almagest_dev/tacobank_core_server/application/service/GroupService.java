@@ -60,59 +60,6 @@ public class GroupService {
         );
     }
 
-    @Transactional
-    public GroupResponseDto createTemporaryGroup(GroupRequestDto requestDto) {
-        // 그룹장 찾기
-        Member leader = memberRepository.findById(requestDto.getLeaderId())
-                .orElseThrow(() -> new IllegalArgumentException("그룹장을 찾을 수 없습니다."));
-
-        // 그룹 생성
-        Group group = new Group();
-        group.setLeader(leader);
-        group.setActivated("N");
-        group.setCustomized("N");
-        group.setName(leader.getName() + "과 아이들");
-
-        // 저장
-        final Group savedGroup = groupRepository.save(group);
-
-        // 친구 목록 추가 (ACCEPTED 상태로)
-        if (requestDto.getFriendIds() != null && !requestDto.getFriendIds().isEmpty()) {
-            addAcceptedMembersToGroup(savedGroup, requestDto.getFriendIds());
-        }
-
-        List<GroupMemberResponseDto> memberDtos = groupMemberRepository.findByPayGroup(savedGroup).stream()
-                .map(member -> new GroupMemberResponseDto(
-                        member.getId(),
-                        savedGroup.getId(),
-                        member.getMember().getId(),
-                        member.getStatus()
-                ))
-                .collect(Collectors.toList());
-
-        return new GroupResponseDto(
-                savedGroup.getId(),
-                savedGroup.getName(),
-                savedGroup.getCustomized(),
-                savedGroup.getActivated(),
-                memberDtos
-        );
-    }
-
-    private void addAcceptedMembersToGroup(Group group, List<Long> friendIds) {
-        for (Long friendId : friendIds) {
-            Member friend = memberRepository.findById(friendId)
-                    .orElseThrow(() -> new IllegalArgumentException("친구를 찾을 수 없습니다."));
-
-            // GroupMember 생성
-            GroupMember groupMember = new GroupMember();
-            groupMember.setGroup(group);
-            groupMember.setMember(friend);
-            groupMember.setStatus("ACCEPTED");
-
-            groupMemberRepository.save(groupMember);
-        }
-    }
 
     @Transactional
     public void deleteGroup(Long userId, Long groupId) {
@@ -291,7 +238,8 @@ public class GroupService {
                         member.getId(),
                         member.getPayGroup().getId(),
                         member.getMember().getId(),
-                        member.getStatus()
+                        member.getStatus(),
+                        member.getPayGroup().getName()
                 ))
                 .collect(Collectors.toList());
     }

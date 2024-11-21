@@ -1,0 +1,9 @@
+package com.almagest_dev.tacobank_core_server.presentation.dto.settlement;
+
+import lombok.Data;
+
+@Data
+public class SettlementMemberDto {
+    private Long memberId; // 멤버 ID
+    private int amount; // 멤버별 금액
+}

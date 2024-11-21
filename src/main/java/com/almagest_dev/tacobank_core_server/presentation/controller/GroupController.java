@@ -2,6 +2,7 @@ package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.GroupService;
 import com.almagest_dev.tacobank_core_server.domain.friend.model.Friend;
+import com.almagest_dev.tacobank_core_server.presentation.dto.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,13 +24,6 @@ public class GroupController {
     @PostMapping("/create/y")
     public ResponseEntity<GroupResponseDto> createGroup(@RequestBody GroupRequestDto requestDto) {
         GroupResponseDto groupResponse = groupService.createGroup(requestDto.getLeaderId(), requestDto);
-        return ResponseEntity.ok(groupResponse);
-    }
-
-    // 임시 그룹 생성
-    @PostMapping("/create/n")
-    public ResponseEntity<GroupResponseDto> createTemporaryGroup(@RequestBody GroupRequestDto requestDto) {
-        GroupResponseDto groupResponse = groupService.createTemporaryGroup(requestDto);
         return ResponseEntity.ok(groupResponse);
     }
 
