@@ -2,12 +2,13 @@ package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 
 import com.almagest_dev.tacobank_core_server.application.service.SettlementService;
+import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.*;
 import com.almagest_dev.tacobank_core_server.presentation.dto.settlement.SettlementRequestDto;
+import jakarta.validation.Valid;
 import lombok.Getter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
 
 @Getter
 @RestController
@@ -48,6 +49,12 @@ public class SettlementController {
     ) {
         settlementService.notifyPendingSettlementForMember(settlementId, memberId);
         return ResponseEntity.ok("해당 사용자에게 정산 알림을 보냈습니다.");
+    }
+
+    @PostMapping("/transfers")
+    public ResponseEntity<?> validateSettlementsAndGetAvailableBalances(@RequestBody @Valid SettlementTransferRequestDto requestDto) {
+        SettlementTransferResponseDto response = settlementService.validateSettlementsAndGetAvailableBalances(requestDto);
+        return ResponseEntity.ok(new CoreResponseDto<>("success", "사용자 출금 가능 계좌 잔액조회 성공", response));
     }
 
 }

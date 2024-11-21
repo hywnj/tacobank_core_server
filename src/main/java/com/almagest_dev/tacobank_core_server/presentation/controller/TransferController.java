@@ -2,7 +2,6 @@ package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.TransferService;
 import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.TransactionListResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -46,7 +45,6 @@ public class TransferController {
     public ResponseEntity<?> transfer(@RequestBody @Valid TransferRequestDto requestDto) {
         return ResponseEntity.ok(transferService.transfer(requestDto));
     }
-
 
     /**
      * 거래내역조회

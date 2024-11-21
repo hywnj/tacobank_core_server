@@ -8,6 +8,10 @@ import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.AccountRepository;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
+import com.almagest_dev.tacobank_core_server.domain.settlememt.model.Settlement;
+import com.almagest_dev.tacobank_core_server.domain.settlememt.model.SettlementDetails;
+import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementDetailsRepository;
+import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementRepository;
 import com.almagest_dev.tacobank_core_server.domain.transfer.model.Transfer;
 import com.almagest_dev.tacobank_core_server.domain.transfer.repository.TransferRepository;
 import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.TransactionDetailDto;
@@ -38,6 +42,8 @@ public class TransferService {
     private final TransferRepository transferRepository;
     private final MemberRepository memberRepository;
     private final AccountRepository accountRepository;
+    private final SettlementRepository settlementRepository;
+    private final SettlementDetailsRepository settlementDetailsRepository;
 
     private final TestbedApiClient testbedApiClient;
     private final SessionUtils sessionUtils;
@@ -95,24 +101,28 @@ public class TransferService {
         );
         log.info("TransferService::inquireReceiverAccount 잔액 조회 Response: {} ", balanceInquiryApiResponse);
         if (balanceInquiryApiResponse.getApiTranId() == null || !balanceInquiryApiResponse.getRspCode().equals("A0000") || balanceInquiryApiResponse.getBalanceAmt() == null) {
-            throw new TransferException("계좌 잔액조회에 실패했습니다. - " + balanceInquiryApiResponse.getRspMessage(), HttpStatus.BAD_REQUEST);
+            throw new TransferException("계좌 잔액 조회에 실패했습니다. - " + balanceInquiryApiResponse.getRspMessage(), HttpStatus.BAD_REQUEST);
         }
 
         // 수취인 조회 성공시 Redis Set (TTL: 20분)
         String sessionId = sessionUtils.generateSessionId(withdrawalMember.getId(), requestDto.getIdempotencyKey());
         TransferSessionData data = new TransferSessionData(
                 requestDto.getIdempotencyKey(),             // 중복 방지 키(클라이언트에서 생성)
-                requestDto.getWithdrawalMemberId(),         // 출금 멤버 아이디
-                withdrawalMember.getUserFinanceId(),        // 사용자 금융 식별번호
-                requestDto.getWithdrawalAccountId(),        // 출금 계좌 아이디
-                withdrawalAccount.getFintechUseNum(),       // 계좌 핀테크 이용번호
-                withdrawalAccount.getAccountNumber(),       // 출금 계좌 번호
-                withdrawalAccount.getAccountHolderName(),   // 출금 예금주
-                withdrawalAccount.getBankCode(),            // 출금 은행 코드
+                requestDto.getWithdrawalMemberId(),         // 출금 사용자 ID
+                withdrawalMember.getUserFinanceId(),        // 출금 사용자 금융 식별번호
+                withdrawalAccount.getFintechUseNum(),       // 출금 계좌 핀테크 이용번호
+                new WithdrawalDetails(
+                        requestDto.getWithdrawalAccountId(),        // 출금 계좌 아이디
+                        withdrawalAccount.getAccountNumber(),       // 출금 계좌 번호
+                        withdrawalAccount.getAccountHolderName(),   // 출금 예금주
+                        withdrawalAccount.getBankCode()             // 출금 은행 코드
+                ),
                 receiverInquiryApiResponse.getRecvAccountFintechUseNum(),  // 입금(수취) 계좌 핀테크 이용번호
-                requestDto.getReceiverAccountNum(),         // 입금(수취) 계좌 번호
-                receiverInquiryApiResponse.getAccountHolderName(),         // 입금(수취) 예금주(수취인)
-                requestDto.getReceiverBankCode(),           // 입금(수취) 은행 코드
+                new ReceiverDetails(
+                        requestDto.getReceiverAccountNum(),                     // 입금(수취) 계좌 번호
+                        receiverInquiryApiResponse.getAccountHolderName(),      // 입금(수취) 예금주(수취인)
+                        requestDto.getReceiverBankCode()                        // 입금(수취) 은행 코드
+                ),
                 0,
                 false
         );
@@ -197,7 +207,7 @@ public class TransferService {
         log.info("TransferService::transfer START");
         log.info("TransferService - transfer requestDto :{} ", requestDto);
         // Redis에서 송금 세션 확인
-        String sessionKey = TRANSFER_SESSION_PREFIX + sessionUtils.generateSessionId(requestDto.getWithdrawalMemberId(), requestDto.getIdempotencyKey());
+        String sessionKey = TRANSFER_SESSION_PREFIX + sessionUtils.generateSessionId(requestDto.getMemberId(), requestDto.getIdempotencyKey());
         TransferSessionData sessionData = sessionUtils.getSessionData(sessionKey, TransferSessionData.class);
         if (sessionData == null) {
             throw new TransferException("유효하지 않은 송금 요청입니다.", HttpStatus.BAD_REQUEST);
@@ -213,13 +223,15 @@ public class TransferService {
         }
 
         // 송금 요청 파라미터 확인
-        if (requestDto.getWithdrawalAccountId() != sessionData.getWithdrawalAccountId()
-                || !requestDto.getWithdrawalAccountNum().equals(sessionData.getWithdrawalAccountNum())
-                || !requestDto.getWithdrawalAccountHolder().equals(sessionData.getWithdrawalAccountHolder())
-                || !requestDto.getWithdrawalBankCode().equals(sessionData.getWithdrawalBankCode())
-                || !requestDto.getReceiverAccountNum().equals(sessionData.getReceiverAccountNum())
-                || !requestDto.getReceiverAccountHolder().equals(sessionData.getReceiverAccountHolder())
-                || !requestDto.getReceiverBankCode().equals(sessionData.getReceiverBankCode())) {
+        WithdrawalDetails withdrawalDetails = requestDto.getWithdrawalDetails();
+        ReceiverDetails receiverDetails = requestDto.getReceiverDetails();
+        if (withdrawalDetails.getAccountId() != sessionData.getWithdrawalDetails().getAccountId()
+                || !withdrawalDetails.getAccountNum().equals(sessionData.getWithdrawalDetails().getAccountNum())
+                || !withdrawalDetails.getAccountHolder().equals(sessionData.getReceiverDetails().getAccountHolder())
+                || !withdrawalDetails.getBankCode().equals(sessionData.getWithdrawalDetails().getBankCode())
+                || !receiverDetails.getAccountNum().equals(sessionData.getReceiverDetails().getAccountNum())
+                || !receiverDetails.getAccountHolder().equals(sessionData.getReceiverDetails().getAccountHolder())
+                || !receiverDetails.getBankCode().equals(sessionData.getReceiverDetails().getBankCode())) {
             log.warn("TransferService::transfer 요청과 세션 데이터 다름 - request: {}, session: {}", requestDto, sessionData);
             throw new TransferException("잘못된 송금 요청입니다.", HttpStatus.BAD_REQUEST);
         }
@@ -234,17 +246,17 @@ public class TransferService {
         }
         // 입금 인자 내역, 출금 인자 내역 (Default: 보내는 사람 이름)
         String wdPrintContent = (!StringUtils.isBlank(requestDto.getWdPrintContent())) ?
-                requestDto.getWdPrintContent() : requestDto.getWithdrawalAccountHolder();
+                requestDto.getWdPrintContent() : withdrawalDetails.getAccountHolder();
         String rcvPrintContent = (!StringUtils.isBlank(requestDto.getRcvPrintContent())) ?
-                requestDto.getRcvPrintContent() : requestDto.getWithdrawalAccountHolder();
+                requestDto.getRcvPrintContent() : withdrawalDetails.getAccountHolder();
 
         // 송금 요청 INSERT
         Transfer transferData = new Transfer().createTransfer(
                 sessionData.getIdempotencyKey(),
-                sessionData.getWithdrawalMemberId(), sessionData.getWithdrawalAccountId(),
-                sessionData.getWithdrawalBankCode(), sessionData.getWithdrawalAccountNum(), sessionData.getWithdrawalAccountHolder(),
+                sessionData.getMemberId(), sessionData.getWithdrawalDetails().getAccountId(),
+                sessionData.getWithdrawalDetails().getBankCode(), sessionData.getWithdrawalDetails().getAccountNum(), sessionData.getWithdrawalDetails().getAccountHolder(),
                 wdPrintContent, rcvPrintContent,
-                sessionData.getReceiverBankCode(), sessionData.getReceiverAccountNum(), sessionData.getReceiverAccountHolder(),
+                sessionData.getReceiverDetails().getBankCode(), sessionData.getReceiverDetails().getAccountNum(), sessionData.getReceiverDetails().getAccountHolder(),
                 sessionData.getAmount()
         );
         log.info("TransferService - [{}] transfer INSERT Start...", sessionKey);
@@ -272,13 +284,13 @@ public class TransferService {
                     LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")),
                     sessionData.getWithdrawalFintechUseNum(),
                     transfer.getWdPrintContent(),
-                    sessionData.getWithdrawalAccountHolder(),
-                    sessionData.getWithdrawalBankCode(),
-                    sessionData.getWithdrawalAccountNum(),
+                    sessionData.getWithdrawalDetails().getAccountHolder(),
+                    sessionData.getWithdrawalDetails().getBankCode(),
+                    sessionData.getWithdrawalDetails().getAccountNum(),
                     sessionData.getReceiverFintechUseNum(),
-                    sessionData.getReceiverAccountHolder(),
-                    sessionData.getReceiverBankCode(),
-                    sessionData.getReceiverAccountNum(),
+                    sessionData.getReceiverDetails().getAccountHolder(),
+                    sessionData.getReceiverDetails().getBankCode(),
+                    sessionData.getReceiverDetails().getAccountNum(),
                     transfer.getRcvPrintContent()
             );
             log.info("TransferService - [{}] transfer processTransferTransaction Testbed API Request : {}", sessionKey, apiRequestDto);
