@@ -44,7 +44,6 @@ public class Group {
     private LocalDateTime updatedDate;
 
     @OneToMany(mappedBy = "payGroup", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<GroupMember> payGroups;
     private List<GroupMember> payGroups = new ArrayList<>();
 
     @PrePersist

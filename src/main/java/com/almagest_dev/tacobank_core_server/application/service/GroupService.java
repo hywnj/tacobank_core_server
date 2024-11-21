@@ -114,27 +114,6 @@ public class GroupService {
         }
     }
 
-    // 그룹장을 그룹 멤버로 추가하는 메서드
-    private void addGroupLeaderAsMember(Group group, Member leader) {
-        GroupMember groupLeaderMember = new GroupMember();
-        groupLeaderMember.setPayGroup(group);
-        groupLeaderMember.setMember(leader);
-        groupLeaderMember.setStatus("ACCEPTED");
-        groupMemberRepository.save(groupLeaderMember);
-    }
-
-    private void addMembersToGroup(Group group, List<Long> friendIds) {
-        for (Long friendId : friendIds) {
-            Member friend = memberRepository.findById(friendId)
-                    .orElseThrow(() -> new IllegalArgumentException("친구를 찾을 수 없습니다."));
-            GroupMember groupMember = new GroupMember();
-            groupMember.setPayGroup(group);
-            groupMember.setMember(friend);
-            groupMember.setStatus("INVITED");
-            groupMemberRepository.save(groupMember);
-        }
-    }
-
     @Transactional
     public void deleteGroup(Long userId, Long groupId) {
         Group group = groupRepository.findById(groupId)
@@ -196,7 +175,6 @@ public class GroupService {
                 })
                 .collect(Collectors.toSet());
 
-        // Set을 List로 변환
         return new ArrayList<>(uniqueFriends);
     }
 
@@ -267,25 +245,42 @@ public class GroupService {
         groupMemberRepository.save(groupMember);
     }
 
-    public List<GroupResponseDto> getMyGroups(Long userId) {
-        List<Group> myGroups = groupRepository.findByLeaderIdOrMemberId(userId);
+    public List<MyGroupsResponseDto> getMyGroups(Long memberId) {
+        List<Group> groups = groupRepository.findByLeaderId(memberId);
 
-        return myGroups.stream()
-                .map(group -> new GroupResponseDto(
-                        group.getId(),
-                        group.getName(),
-                        group.getCustomized(),
-                        group.getActivated(),
-                        group.getPayGroups().stream()
-                                .map(member -> new GroupMemberResponseDto(
-                                        member.getId(),
-                                        group.getId(),
-                                        member.getMember().getId(),
-                                        member.getStatus()
-                                ))
-                                .collect(Collectors.toList())
-                ))
-                .collect(Collectors.toList());
+        return groups.stream().map(group -> {
+            MyGroupsResponseDto response = new MyGroupsResponseDto();
+            response.setGroupId(group.getId());
+            response.setGroupName(group.getName());
+            response.setCustomized(group.getCustomized());
+            response.setActivated(group.getActivated());
+            response.setLeaderId(group.getLeader().getId());
+            response.setLeaderName(group.getLeader().getName());
+
+            // 리더 이름 조회
+            Member leader = memberRepository.findById(group.getLeader().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("리더를 찾을 수 없습니다."));
+            response.setLeaderName(leader.getName());
+
+            // 멤버 이름 조회
+            List<MyGroupsResponseDto.MemberInfo> members = group.getPayGroups().stream().map(member -> {
+                MyGroupsResponseDto.MemberInfo memberInfo = new MyGroupsResponseDto.MemberInfo();
+                memberInfo.setId(member.getId());
+                memberInfo.setGroupId(member.getPayGroup().getId());
+                memberInfo.setMemberId(member.getMember().getId());
+                memberInfo.setStatus(member.getStatus());
+
+                // 멤버 이름 설정
+                Member memberEntity = memberRepository.findById(member.getMember().getId())
+                        .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
+                memberInfo.setMemberName(memberEntity.getName());
+
+                return memberInfo;
+            }).collect(Collectors.toList());
+
+            response.setMembers(members);
+            return response;
+        }).collect(Collectors.toList());
     }
 
     public List<GroupMemberResponseDto> getPendingInvitations(Long userId) {

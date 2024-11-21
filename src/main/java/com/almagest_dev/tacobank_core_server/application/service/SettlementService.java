@@ -175,7 +175,8 @@ public class SettlementService {
                         detail.getGroupMember().getMember().getId(),
                         detail.getGroupMember().getMember().getName(),
                         detail.getSettlementAmount().longValue(),
-                        detail.getSettlementStatus()
+                        detail.getSettlementStatus(),
+                        detail.getUpdatedDate()
                 ))
                 .collect(Collectors.toList());
 

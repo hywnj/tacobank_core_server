@@ -2,10 +2,6 @@ package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.GroupService;
 import com.almagest_dev.tacobank_core_server.domain.friend.model.Friend;
-import com.almagest_dev.tacobank_core_server.presentation.dto.GroupMemberResponseDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.GroupRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.GroupResponseDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.GroupSearchResponseDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -101,10 +97,9 @@ public class GroupController {
 
     // 내가 속한 그룹 목록 조회
     @PostMapping("/my-groups")
-    public ResponseEntity<List<GroupResponseDto>> getMyGroups(@RequestBody Map<String, Long> request) {
-        Long userId = request.get("memberId");
-        List<GroupResponseDto> myGroups = groupService.getMyGroups(userId);
-        return ResponseEntity.ok(myGroups);
+    public List<MyGroupsResponseDto> getMyGroups(@RequestBody MyGroupsRequestDto request) {
+        Long memberId = request.getMemberId();
+        return groupService.getMyGroups(memberId);
     }
 
     // 초대 대기 목록 조회 (초대를 수락하지 않은 목록)
