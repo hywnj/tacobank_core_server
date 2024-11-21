@@ -13,4 +13,9 @@ public class CoreResponseDto<T> {
     private String status;
     private String message;
     private T data; // 요청별 응답 데이터
+
+    public CoreResponseDto(String status, String message) {
+        this.status = status;
+        this.message = message;
+    }
 }

@@ -1,5 +1,6 @@
 package com.almagest_dev.tacobank_core_server.common.exception;
 
+import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
 import com.almagest_dev.tacobank_core_server.common.dto.ExceptionResponseDto;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -21,11 +22,13 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // 400 Bad Request
+    /**
+     * 내장되어 있는 예외들
+     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<?> handleIllegalArgumentException(IllegalArgumentException ex) {
         log.warn("handleIllegalArgumentException - " + ex.getMessage());
-        ExceptionResponseDto response = new ExceptionResponseDto("Bad Request", ex.getMessage());
+        CoreResponseDto response = new CoreResponseDto("TERMINATED", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -68,8 +71,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(SmsSendFailedException.class) // SMS 전송시 예외처리
     public ResponseEntity<?> handleSmsSendFailedException(SmsSendFailedException ex) {
         log.warn("SmsSendFailedException - " + ex.getMessage());
-        ExceptionResponseDto response = new ExceptionResponseDto("Bad Request", "문자 발송이 실패했습니다. 다시 시도해주세요.");
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        CoreResponseDto response = new CoreResponseDto(ex.getStatus(), "문자 발송이 실패했습니다. 다시 시도해주세요.");
+        return ResponseEntity.status(ex.getHttpStatus()).body(response);
     }
     @ExceptionHandler(OcrFailedException.class) // OCR 인식시 예외처리
     public ResponseEntity<?> handleOcrSendFailedException(OcrFailedException ex) {
@@ -134,7 +137,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TransferException.class)
     public ResponseEntity<?> handleTransferException(TransferException ex) {
         log.warn("TransferException - " + ex.getMessage());
-        ExceptionResponseDto response = new ExceptionResponseDto("Transfer Exception", ex.getMessage());
+        CoreResponseDto response = new CoreResponseDto(ex.getStatus(), ex.getMessage());
         return ResponseEntity.status(ex.getHttpStatus()).body(response);
     }
 
