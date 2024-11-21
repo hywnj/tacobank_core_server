@@ -12,11 +12,15 @@ public class TransferRequestDto {
     @NotNull(message = "사용자 ID를 입력해주세요.")
     private Long memberId; // 출금 사용자 ID
 
+    private Long settlementId; // 정산 ID
+
     @NotNull(message = "출금 정보가 없습니다.")
     private WithdrawalDetails withdrawalDetails;
 
     @NotNull(message = "입금 정보가 없습니다.")
     private ReceiverDetails receiverDetails;
+
+    private String transferPin; // 해시화 한 출금 비밀번호
 
     @NotNull(message = "송금액을 보내주세요.")
     private int amount;                 // 송금액

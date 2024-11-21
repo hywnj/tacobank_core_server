@@ -33,7 +33,7 @@ public class TransferController {
      * 출금(이체)시 비밀번호 검증
      */
     @PostMapping("/password/verify")
-    public ResponseEntity<?> validateTransferPassword(@RequestBody @Valid TransferPasswordRequestDto requestDto) {
+    public ResponseEntity<?> validateTransferPassword(@RequestBody @Valid TransferRequestDto requestDto) {
         transferService.verifyPassword(requestDto);
         return ResponseEntity.ok(new CoreResponseDto<>("success", "비밀번호 검증 성공", null));
     }
