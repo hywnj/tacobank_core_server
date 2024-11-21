@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -61,10 +62,13 @@ public class NaverSmsApiClient {
 
             // 응답 결과가 실패인 경우
             if (response.getStatusName().equals("fail") || !response.getStatusCode().equals("202")) {
-                throw new SmsSendFailedException("NaverSmsApiClient::sendSms 요청 실패 - " +
+                throw new SmsSendFailedException(
+                        "TERMINATED",
+                        "NaverSmsApiClient::sendSms 요청 실패 - " +
                         "[" + response.getRequestId() + "] "
                         + response.getStatusCode() + " | " + response.getStatusName()
-                        + " (" + response.getRequestTime() + ")");
+                        + " (" + response.getRequestTime() + ")",
+                        HttpStatus.BAD_REQUEST);
             }
 
             log.info("NaverSmsApiClient::sendSms END");
@@ -72,7 +76,7 @@ public class NaverSmsApiClient {
 
         } catch (HttpClientErrorException | HttpServerErrorException ex) {
             log.error("NaverSmsApiClient::sendSms Http Exception: {}, Response Body: {}", ex.getStatusCode(), ex.getResponseBodyAsString());
-            throw new SmsSendFailedException(ex.getMessage(), ex);
+            throw new SmsSendFailedException("TERMINATED", ex.getMessage(), HttpStatus.BAD_REQUEST,ex);
         }
     }
 

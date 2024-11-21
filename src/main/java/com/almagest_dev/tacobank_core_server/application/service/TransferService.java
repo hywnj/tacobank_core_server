@@ -60,10 +60,10 @@ public class TransferService {
         log.info("TransferService::inquireReceiverAccount START");
         // Member(송금 보내는 사람) 조회
         Member withdrawalMember = memberRepository.findByIdAndDeleted(requestDto.getWithdrawalMemberId(), "N")
-                .orElseThrow(() -> new TransferException("존재하지 않는 회원입니다.", HttpStatus.BAD_REQUEST));
+                .orElseThrow(() -> new TransferException("TERMINATED", "존재하지 않는 회원입니다.", HttpStatus.BAD_REQUEST));
         // Account(송금 보내는 계좌) 조회
         Account withdrawalAccount = accountRepository.findByIdAndVerificated(requestDto.getWithdrawalAccountId(), "Y")
-                .orElseThrow(() -> new TransferException("인증되지 않은 계좌입니다.", HttpStatus.BAD_REQUEST));
+                .orElseThrow(() -> new TransferException("TERMINATED", "인증되지 않은 계좌입니다.", HttpStatus.BAD_REQUEST));
 
         // 수취인 조회를 위한 Member 데이터 세팅
         ReceiverInquiryApiRequestDto receiverInquiryApiRequest = new ReceiverInquiryApiRequestDto(
@@ -85,7 +85,7 @@ public class TransferService {
         log.info("TransferService::inquireReceiverAccount 수취인 조회 Response: {} ", receiverInquiryApiResponse);
         // 수취인 조회 실패
         if (receiverInquiryApiResponse.getApiTranId() == null || !receiverInquiryApiResponse.getRspCode().equals("A0000") || receiverInquiryApiResponse.getRecvAccountFintechUseNum() == null) {
-            throw new TransferException("확인되지 않는 계좌입니다. 다시 입력해주세요.", HttpStatus.BAD_REQUEST);
+            throw new TransferException("FAILURE", "확인되지 않는 계좌입니다. 다시 입력해주세요.", HttpStatus.BAD_REQUEST);
         }
 
         BalanceInquiryApiRequestDto balanceInquiryApiRequest = new BalanceInquiryApiRequestDto(
@@ -101,7 +101,7 @@ public class TransferService {
         );
         log.info("TransferService::inquireReceiverAccount 잔액 조회 Response: {} ", balanceInquiryApiResponse);
         if (balanceInquiryApiResponse.getApiTranId() == null || !balanceInquiryApiResponse.getRspCode().equals("A0000") || balanceInquiryApiResponse.getBalanceAmt() == null) {
-            throw new TransferException("계좌 잔액 조회에 실패했습니다. - " + balanceInquiryApiResponse.getRspMessage(), HttpStatus.BAD_REQUEST);
+            throw new TransferException("TERMINATED", "계좌 잔액 조회에 실패했습니다. - " + balanceInquiryApiResponse.getRspMessage(), HttpStatus.BAD_REQUEST);
         }
 
         // 수취인 조회 성공시 Redis Set (TTL: 20분)
@@ -152,7 +152,7 @@ public class TransferService {
         String transferSessionRedisKey = TRANSFER_SESSION_PREFIX + sessionId;
         TransferSessionData sessionData = sessionUtils.getSessionData(transferSessionRedisKey, TransferSessionData.class);
         if (sessionData == null) {
-            throw new TransferException("송금 요청건이 존재하지 않습니다.", HttpStatus.BAD_REQUEST);
+            throw new TransferException("TERMINATED", "송금 요청건이 존재하지 않습니다.", HttpStatus.BAD_REQUEST);
         }
 
         // Redis 조회 - 실패 내역
@@ -210,16 +210,16 @@ public class TransferService {
         String sessionKey = TRANSFER_SESSION_PREFIX + sessionUtils.generateSessionId(requestDto.getMemberId(), requestDto.getIdempotencyKey());
         TransferSessionData sessionData = sessionUtils.getSessionData(sessionKey, TransferSessionData.class);
         if (sessionData == null) {
-            throw new TransferException("유효하지 않은 송금 요청입니다.", HttpStatus.BAD_REQUEST);
+            throw new TransferException("TERMINATED", "유효하지 않은 송금 요청입니다.", HttpStatus.BAD_REQUEST);
         }
         if (!sessionData.isPasswordVerified()) {
-            throw new TransferException("비밀번호 검증이 완료되지 않았습니다.", HttpStatus.BAD_REQUEST);
+            throw new TransferException("FAILURE", "비밀번호 검증이 완료되지 않았습니다.", HttpStatus.BAD_REQUEST);
         }
         log.info("TransferService - [{}] transfer sessionData: {} ", sessionKey, sessionData);
 
         // 송금 요청 중복 체크
         if (transferRepository.existsByIdempotencyKeyAndStatusIn(requestDto.getIdempotencyKey(), List.of("S", "R"))) {
-            throw new TransferException("중복된 송금 요청입니다.", HttpStatus.CONFLICT);
+            throw new TransferException("TERMINATED", "중복된 송금 요청입니다.", HttpStatus.CONFLICT);
         }
 
         // 송금 요청 파라미터 확인
@@ -233,16 +233,16 @@ public class TransferService {
                 || !receiverDetails.getAccountHolder().equals(sessionData.getReceiverDetails().getAccountHolder())
                 || !receiverDetails.getBankCode().equals(sessionData.getReceiverDetails().getBankCode())) {
             log.warn("TransferService::transfer 요청과 세션 데이터 다름 - request: {}, session: {}", requestDto, sessionData);
-            throw new TransferException("잘못된 송금 요청입니다.", HttpStatus.BAD_REQUEST);
+            throw new TransferException("TERMINATED", "잘못된 송금 요청입니다.", HttpStatus.BAD_REQUEST);
         }
         // 송금액 확인
         if (requestDto.getAmount() <= 0) {
-            throw new TransferException("송금액은 0원 이상이어야 합니다.", HttpStatus.BAD_REQUEST);
+            throw new TransferException("TERMINATED", "송금액은 0원 이상이어야 합니다.", HttpStatus.BAD_REQUEST);
         }
         // 송금액 위변조 체크
         if (requestDto.getAmount() != sessionData.getAmount()) {
             log.warn("TransferService::transfer 송금액 위변조 - request amount: {}, session amount: {}", requestDto.getAmount(), sessionData.getAmount());
-            throw new TransferException("잘못된 송금 요청입니다.", HttpStatus.BAD_REQUEST);
+            throw new TransferException("TERMINATED", "잘못된 송금 요청입니다.", HttpStatus.BAD_REQUEST);
         }
         // 입금 인자 내역, 출금 인자 내역 (Default: 보내는 사람 이름)
         String wdPrintContent = (!StringUtils.isBlank(requestDto.getWdPrintContent())) ?

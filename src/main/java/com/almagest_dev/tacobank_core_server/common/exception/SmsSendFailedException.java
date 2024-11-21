@@ -1,10 +1,12 @@
 package com.almagest_dev.tacobank_core_server.common.exception;
 
-public class SmsSendFailedException extends RuntimeException {
-    public SmsSendFailedException(String message) {
-        super(message);
+import org.springframework.http.HttpStatus;
+
+public class SmsSendFailedException extends BaseCustomException {
+    public SmsSendFailedException(String status, String message, HttpStatus httpStatus) {
+        super(status, message, httpStatus);
     }
-    public SmsSendFailedException(String message, Throwable cause) {
-        super(message, cause);
+    public SmsSendFailedException(String status, String message, HttpStatus httpStatus, Throwable cause) {
+        super(status, message, httpStatus, cause);
     }
 }

@@ -2,15 +2,12 @@ package com.almagest_dev.tacobank_core_server.common.exception;
 
 import org.springframework.http.HttpStatus;
 
-public class TransferException extends RuntimeException {
-    private final HttpStatus httpStatus;
-
-    public TransferException(String message, HttpStatus httpStatus) {
-        super(message);
-        this.httpStatus = httpStatus;
+public class TransferException extends BaseCustomException {
+    public TransferException(String status, String message, HttpStatus httpStatus) {
+        super(status, message, httpStatus);
     }
 
-    public HttpStatus getHttpStatus() {
-        return httpStatus;
+    public TransferException(String status, String message, HttpStatus httpStatus, Throwable cause) {
+        super(status, message, httpStatus, cause);
     }
 }
