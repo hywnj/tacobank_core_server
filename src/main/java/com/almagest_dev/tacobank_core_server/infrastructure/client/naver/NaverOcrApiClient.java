@@ -1,7 +1,7 @@
 package com.almagest_dev.tacobank_core_server.infrastructure.client.naver;
 
-import com.almagest_dev.tacobank_core_server.common.exception.OcrSendFailedException;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.NaverReceiptOcrResponseDto;
+import com.almagest_dev.tacobank_core_server.common.exception.OcrFailedException;
+import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.ocr.NaverReceiptOcrResponseDto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -31,38 +31,16 @@ public class NaverOcrApiClient {
 
     private final NaverApiUtil naverApiUtil;
     private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper = new ObjectMapper()
-            .findAndRegisterModules() // Java 8 날짜, 시간 지원
-            .setSerializationInclusion(JsonInclude.Include.NON_NULL) // null 필드 제외
-            .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false); // 알 수 없는 필드 무시
-
-
-    public NaverReceiptOcrResponseDto sendOcrReceipt(byte[] imageData, String imageName, String format) {
+    public NaverReceiptOcrResponseDto sendOcrReceipt(byte[] imageData, String imageName, String format, String jsonMessage) {
         log.info("NaverOcrApiClient::sendOcrReceipt START");
-        // 1. HttpHeaders 생성
+        // HttpHeaders 생성
         HttpHeaders headers = naverApiUtil.createOcrHeaders();
         log.info("NaverOcrApiClient::sendOcrReceipt Headers - {}", headers);
 
-        // 2. message 메타데이터 생성
-        Map<String, Object> message = Map.of(
-                "version", "V2",
-                "requestId", UUID.randomUUID().toString(),
-                "timestamp", System.currentTimeMillis(),
-                "images", List.of(
-                        Map.of(
-                                "format", format,
-                                "name", imageName
-                        )
-                )
-        );
-        log.info("NaverOcrApiClient::sendOcrReceipt message - {}", message);
-
-        // 3. MultipartBodyBuilder를 사용해 요청 바디 생성
+        // MultipartBodyBuilder를 사용해 요청 바디 생성
         MultipartBodyBuilder builder = new MultipartBodyBuilder();
 
         // message 추가
-        String jsonMessage = createJsonMetadata(message);
         builder.part("message", jsonMessage)
                 .header("Content-Disposition", "form-data; name=message")
                 .header("Content-Type", "application/json");
@@ -80,55 +58,49 @@ public class NaverOcrApiClient {
                 .header("Content-Disposition", "form-data; name=file; filename=" + imageName)
                 .header("Content-Type", "image/" + validatedFormat);
 
-        // 4. HttpEntity 생성
+        // HttpEntity 생성
         HttpEntity<?> requestEntity = new HttpEntity<>(builder.build(), headers);
         log.info("NaverOcrApiClient::sendOcrReceipt requestEntity - {}", requestEntity);
 
-        // 5. API 요청
+        // Naver OCR API 요청
         try {
             log.info("NaverOcrApiClient::sendOcrReceipt CALL Naver OCR API");
-            NaverReceiptOcrResponseDto response = restTemplate.postForObject(
+            String jsonResponse = restTemplate.postForObject(
                     NAVER_OCR_API_URL,
                     requestEntity,
-                    NaverReceiptOcrResponseDto.class
+                    String.class
             );
-            log.info("NaverOcrApiClient::sendOcrReceipt Naver OCR API response - {}", response);
+            log.info("NaverOcrApiClient::sendOcrReceipt Naver OCR API response - {}", jsonResponse);
+
+            // DTO로 변환
+            NaverReceiptOcrResponseDto response = mapJsonToDto(jsonResponse);
 
             // 응답 결과가 실패인 경우
             if (response == null || response.getImages() == null || response.getImages().isEmpty()) {
-                throw new OcrSendFailedException("응답이 null이거나 유효하지 않습니다.");
-            }
-
-            if (!"SUCCESS".equals(response.getImages().get(0).getInferResult())) {
-                throw new OcrSendFailedException(
-                        String.format("NaverOcrApiClient::sendOcrReceipt 요청 실패 - [requestId=%s, uid=%s, inferResult=%s, message=%s]",
-                                response.getRequestId(),
-                                response.getImages().get(0).getUid(),
-                                response.getImages().get(0).getInferResult(),
-                                response.getImages().get(0).getMessage())
-                );
+                throw new OcrFailedException("응답이 null이거나 유효하지 않습니다.");
             }
 
             log.info("NaverOcrApiClient::sendOcrReceipt END");
             return response;
 
         } catch (HttpClientErrorException | HttpServerErrorException ex) {
-            throw new OcrSendFailedException(ex.getMessage(), ex);
+            throw new OcrFailedException(ex.getMessage(), ex);
 
         }  catch (Exception ex) {
-            throw new OcrSendFailedException("알 수 없는 오류 발생: " + ex.getMessage(), ex);
+            ex.printStackTrace();
+            throw new OcrFailedException("알 수 없는 오류 발생: " + ex.getMessage(), ex);
         }
 
     }
 
-
-    // 메타데이터를 JSON으로 변환
-    private String createJsonMetadata(Map<String, Object> metadata) {
+    public NaverReceiptOcrResponseDto mapJsonToDto(String json) {
+        ObjectMapper objectMapper = new ObjectMapper()
+                .findAndRegisterModules()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         try {
-            // Map 데이터를 JSON 문자열로 변환
-            return objectMapper.writeValueAsString(metadata);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("JSON 직렬화 중 오류 발생", e);
+            return objectMapper.readValue(json, NaverReceiptOcrResponseDto.class);
+        } catch (Exception e) {
+            throw new RuntimeException("JSON 매핑 실패", e);
         }
     }
 
