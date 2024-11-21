@@ -1,24 +1,42 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
-import com.almagest_dev.tacobank_core_server.common.exception.OcrSendFailedException;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.NaverReceiptOcrResponseDto;
+import com.almagest_dev.tacobank_core_server.common.exception.OcrFailedException;
+import com.almagest_dev.tacobank_core_server.domain.receipt.model.Receipt;
+import com.almagest_dev.tacobank_core_server.domain.receipt.model.ReceiptOcrLog;
+import com.almagest_dev.tacobank_core_server.domain.receipt.model.ReceiptProduct;
+import com.almagest_dev.tacobank_core_server.domain.receipt.repository.ReceiptMemberRepository;
+import com.almagest_dev.tacobank_core_server.domain.receipt.repository.ReceiptOcrLogRepository;
+import com.almagest_dev.tacobank_core_server.domain.receipt.repository.ReceiptProductRepository;
+import com.almagest_dev.tacobank_core_server.domain.receipt.repository.ReceiptRepository;
+import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.ocr.BaseDetail;
+import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.ocr.NaverReceiptOcrResponseDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.ocr.ReceiptResult;
 import com.almagest_dev.tacobank_core_server.infrastructure.client.naver.NaverOcrApiClient;
 import com.almagest_dev.tacobank_core_server.presentation.dto.ReceiptOcrResponseDto;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReceiptOcrService {
+    private final ReceiptRepository receiptRepository;
+    private final ReceiptProductRepository receiptProductRepository;
+    private final ReceiptMemberRepository receiptMemberRepository;
+    private final ReceiptOcrLogRepository receiptOcrLogRepository;
 
     private final NaverOcrApiClient naverOcrApiClient;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final String OCR_VERSION = "V2";
 
     /**
      * OCR 처리 비즈니스 로직
@@ -35,65 +53,146 @@ public class ReceiptOcrService {
         String imageName = file.getOriginalFilename();
         String format = extractFileExtension(imageName);
 
+        // OCR Request 생성
+        String requestId = UUID.randomUUID().toString();
+        // message 메타데이터 생성
+        Map<String, Object> message = Map.of(
+                "version", OCR_VERSION,
+                "requestId", requestId,
+                "timestamp", System.currentTimeMillis(),
+                "images", List.of(
+                        Map.of(
+                                "format", format,
+                                "name", imageName
+                        )
+                )
+        );
+        log.info("ReceiptOcrService::processReceiptOcr message - {}", message);
+        String jsonRequest = toJsonString(message);
+
+        // ReceiptOcrLog INSERT
+        ReceiptOcrLog receiptOcrLog = ReceiptOcrLog.createReceiptOcrLog(OCR_VERSION, requestId, jsonRequest);
+        receiptOcrLogRepository.save(receiptOcrLog);
+
         // OCR API 호출
         try {
             byte[] imageData = file.getBytes();
-            log.info("ReceiptOcrService::processReceiptOcr Naver OCR API 호출 START - imageName: {} | format: {}", imageName, format);
-            NaverReceiptOcrResponseDto apiResponse = naverOcrApiClient.sendOcrReceipt(imageData, imageName, format);
+            log.info("ReceiptOcrService::processReceiptOcr Naver OCR API 호출 START");
+            NaverReceiptOcrResponseDto apiResponse = naverOcrApiClient.sendOcrReceipt(imageData, imageName, format, jsonRequest);
             log.info("ReceiptOcrService::processReceiptOcr Naver OCR API 호출 END");
+            log.info("ReceiptOcrService::processReceiptOcr Naver OCR API Response - {}", apiResponse);
+
+            // 결과 확인
+            var image = apiResponse.getImages().get(0);
+            if (image == null || image.getReceipt() == null || image.getReceipt().getResult() == null) {
+                throw new OcrFailedException("OCR 응답에 영수증 결과가 없습니다.");
+            }
+
+            // 응답 UPDATE
+            String jsonResponse = toJsonString(apiResponse);
+            receiptOcrLog.updateReceiptOcrLog(
+                    apiResponse.getTimestamp(),
+                    image.getUid() != null          ? image.getUid() : "",
+                    image.getName() != null         ? image.getName() : "",
+                    image.getInferResult() != null  ? image.getInferResult() : "",
+                    image.getMessage() != null      ? image.getMessage() : "",
+                    image.getReceipt().getMeta().getEstimatedLanguage() != null
+                            ? image.getReceipt().getMeta().getEstimatedLanguage() : "",
+                    toJsonString(apiResponse) != null ? jsonResponse : ""
+            );
+            receiptOcrLogRepository.save(receiptOcrLog);
+            log.info("ReceiptOcrService::processReceiptOcr Response UPDATE");
+
+
+            // 인식 결과가 FAILURE | ERROR 일 때
+            if (!"SUCCESS".equals(image.getInferResult())) {
+                throw new OcrFailedException(String.format("ReceiptOcrService::processReceiptOcr 인식 실패 - %s", jsonResponse));
+            }
+
+            // Receipt, ReceiptProduct 객체 세팅
+            Receipt receipt = Receipt.createReceipt(requestId);
+            List<ReceiptProduct> productDetails = new ArrayList<>();
+            for (ReceiptResult.SubResult.Item item : image.getReceipt().getResult().getSubResults().get(0).getItems()) {
+                ReceiptProduct product = ReceiptProduct.createReceiptProduct(
+                        receipt,
+                        item.getName().getText(),
+                        Integer.parseInt(item.getCount().getText()),
+                        parsePrice(item.getPrice().getUnitPrice()),
+                        parsePrice(item.getPrice().getPrice())
+                );
+                productDetails.add(product);
+            }
+            // Receipt, ReceiptProduct INSERT
+            saveReceiptAndProduct(receipt, productDetails);
+            log.info("ReceiptOcrService::processReceiptOcr Receipt, ReceiptProduct INSERT");
 
             // ReceiptOcrResponse로 변환
-            ReceiptOcrResponseDto response = convertToReceiptResponseDto(apiResponse);
+            ReceiptOcrResponseDto response = convertToReceiptResponseDto(image.getReceipt().getResult());
             log.info("ReceiptOcrService::processReceiptOcr ReceiptOcrResponse 변환 - {}", response);
 
             log.info("ReceiptOcrService::processReceiptOcr END");
             return response;
 
         } catch (IOException e) {
-            throw new OcrSendFailedException("ReceiptOcrService::processReceiptOcr - 영수증 이미지 getByte() 실패", e);
+            throw new OcrFailedException("ReceiptOcrService::processReceiptOcr - 영수증 이미지 getByte() 실패", e);
         }
     }
 
-    public ReceiptOcrResponseDto convertToReceiptResponseDto(NaverReceiptOcrResponseDto ocrResponse) {
-        if (ocrResponse == null || ocrResponse.getImages() == null || ocrResponse.getImages().isEmpty()) {
-            throw new IllegalArgumentException("OCR 응답이 비어 있거나 유효하지 않습니다.");
-        }
-        var image = ocrResponse.getImages().get(0);
-        if (image.getReceipt() == null || image.getReceipt().getResult() == null) {
-            throw new IllegalArgumentException("OCR 응답에 영수증 결과가 없습니다.");
-        }
-
-        var result = image.getReceipt().getResult();
-
+    /**
+     * Naver OCR Response를 반환할 응답(ReceiptOcrResponseDto)로 변환
+     */
+    private ReceiptOcrResponseDto convertToReceiptResponseDto(ReceiptResult receiptResult) {
         // Items 매핑
-        List<ReceiptOcrResponseDto.Item> items = ocrResponse.getImages().get(0).getReceipt().getResult().getSubResults()
-                .stream()
-                .flatMap(subResult -> subResult.getItems().stream())
-                .map(item -> ReceiptOcrResponseDto.Item.builder()
-                        .number(0) // 이후 번호를 설정
-                        .name(item.getName().getText())
-                        .quantity(Integer.parseInt(item.getCount().getFormatted().getValue()))
-                        .price(Integer.parseInt(item.getPrice().getPrice().getFormatted().getValue()))
-                        .build()
-                )
-                .collect(Collectors.toList());
+        List<ReceiptOcrResponseDto.Item> dtoItems = new ArrayList<>();
+        List<ReceiptResult.SubResult.Item> items = receiptResult.getSubResults().get(0).getItems();
 
-        // 번호 부여
-        for (int i = 0; i < items.size(); i++) {
-            items.set(i, items.get(i).toBuilder().number(i + 1).build());
+        int number = 1; // 품목 번호는 순서대로 매김
+        for (ReceiptResult.SubResult.Item item : items) {
+            // 품목 총액
+            int totalPrice = parsePrice(item.getPrice().getPrice());
+
+            ReceiptOcrResponseDto.Item dtoItem = ReceiptOcrResponseDto.Item.builder()
+                    .number(number++) // 품목 번호
+                    .name(item.getName() != null ? item.getName().getText() : "Unknown") // 이름이 없으면 "Unknown"으로
+                    .totalPrice(totalPrice)
+                    .build();
+
+            dtoItems.add(dtoItem);
         }
 
-        // 총합계 금액 매핑
-        int totalAmount = Integer.parseInt(
-                ocrResponse.getImages().get(0).getReceipt().getResult().getTotalPrice().getPrice().getFormatted().getValue()
-        );
+        // 영수증 총액
+        int totalAmount = parsePrice(receiptResult.getTotalPrice().getPrice());
 
         return ReceiptOcrResponseDto.builder()
-                .totalAmount(totalAmount)
-                .items(items)
+                .totalAmount(totalAmount) // 총합계 금액
+                .items(dtoItems) // 변환된 품목 리스트
                 .build();
     }
 
+    /**
+     * 가격 정보를 파싱하여 정수로 반환. null 또는 빈 값일 경우 기본값 0 반환.
+     */
+    private int parsePrice(BaseDetail baseDetail) {
+        if (baseDetail.getFormatted() != null && baseDetail.getFormatted().getValue() != null) {
+            return Integer.parseInt(baseDetail.getFormatted().getValue());
+        } else if (baseDetail.getText() != null) {
+            return Integer.parseInt(baseDetail.getText().replace(",", ""));
+        }
+        return 0; // 기본값
+    }
+
+
+    /**
+     * Receipt, ReceiptProduct INSERT
+     */
+    @Transactional
+    public void saveReceiptAndProduct(Receipt receipt, List<ReceiptProduct> productDetails) {
+        // 1. Receipt 저장
+        receiptRepository.save(receipt); // Receipt 영속화
+
+        // 2. ReceiptProduct 저장
+        receiptProductRepository.saveAll(productDetails); // List 저장
+    }
 
 
     /**
@@ -117,6 +216,19 @@ public class ReceiptOcrService {
         }
     }
 
+    /**
+     * 객체를 JSON 문자열로 변환
+     * @param object 변환할 객체
+     * @return JSON 문자열
+     * @throws RuntimeException 변환 실패 시 예외 발생
+     */
+    public String toJsonString(Object object) {
+        try {
+            return objectMapper.writeValueAsString(object);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("JSON 직렬화 중 오류 발생", e);
+        }
+    }
 
     /**
      * 파일 확장자 추출
