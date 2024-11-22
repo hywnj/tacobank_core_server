@@ -10,11 +10,10 @@ import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.AccountRepository;
 import com.almagest_dev.tacobank_core_server.domain.transfer.model.Transfer;
 import com.almagest_dev.tacobank_core_server.domain.transfer.repository.TransferRepository;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.AccountInfoDTO;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.IntegrateAccountRequestDto;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.IntegrateAccountResponseDto;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.testbed.TestbedApiClient;
-import com.almagest_dev.tacobank_core_server.presentation.dto.*;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.AccountInfoDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.IntegrateAccountApiRequestDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.IntegrateAccountApiResponseDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.client.TestbedApiClient;
 
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountMemberReponseDto;
@@ -22,6 +21,7 @@ import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountRes
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.MainAccountRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.member.MemberRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransactionResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransferOptionsResponseDto;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -100,7 +100,7 @@ public class AccountService {
 
         String userFinanceId = member.getUserFinanceId();
         String userName = member.getName();
-        IntegrateAccountResponseDto responseDto;
+        IntegrateAccountApiResponseDto responseDto;
 
         if (userFinanceId == null || userFinanceId.isEmpty()) {
             // 최초 요청 - memberId를 기반으로 요청
@@ -128,14 +128,14 @@ public class AccountService {
         return mapToMemberResponseDto(member, responseDto);
     }
 
-    private IntegrateAccountResponseDto fetchAccountsFromApi(String userFinanceId, String userName) {
-        IntegrateAccountRequestDto requestDto = new IntegrateAccountRequestDto();
+    private IntegrateAccountApiResponseDto fetchAccountsFromApi(String userFinanceId, String userName) {
+        IntegrateAccountApiRequestDto requestDto = new IntegrateAccountApiRequestDto();
         requestDto.setUserFinanceId(userFinanceId);
         requestDto.setUserName(userName);
         requestDto.setInquiryBankType("A");
 
-        IntegrateAccountResponseDto responseDto = testbedApiClient.requestApi(
-                requestDto, "/openbank/accounts", IntegrateAccountResponseDto.class
+        IntegrateAccountApiResponseDto responseDto = testbedApiClient.requestApi(
+                requestDto, "/openbank/accounts", IntegrateAccountApiResponseDto.class
         );
 
         if (responseDto == null || responseDto.getResList() == null) {
@@ -145,7 +145,7 @@ public class AccountService {
         return responseDto;
     }
 
-    private void saveAccounts(List<AccountInfoDTO> accountInfoList, Member member) {
+    private void saveAccounts(List<AccountInfoDto> accountInfoList, Member member) {
         List<Account> accounts = accountInfoList.stream().map(accountInfo -> {
             Account account = new Account();
             account.setMember(member);
@@ -163,7 +163,7 @@ public class AccountService {
     /**
      * 거래 내역 조회
      */
-    private AccountMemberReponseDto mapToMemberResponseDto(Member member, IntegrateAccountResponseDto responseDto) {
+    private AccountMemberReponseDto mapToMemberResponseDto(Member member, IntegrateAccountApiResponseDto responseDto) {
         AccountMemberReponseDto response = new AccountMemberReponseDto();
         response.setMemberId(member.getId());
         response.setEmail(member.getEmail());

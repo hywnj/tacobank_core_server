@@ -8,11 +8,11 @@ import com.almagest_dev.tacobank_core_server.domain.receipt.repository.ReceiptMe
 import com.almagest_dev.tacobank_core_server.domain.receipt.repository.ReceiptOcrLogRepository;
 import com.almagest_dev.tacobank_core_server.domain.receipt.repository.ReceiptProductRepository;
 import com.almagest_dev.tacobank_core_server.domain.receipt.repository.ReceiptRepository;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.ocr.BaseDetail;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.ocr.NaverReceiptOcrResponseDto;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.ocr.ReceiptResult;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.naver.NaverOcrApiClient;
-import com.almagest_dev.tacobank_core_server.presentation.dto.ReceiptOcrResponseDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.naver.dto.ocr.BaseDetail;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.naver.dto.ocr.NaverReceiptOcrResponseDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.naver.dto.ocr.ReceiptResult;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.naver.client.NaverOcrApiClient;
+import com.almagest_dev.tacobank_core_server.presentation.dto.receipt.ReceiptOcrResponseDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

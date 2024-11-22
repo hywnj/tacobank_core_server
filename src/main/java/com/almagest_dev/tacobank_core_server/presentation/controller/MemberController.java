@@ -1,9 +1,7 @@
 package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.MemberService;
-import com.almagest_dev.tacobank_core_server.presentation.dto.*;
-import com.almagest_dev.tacobank_core_server.presentation.dto.member.MemberSearchRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.member.MemberSearchResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.member.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

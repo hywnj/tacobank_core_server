@@ -1,8 +1,8 @@
 package com.almagest_dev.tacobank_core_server.infrastructure.sms;
 
 import com.almagest_dev.tacobank_core_server.common.exception.SmsSendFailedException;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.Message;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.naver.NaverSmsApiClient;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.naver.dto.sms.Message;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.naver.client.NaverSmsApiClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;

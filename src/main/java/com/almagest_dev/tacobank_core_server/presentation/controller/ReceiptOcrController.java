@@ -1,7 +1,7 @@
 package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.ReceiptOcrService;
-import com.almagest_dev.tacobank_core_server.presentation.dto.ReceiptOcrResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.receipt.ReceiptOcrResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

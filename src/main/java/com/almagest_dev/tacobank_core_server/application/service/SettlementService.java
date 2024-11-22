@@ -13,13 +13,13 @@ import com.almagest_dev.tacobank_core_server.domain.settlememt.model.Settlement;
 import com.almagest_dev.tacobank_core_server.domain.settlememt.model.SettlementDetails;
 import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementDetailsRepository;
 import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementRepository;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.testbed.TestbedApiClient;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.client.TestbedApiClient;
 
-import com.almagest_dev.tacobank_core_server.presentation.dto.AccountBalance;
+import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountBalance;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.settlement.*;
-import com.almagest_dev.tacobank_core_server.presentation.dto.testbed.BalanceInquiryApiRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.testbed.BalanceInquiryApiResponseDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.BalanceInquiryApiRequestDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.BalanceInquiryApiResponseDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

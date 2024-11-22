@@ -13,13 +13,12 @@ import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.Settle
 import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementRepository;
 import com.almagest_dev.tacobank_core_server.domain.transfer.model.Transfer;
 import com.almagest_dev.tacobank_core_server.domain.transfer.repository.TransferRepository;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.TransactionDetailDto;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.TransactionListRequestDto;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.TransactionListResponseDto;
-import com.almagest_dev.tacobank_core_server.infrastructure.client.testbed.TestbedApiClient;
-import com.almagest_dev.tacobank_core_server.presentation.dto.*;
-import com.almagest_dev.tacobank_core_server.presentation.dto.testbed.*;
-import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransactionResponseDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.TransactionDetailApiDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.TransactionListApiRequestDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.TransactionListApiResponseDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.client.TestbedApiClient;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.*;
+import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -444,7 +443,7 @@ public class TransferService {
         String userFinanceId = getUserFinanceIdByMemberId(memberId);
 
         // Step 2: 거래 목록 조회 요청
-        TransactionListRequestDto requestDto = new TransactionListRequestDto();
+        TransactionListApiRequestDto requestDto = new TransactionListApiRequestDto();
         requestDto.setFintechUseNum(userFinanceId);
         requestDto.setInquiryType("A"); // 기본 조회 타입
         requestDto.setInquiryBase("D"); // 날짜 기준
@@ -455,10 +454,10 @@ public class TransferService {
         requestDto.setSortOrder("D");       // 내림차순
         requestDto.setTranDtime("20241118120000"); // 예시값 (거래 시간)
 
-        TransactionListResponseDto responseDto = testbedApiClient.requestApi(
+        TransactionListApiResponseDto responseDto = testbedApiClient.requestApi(
                 requestDto,
                 "/fintech/api/openbank/tranlist",
-                TransactionListResponseDto.class
+                TransactionListApiResponseDto.class
         );
 
         // Step 3: 응답 데이터 처리 및 변환
@@ -474,7 +473,7 @@ public class TransferService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
     }
 
-    private TransactionResponseDto mapToTransactionResponseDto(TransactionDetailDto detailDto) {
+    private TransactionResponseDto mapToTransactionResponseDto(TransactionDetailApiDto detailDto) {
         TransactionResponseDto dto = new TransactionResponseDto();
 
         String tranDate = detailDto.getTranDate(); // 이미 String 타입으로 반환
