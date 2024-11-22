@@ -147,9 +147,11 @@ public class ReceiptOcrService {
         List<ReceiptResult.SubResult.Item> items = receiptResult.getSubResults().get(0).getItems();
 
         int number = 1; // 품목 번호는 순서대로 매김
+        int sumPrice = 0; // 품목별 가격 합계
         for (ReceiptResult.SubResult.Item item : items) {
             // 품목 총액
-            int totalPrice = parsePrice(item.getPrice().getPrice());
+            int totalPrice = (item.getPrice() != null && item.getPrice().getPrice() != null) ? parsePrice(item.getPrice().getPrice()) : 0;
+            sumPrice += totalPrice;
 
             ReceiptOcrResponseDto.Item dtoItem = ReceiptOcrResponseDto.Item.builder()
                     .number(number++) // 품목 번호
@@ -160,8 +162,9 @@ public class ReceiptOcrService {
             dtoItems.add(dtoItem);
         }
 
-        // 영수증 총액
-        int totalAmount = parsePrice(receiptResult.getTotalPrice().getPrice());
+        // 영수증 총액 (영수증 총액이 인식되지 않는 경우, 품목별 합계로 할당)
+        int totalAmount = (receiptResult.getTotalPrice() != null && receiptResult.getTotalPrice().getPrice() != null)
+                ? parsePrice(receiptResult.getTotalPrice().getPrice()) : ((sumPrice > 0) ? sumPrice : 0);
 
         return ReceiptOcrResponseDto.builder()
                 .totalAmount(totalAmount) // 총합계 금액
