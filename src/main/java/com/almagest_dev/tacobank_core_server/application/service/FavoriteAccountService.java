@@ -6,8 +6,8 @@ import com.almagest_dev.tacobank_core_server.domain.account.repository.AccountRe
 import com.almagest_dev.tacobank_core_server.domain.account.repository.FavoriteAccountRepository;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
-import com.almagest_dev.tacobank_core_server.presentation.dto.FavoriteAccountRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.FavoriteAccountResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.account.FavoriteAccountRequestDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.account.FavoriteAccountResponseDto;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

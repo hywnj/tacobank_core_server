@@ -4,6 +4,11 @@ import com.almagest_dev.tacobank_core_server.application.service.AccountService;
 import com.almagest_dev.tacobank_core_server.application.service.FavoriteAccountService;
 import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.*;
+import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountMemberReponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.account.FavoriteAccountRequestDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.account.FavoriteAccountResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.account.MainAccountRequestDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.member.MemberRequestDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

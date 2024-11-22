@@ -3,7 +3,7 @@ package com.almagest_dev.tacobank_core_server.application.service;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.notification.model.Notification;
 import com.almagest_dev.tacobank_core_server.domain.notification.repository.NotificationRepository;
-import com.almagest_dev.tacobank_core_server.presentation.dto.NotificationResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.notify.NotificationResponseDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

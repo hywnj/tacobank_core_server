@@ -3,8 +3,7 @@ package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.SettlementService;
 import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.*;
-import com.almagest_dev.tacobank_core_server.presentation.dto.settlement.SettlementRequestDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.settlement.*;
 import jakarta.validation.Valid;
 import lombok.Getter;
 import org.springframework.http.ResponseEntity;

@@ -16,6 +16,12 @@ import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.Integrate
 import com.almagest_dev.tacobank_core_server.infrastructure.client.testbed.TestbedApiClient;
 import com.almagest_dev.tacobank_core_server.presentation.dto.*;
 
+import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountMemberReponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.account.MainAccountRequestDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.member.MemberRequestDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransactionResponseDto;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;

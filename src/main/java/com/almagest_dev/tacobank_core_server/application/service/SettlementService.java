@@ -1,7 +1,6 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
 import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
-import com.almagest_dev.tacobank_core_server.domain.account.model.MainAccount;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.AccountRepository;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.MainAccountRepository;
 import com.almagest_dev.tacobank_core_server.domain.group.model.Group;
@@ -15,10 +14,10 @@ import com.almagest_dev.tacobank_core_server.domain.settlememt.model.SettlementD
 import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementDetailsRepository;
 import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementRepository;
 import com.almagest_dev.tacobank_core_server.infrastructure.client.testbed.TestbedApiClient;
-import com.almagest_dev.tacobank_core_server.presentation.dto.*;
 
-import com.almagest_dev.tacobank_core_server.presentation.dto.settlement.SettlementMemberDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.settlement.SettlementRequestDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.AccountBalance;
+import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.settlement.*;
 import com.almagest_dev.tacobank_core_server.presentation.dto.testbed.BalanceInquiryApiRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.testbed.BalanceInquiryApiResponseDto;
 import lombok.extern.slf4j.Slf4j;

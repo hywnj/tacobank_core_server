@@ -1,4 +1,4 @@
-package com.almagest_dev.tacobank_core_server.presentation.dto;
+package com.almagest_dev.tacobank_core_server.presentation.dto.notify;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

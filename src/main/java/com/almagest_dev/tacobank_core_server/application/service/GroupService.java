@@ -8,7 +8,7 @@ import com.almagest_dev.tacobank_core_server.domain.group.repository.GroupMember
 import com.almagest_dev.tacobank_core_server.domain.group.repository.GroupRepository;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
-import com.almagest_dev.tacobank_core_server.presentation.dto.*;
+import com.almagest_dev.tacobank_core_server.presentation.dto.group.*;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 

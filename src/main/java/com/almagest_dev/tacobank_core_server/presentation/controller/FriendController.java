@@ -1,7 +1,7 @@
 package com.almagest_dev.tacobank_core_server.presentation.controller;
 
-import com.almagest_dev.tacobank_core_server.presentation.dto.FriendRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.FriendResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.friend.FriendRequestDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.friend.FriendResponseDto;
 import com.almagest_dev.tacobank_core_server.application.service.FriendService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

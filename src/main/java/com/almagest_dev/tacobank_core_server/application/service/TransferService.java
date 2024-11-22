@@ -9,7 +9,6 @@ import com.almagest_dev.tacobank_core_server.domain.account.repository.AccountRe
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
 import com.almagest_dev.tacobank_core_server.domain.settlememt.model.Settlement;
-import com.almagest_dev.tacobank_core_server.domain.settlememt.model.SettlementDetails;
 import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementDetailsRepository;
 import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementRepository;
 import com.almagest_dev.tacobank_core_server.domain.transfer.model.Transfer;
@@ -20,6 +19,7 @@ import com.almagest_dev.tacobank_core_server.infrastructure.client.dto.Transacti
 import com.almagest_dev.tacobank_core_server.infrastructure.client.testbed.TestbedApiClient;
 import com.almagest_dev.tacobank_core_server.presentation.dto.*;
 import com.almagest_dev.tacobank_core_server.presentation.dto.testbed.*;
+import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransactionResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;

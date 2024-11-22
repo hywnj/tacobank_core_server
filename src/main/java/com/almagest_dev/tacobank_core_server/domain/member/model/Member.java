@@ -55,10 +55,10 @@ public class Member {
     private LocalDateTime updatedDate;
 
     @OneToMany(mappedBy = "leader", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Group> Groups;
+    private List<Group> groups;
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<GroupMember> GroupMembers; // 그룹 구성원의 멤버 ID
+    private List<GroupMember> groupMembers; // 그룹 구성원의 멤버 ID
 
     @OneToOne(mappedBy = "member", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private MainAccount mainAccount;

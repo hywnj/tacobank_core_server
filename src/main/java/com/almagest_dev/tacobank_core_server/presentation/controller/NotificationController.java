@@ -1,8 +1,7 @@
 package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.NotificationService;
-import com.almagest_dev.tacobank_core_server.domain.notification.model.Notification;
-import com.almagest_dev.tacobank_core_server.presentation.dto.NotificationResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.notify.NotificationResponseDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

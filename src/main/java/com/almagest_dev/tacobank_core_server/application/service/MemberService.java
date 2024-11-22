@@ -5,6 +5,7 @@ import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
 import com.almagest_dev.tacobank_core_server.infrastructure.sms.SmsAuthUtil;
 import com.almagest_dev.tacobank_core_server.presentation.dto.*;
+import com.almagest_dev.tacobank_core_server.presentation.dto.member.MemberSearchResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;

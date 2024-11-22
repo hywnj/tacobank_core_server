@@ -1,5 +1,6 @@
-package com.almagest_dev.tacobank_core_server.presentation.dto;
+package com.almagest_dev.tacobank_core_server.presentation.dto.settlement;
 
+import com.almagest_dev.tacobank_core_server.presentation.dto.AccountBalance;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
