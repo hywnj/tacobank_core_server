@@ -21,7 +21,7 @@ public class NotificationService {
     }
 
     /**
-     * 정산 알림 보내기
+     * 알림 생성하고 저장하기
      */
     public void sendNotification(Member member, String message) {
         Notification notification = new Notification();
@@ -33,7 +33,7 @@ public class NotificationService {
     public List<NotificationResponseDto> getNotificationsForMember(Long memberId) {
         List<Notification> notifications = notificationRepository.findAllByMember_IdOrderByCreatedDateDesc(memberId);
         return notifications.stream()
-                .map(notification -> new NotificationResponseDto(notification.getMessage(), notification.getCreatedDate()))
+                .map(notification -> new NotificationResponseDto(notification.getMember().getId(),notification.getMessage(), notification.getCreatedDate()))
                 .collect(Collectors.toList());
     }
 }

@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 public class NotificationResponseDto {
+    private Long memberId;
     private String message;
     private LocalDateTime createdDate;
 }

@@ -3,11 +3,14 @@ package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.SettlementService;
 import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.notify.NotificationResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.settlement.*;
 import jakarta.validation.Valid;
 import lombok.Getter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Getter
 @RestController
@@ -21,9 +24,9 @@ public class SettlementController {
 
     // 송금 요청하기
     @PostMapping("/request")
-    public ResponseEntity<String> requestSettlement(@RequestBody SettlementRequestDto request) {
-        settlementService.processSettlementRequest(request);
-        return ResponseEntity.ok("정산 요청이 완료되었습니다.");
+    public ResponseEntity<List<NotificationResponseDto>> requestSettlement(@RequestBody SettlementRequestDto request) {
+        List<NotificationResponseDto> response = settlementService.processSettlementRequest(request);
+        return ResponseEntity.ok(response);
     }
 
     // 정산 현황 조회
@@ -45,12 +48,12 @@ public class SettlementController {
 
     // 독촉 알림 보내기
     @PostMapping("/{settlementId}/notify/{memberId}")
-    public ResponseEntity<String> notifyPendingSettlementForMember(
+    public ResponseEntity<NotificationResponseDto> notifyPendingSettlementForMember(
             @PathVariable Long settlementId,
             @PathVariable Long memberId
     ) {
-        settlementService.notifyPendingSettlementForMember(settlementId, memberId);
-        return ResponseEntity.ok("해당 사용자에게 독촉 알림을 보냈습니다.");
+        NotificationResponseDto response = settlementService.notifyPendingSettlementForMember(settlementId, memberId);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/transfers")

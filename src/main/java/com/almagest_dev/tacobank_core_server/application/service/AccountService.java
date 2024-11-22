@@ -106,15 +106,20 @@ public class AccountService {
             // 최초 요청 - memberId를 기반으로 요청
             responseDto = fetchAccountsFromApi(memberRequestDto.getMemberId().toString(), userName);
             userFinanceId = responseDto.getUserFinanceId();
+//            System.out.println(responseDto.getResList().get(0).getAccountHolder());
 
             // 응답받은 userFinanceId 저장
             member.setUserFinanceId(userFinanceId);
             memberRepository.save(member);
-            System.out.println("Saved userFinanceId: " + userFinanceId);
+//            System.out.println("Saved userFinanceId: " + userFinanceId);
+//            System.out.println("22222");
         } else {
             // 이후 요청 - userFinanceId를 기반으로 요청
             responseDto = fetchAccountsFromApi(userFinanceId, userName);
+//            System.out.println("1111");
+//            System.out.println(responseDto.getResList().get(0).getAccountHolder());
         }
+//        System.out.println("3333");
 
         // 계좌 정보 저장 (최초 1회만)
         if (accountRepository.countByMember(member) == 0) {
@@ -150,7 +155,7 @@ public class AccountService {
             Account account = new Account();
             account.setMember(member);
             account.setAccountNumber(accountInfo.getAccountNum());
-            account.setAccountHolderName(accountInfo.getFintechUseNum());
+            account.setAccountHolderName(accountInfo.getAccountHolder());
             account.setBankCode(accountInfo.getBankCodeStd());
             account.setFintechUseNum(accountInfo.getFintechUseNum());
             account.setVerificated("Y");
@@ -185,7 +190,7 @@ public class AccountService {
                     );
                     accountDto.setAccountName(accountInfo.getProductName());
                     accountDto.setAccountNumber(accountInfo.getAccountNum());
-                    accountDto.setAccountHolder(accountInfo.getFintechUseNum());
+                    accountDto.setAccountHolder(accountInfo.getAccountHolder());
                     accountDto.setBankName(accountInfo.getBankCodeStd());
                     accountDto.setBalance(Double.valueOf(accountInfo.getBalanceAmt()));
 

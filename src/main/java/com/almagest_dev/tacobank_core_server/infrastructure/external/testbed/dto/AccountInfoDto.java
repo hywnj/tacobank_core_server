@@ -19,6 +19,7 @@ public class AccountInfoDto {
     private String productSubName;
     private String dormancyYn;
     private String balanceAmt;
+    private String accountHolder;
 
 }
 // 계좌정보 DTO
