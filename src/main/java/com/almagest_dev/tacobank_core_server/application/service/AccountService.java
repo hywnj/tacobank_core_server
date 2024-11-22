@@ -51,24 +51,29 @@ public class AccountService {
         this.transferService = transferService;
     }
 
+    /**
+     * 메인 계좌 설정
+     */
     @Transactional
     public void setMainAccount(MainAccountRequestDto requestDto) {
-        // Step 1: Member 조회
+        //Member 조회
         Member member = memberRepository.findById(requestDto.getMemberId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
-        // Step 2: Account 조회 및 검증
+        //Account 조회 및 검증
         Account account = accountRepository.findByIdAndMember(requestDto.getAccountId(), member)
                 .orElseThrow(() -> new IllegalArgumentException("해당 계좌가 존재하지 않거나 회원의 계좌가 아닙니다."));
 
-        // Step 4: 새로운 메인 계좌 저장
+        //새로운 메인 계좌 저장
         MainAccount mainAccount = new MainAccount();
         mainAccount.setMember(member);
         mainAccount.setAccount(account);
         mainAccountRepository.save(mainAccount);
     }
 
-
+    /**
+     * 메인 계좌 수정
+     */
     @Transactional
     public void updateMainAccount(MainAccountRequestDto requestDto) {
         // 기존 MainAccount 조회
@@ -84,6 +89,9 @@ public class AccountService {
         mainAccountRepository.save(mainAccount);
     }
 
+    /**
+     * 통합 계좌 조회 및 저장 ( 테스트베드 연동 )
+     */
     @Transactional
     public AccountMemberReponseDto getUserAccounts(MemberRequestDto memberRequestDto) {
         // 멤버 조회
@@ -152,6 +160,9 @@ public class AccountService {
         accountRepository.saveAll(accounts);
     }
 
+    /**
+     * 거래 내역 조회
+     */
     private AccountMemberReponseDto mapToMemberResponseDto(Member member, IntegrateAccountResponseDto responseDto) {
         AccountMemberReponseDto response = new AccountMemberReponseDto();
         response.setMemberId(member.getId());

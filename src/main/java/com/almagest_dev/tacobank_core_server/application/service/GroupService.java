@@ -31,12 +31,18 @@ public class GroupService {
         this.memberRepository = memberRepository;
     }
 
+    /**
+     * 그룹장 확인 메서드
+     */
     private void validateLeader(Long userId, Group group) {
         if (!group.getLeader().getId().equals(userId)) {
             throw new IllegalStateException("그룹장만 수행할 수 있는 작업입니다.");
         }
     }
 
+    /**
+     * 그룹 만들기
+     */
     @Transactional
     public GroupResponseDto createGroup(Long userId, GroupRequestDto requestDto) {
         Member leader = memberRepository.findById(userId)
@@ -61,6 +67,9 @@ public class GroupService {
     }
 
 
+    /**
+     * 그룹 삭제하기
+     */
     @Transactional
     public void deleteGroup(Long userId, Long groupId) {
         Group group = groupRepository.findById(groupId)
@@ -69,6 +78,9 @@ public class GroupService {
         groupRepository.delete(group);
     }
 
+    /**
+     * 그룹 멤버 초대 요청 보내기
+     */
     public void inviteFriend(Long userId, Long groupId, Long friendId) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new IllegalArgumentException("그룹을 찾을 수 없습니다."));
@@ -102,6 +114,9 @@ public class GroupService {
         }
     }
 
+    /**
+     * 그룹 초대 가능한 친구 조회
+     */
     public List<Map<String, Object>> getInviteableFriends(Long memberId) {
         List<Friend> friends = friendRepository.findByRequesterIdAndStatusOrReceiverIdAndStatus(
                 memberId, "ACC", memberId, "ACC");
@@ -125,6 +140,9 @@ public class GroupService {
         return new ArrayList<>(uniqueFriends);
     }
 
+    /**
+     * 그룹 멤버 추방하기
+     */
     @Transactional
     public void expelMember(Long userId, Long groupId, Long memberId) {
         Group group = groupRepository.findById(groupId)
@@ -142,6 +160,9 @@ public class GroupService {
         groupMemberRepository.save(groupMember);
     }
 
+    /**
+     * 그룹 요청 수락하기
+     */
     @Transactional
     public void acceptInvitation(Long userId, Long groupId) {
         GroupMember groupMember = groupMemberRepository.findByPayGroupIdAndMemberId(groupId, userId)
@@ -158,6 +179,9 @@ public class GroupService {
         groupMemberRepository.save(groupMember);
     }
 
+    /**
+     * 그룹 삭제하기
+     */
     @Transactional
     public void rejectInvitation(Long userId, Long groupId) {
         GroupMember groupMember = groupMemberRepository.findByPayGroupIdAndMemberId(groupId, userId)
@@ -175,6 +199,9 @@ public class GroupService {
         groupMemberRepository.save(groupMember);
     }
 
+    /**
+     * 그룹 떠나기(나가기)
+     */
     @Transactional
     public void leaveGroup(Long userId, Long groupId) {
         GroupMember groupMember = groupMemberRepository.findByPayGroupIdAndMemberId(groupId, userId)
@@ -192,6 +219,9 @@ public class GroupService {
         groupMemberRepository.save(groupMember);
     }
 
+    /**
+     * 나의 그룹 조회
+     */
     public List<MyGroupsResponseDto> getMyGroups(Long memberId) {
         List<Group> groups = groupRepository.findByLeaderId(memberId);
 
@@ -230,6 +260,9 @@ public class GroupService {
         }).collect(Collectors.toList());
     }
 
+    /**
+     * 그룹 초대 받은 요청 목록 조회
+     */
     public List<GroupMemberResponseDto> getPendingInvitations(Long userId) {
         List<GroupMember> pendingInvitations = groupMemberRepository.findByMemberIdAndStatus(userId, "INVITED");
 
@@ -244,6 +277,9 @@ public class GroupService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 그룹 검색하기
+     */
     @Transactional
     public GroupSearchResponseDto searchGroupByName(String groupName) {
         // 그룹 이름으로 그룹을 조회

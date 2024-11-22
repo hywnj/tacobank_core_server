@@ -23,6 +23,9 @@ public class FriendService {
         this.memberRepository = memberRepository;
     }
 
+    /**
+     * 친구상태 관리 조건제약
+     */
     private void checkActionPermission(Friend friend, String action, Long userId) {
         // 현재 사용자가 요청자(Requester) 또는 수신자(Receiver)인지 확인
         boolean isRequester = friend.getRequesterId().equals(userId);
@@ -88,12 +91,18 @@ public class FriendService {
         }
     }
 
+    /**
+     * 자신이 자신에게 친구 관계 설정 불가
+     */
     private void validateUserId(Long userId, Long requesterId) {
         if (!userId.equals(requesterId)) {
             throw new IllegalArgumentException("userId와 requesterId가 일치하지 않습니다.");
         }
     }
 
+    /**
+     * 친구 요청
+     */
     @Transactional
     public void requestFriend(Long userId, FriendRequestDto requestDto) {
 
@@ -162,6 +171,9 @@ public class FriendService {
 
     }
 
+    /**
+     * 친구 수락
+     */
     @Transactional
     public void acceptFriend(Long userId, FriendRequestDto requestDto) {
 
@@ -184,6 +196,9 @@ public class FriendService {
         friendRepository.save(reverseFriend);
     }
 
+    /**
+     * 친구 거절
+     */
     @Transactional
     public void rejectFriend(Long userId,FriendRequestDto requestDto) {
 
@@ -206,6 +221,9 @@ public class FriendService {
         friendRepository.save(reverseFriend);
     }
 
+    /**
+     * 친구 삭제
+     */
     @Transactional
     public void deleteFriend(Long userId,FriendRequestDto requestDto) {
         validateUserId(userId, requestDto.getRequesterId());
@@ -234,6 +252,9 @@ public class FriendService {
     }
 
 
+    /**
+     * 친구 차단
+     */
     @Transactional
     public void blockFriend(Long userId,FriendRequestDto requestDto) {
         validateUserId(userId, requestDto.getRequesterId());
@@ -254,6 +275,9 @@ public class FriendService {
         friendRepository.save(reverseFriend);
     }
 
+    /**
+     * 친구 차단 해제
+     */
     @Transactional
     public void unblockFriend(Long userId,FriendRequestDto requestDto) {
         validateUserId(userId, requestDto.getRequesterId());
@@ -277,6 +301,9 @@ public class FriendService {
         }
     }
 
+    /**
+     * 친구 좋아요
+     */
     @Transactional
     public void likeFriend(Long userId,FriendRequestDto requestDto) {
         validateUserId(userId, requestDto.getRequesterId());
@@ -295,6 +322,9 @@ public class FriendService {
         friendRepository.save(friend);
     }
 
+    /**
+     * 친구 좋아요 취소
+     */
     @Transactional
     public void unlikeFriend(Long userId,FriendRequestDto requestDto) {
         validateUserId(userId, requestDto.getRequesterId());
@@ -313,7 +343,9 @@ public class FriendService {
         friendRepository.save(friend);
     }
 
-    // 친구 목록 조회
+    /**
+     * 자신의 친구 목록 조회
+     */
     public List<FriendResponseDto> getFriendList(Long requesterId) {
         List<Friend> friends = friendRepository.findByRequesterIdAndStatus(requesterId, "ACC");
 
@@ -330,7 +362,9 @@ public class FriendService {
                 .collect(Collectors.toList());
     }
 
-    // 차단된 사용자 목록 조회 (ID와 이름 포함)
+    /**
+     * 자신이 차단한 친구 목록 조회
+     */
     public List<FriendResponseDto> getBlockedFriends(Long requesterId) {
         List<Friend> blockedFriends = friendRepository.findByRequesterIdAndStatus(requesterId, "BLOCKED");
 
@@ -345,6 +379,9 @@ public class FriendService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 받은 친구 요청 조회
+     */
     public List<FriendResponseDto> getReceivedFriendRequests(Long requesterId) {
         // requesterId 기준으로 요청 상태가 "REQ_RECEIVED"인 데이터 조회
         List<Friend> receivedRequests = friendRepository.findByRequesterIdAndStatus(requesterId, "REQ_RECEIVED");

@@ -20,6 +20,9 @@ public class NotificationService {
         this.notificationRepository = notificationRepository;
     }
 
+    /**
+     * 정산 알림 보내기
+     */
     public void sendNotification(Member member, String message) {
         Notification notification = new Notification();
         notification.setMember(member);

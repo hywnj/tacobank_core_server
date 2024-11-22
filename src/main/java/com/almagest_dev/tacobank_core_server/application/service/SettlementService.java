@@ -61,6 +61,9 @@ public class SettlementService {
         this.testbedApiClient = testbedApiClient;
     }
 
+    /**
+     * 그룹 선택하여, 정산 요청하고 알림보내기
+     */
     public void processSettlementRequest(SettlementRequestDto request) {
         Group group;
 
@@ -104,6 +107,9 @@ public class SettlementService {
         }
     }
 
+    /**
+     * 친구 선택시, 임시 그룹 만들기
+     */
     private Group createTemporaryGroup(SettlementRequestDto request) {
         // 그룹장 찾기
         Member leader = groupRepository.findLeaderById(request.getLeaderId())
@@ -133,6 +139,9 @@ public class SettlementService {
     }
 
 
+    /**
+     * 정산 현황 조회하기
+     */
     public SettlementStatusResponseDto getSettlementStatus(Long memberId) {
         // 내가 만든 정산 리스트
         List<MyCreatedSettlementDto> createdSettlements = settlementRepository.findByPayGroup_Leader_Id(memberId).stream()
@@ -174,6 +183,9 @@ public class SettlementService {
         return new SettlementStatusResponseDto(createdSettlements, includedSettlements, availableAccounts);
     }
 
+    /**
+     * 정산 상세 내역 조회하기
+     */
     public SettlementDetailsListResponseDto getSettlementDetails(Long settlementId, Long memberId) {
         // Settlement ID에 해당하는 정산 데이터 가져오기
         Settlement settlement = settlementRepository.findById(settlementId)
@@ -196,6 +208,9 @@ public class SettlementService {
         return new SettlementDetailsListResponseDto(settlement.getId(), settlementDetails);
     }
 
+    /**
+     * 독촉 알림 보내기
+     */
     public void notifyPendingSettlementForMember(Long settlementId, Long memberId) {
         // 특정 Settlement와 관련된 특정 Member의 정산 정보 조회
         SettlementDetails pendingDetail = settlementDetailsRepository.findBySettlement_IdAndGroupMember_Member_IdAndSettlementStatus(

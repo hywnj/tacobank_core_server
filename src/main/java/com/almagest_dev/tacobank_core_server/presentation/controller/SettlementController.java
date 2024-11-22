@@ -19,19 +19,21 @@ public class SettlementController {
         this.settlementService = settlementService;
     }
 
+    // 송금 요청하기
     @PostMapping("/request")
     public ResponseEntity<String> requestSettlement(@RequestBody SettlementRequestDto request) {
         settlementService.processSettlementRequest(request);
         return ResponseEntity.ok("정산 요청이 완료되었습니다.");
     }
 
-
+    // 정산 현황 조회
     @GetMapping("/status/{memberId}")
     public ResponseEntity<SettlementStatusResponseDto> getSettlementStatus(@PathVariable Long memberId) {
         SettlementStatusResponseDto settlementStatus = settlementService.getSettlementStatus(memberId);
         return ResponseEntity.ok(settlementStatus);
     }
 
+    // 정산 상세내역 조회
     @GetMapping("/{settlementId}/details/{memberId}")
     public ResponseEntity<SettlementDetailsListResponseDto> getSettlementDetails(
             @PathVariable Long settlementId,
@@ -41,13 +43,14 @@ public class SettlementController {
         return ResponseEntity.ok(response);
     }
 
+    // 독촉 알림 보내기
     @PostMapping("/{settlementId}/notify/{memberId}")
     public ResponseEntity<String> notifyPendingSettlementForMember(
             @PathVariable Long settlementId,
             @PathVariable Long memberId
     ) {
         settlementService.notifyPendingSettlementForMember(settlementId, memberId);
-        return ResponseEntity.ok("해당 사용자에게 정산 알림을 보냈습니다.");
+        return ResponseEntity.ok("해당 사용자에게 독촉 알림을 보냈습니다.");
     }
 
     @PostMapping("/transfers")

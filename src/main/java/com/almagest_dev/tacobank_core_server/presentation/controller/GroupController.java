@@ -45,6 +45,7 @@ public class GroupController {
         return ResponseEntity.ok("초대 신청이 완료되었습니다.");
     }
 
+    // 그룹에 초대 가능한 친구 조회
     @GetMapping("/{memberId}/friends/list")
     public ResponseEntity<List<Map<String, Object>>> getInviteableFriends(@PathVariable Long memberId) {
         List<Map<String, Object>> inviteableFriends = groupService.getInviteableFriends(memberId);
@@ -103,6 +104,7 @@ public class GroupController {
         return ResponseEntity.ok(pendingInvitations);
     }
 
+    // 그룹 검색하기
     @PostMapping("/search")
     public ResponseEntity<GroupSearchResponseDto> searchGroupByName(@RequestBody Map<String, String> request) {
         String groupName = request.get("groupName");

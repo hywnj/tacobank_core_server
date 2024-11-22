@@ -24,17 +24,20 @@ public class FavoriteAccountService {
     private final MemberRepository memberRepository;
     private final AccountRepository accountRepository;
 
+    /**
+     * 즐겨찾기 계좌 설정
+     */
     @Transactional
     public FavoriteAccountResponseDto setAndRetrieveFavoriteAccount(FavoriteAccountRequestDto requestDto) {
-        // Step 1: Member 조회
+        // Member 조회
         Member member = memberRepository.findById(requestDto.getMemberId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
-        // Step 2: Account 조회
+        // Account 조회
         Account account = accountRepository.findByAccountNumber(requestDto.getAccountNumber())
                 .orElseThrow(() -> new IllegalArgumentException("해당 계좌가 존재하지 않습니다."));
 
-        // Step 3: 중복된 즐겨찾기 계좌인지 확인
+        // 중복된 즐겨찾기 계좌인지 확인
         boolean isDuplicate = favoriteAccountRepository.existsByMemberAndAccountNumber(member, account.getAccountNumber());
         if (isDuplicate) {
             throw new IllegalArgumentException("이미 즐겨찾기 계좌로 등록된 계좌입니다.");
@@ -43,7 +46,7 @@ public class FavoriteAccountService {
         Member accountOwner = memberRepository.findById(account.getMember().getId())
                 .orElseThrow(() -> new IllegalArgumentException("계좌 소유자가 존재하지 않습니다."));
 
-        // Step 4: FavoriteAccount 저장
+        // FavoriteAccount 저장
         FavoriteAccount favoriteAccount = favoriteAccountRepository.findByMemberAndAccountNumber(member, requestDto.getAccountNumber())
                 .orElse(new FavoriteAccount());
         favoriteAccount.setMember(member);
@@ -55,8 +58,7 @@ public class FavoriteAccountService {
 
         favoriteAccountRepository.save(favoriteAccount);
 
-
-        // Step 5: 응답 생성
+        // 응답 생성
         return new FavoriteAccountResponseDto(
                 member.getId(),
                 favoriteAccount.getAccountNumber(),
@@ -66,16 +68,19 @@ public class FavoriteAccountService {
 
     }
 
+    /**
+     * 즐겨찾기 계좌 목록 조회
+     */
     @Transactional
     public List<FavoriteAccountResponseDto> getFavoriteAccounts(Long memberId) {
-        // Step 1: Member 조회
+        // Member 조회
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
-        // Step 2: 즐겨찾기 계좌 리스트 조회
+        // 즐겨찾기 계좌 리스트 조회
         List<FavoriteAccount> favoriteAccounts = favoriteAccountRepository.findAllByMember(member);
 
-        // Step 3: 응답 생성
+        // 응답 생성
         return favoriteAccounts.stream().map(favoriteAccount -> new FavoriteAccountResponseDto(
                 member.getId(),
                 favoriteAccount.getAccountNumber(),
@@ -84,17 +89,20 @@ public class FavoriteAccountService {
         )).collect(Collectors.toList());
     }
 
+    /**
+     * 즐겨찾기 계좌 취소
+     */
     @Transactional
     public void cancelFavoriteAccount(FavoriteAccountRequestDto requestDto) {
-        // Step 1: Member 조회
+        // Member 조회
         Member member = memberRepository.findById(requestDto.getMemberId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
-        // Step 2: FavoriteAccount 조회
+        // FavoriteAccount 조회
         FavoriteAccount favoriteAccount = favoriteAccountRepository.findByMemberAndAccountNumber(member, requestDto.getAccountNumber())
                 .orElseThrow(() -> new IllegalArgumentException("즐겨찾기에 등록되지 않은 계좌입니다."));
 
-        // Step 3: 즐겨찾기 계좌 삭제
+        // 즐겨찾기 계좌 삭제
         favoriteAccountRepository.delete(favoriteAccount);
     }
 
