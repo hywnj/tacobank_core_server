@@ -12,7 +12,6 @@ import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "account")
@@ -41,21 +40,35 @@ public class Account {
     @Column(columnDefinition = "VARCHAR(40) COMMENT '계좌 핀테크 이용번호'")
     private String fintechUseNum;
 
-    @Column(columnDefinition = "DATETIME NOT NULL COMMENT '등록일자'")
+    @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '등록일자'")
     private LocalDateTime createdDate;
 
-    @Column (columnDefinition = "DATETIME NOT NULL COMMENT '수정일자'")
+    @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL COMMENT '수정일자'")
     private LocalDateTime updatedDate;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdDate = LocalDateTime.now();
-        this.updatedDate = LocalDateTime.now();
+    public void setAccountNumber(String accountNumber) {
+        this.accountNumber = accountNumber;
     }
 
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedDate = LocalDateTime.now();
+    public void setAccountHolderName(String accountHolderName) {
+        this.accountHolderName = accountHolderName;
     }
 
+    public void setBankCode(String bankCode) {
+        this.bankCode = bankCode;
+    }
+
+    public void setFintechUseNum(String fintechUseNum) {
+        this.fintechUseNum = fintechUseNum;
+    }
+
+
+    public void setMember(Member member) {
+        this.member = member;
+    }
+
+
+    public void setVerificated() {
+        this.verificated = "Y";
+    }
 }

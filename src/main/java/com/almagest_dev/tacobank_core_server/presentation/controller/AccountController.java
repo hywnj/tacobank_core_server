@@ -29,53 +29,121 @@ public class AccountController {
 
     // 통합 계좌 연동 및 조회
     @PostMapping
-    public ResponseEntity<AccountMemberReponseDto> getUserAccounts(@RequestBody MemberRequestDto requestDto) {
+    public ResponseEntity<CoreResponseDto<AccountMemberReponseDto>> getUserAccounts(@RequestBody MemberRequestDto requestDto) {
         AccountMemberReponseDto response = accountService.getUserAccounts(requestDto);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                new CoreResponseDto<>(
+                        "success",
+                        "통합 계좌 연동 및 조회 성공",
+                        response
+                )
+        );
     }
+
 
     // 메인 계좌 설정
     @PostMapping("/set-main")
-    public ResponseEntity<String> setMainAccount(@RequestBody MainAccountRequestDto requestDto) {
+    public ResponseEntity<CoreResponseDto<?>> setMainAccount(@RequestBody MainAccountRequestDto requestDto) {
         accountService.setMainAccount(requestDto);
-        return ResponseEntity.ok("메인 계좌가 설정되었습니다.");
+        return ResponseEntity.ok(
+                new CoreResponseDto<>(
+                        "success",
+                        "메인 계좌가 설정되었습니다.",
+                        null
+                )
+        );
     }
 
     // 메인 계좌 수정
     @PutMapping("/update-main")
-    public ResponseEntity<String> updateMainAccount(@RequestBody MainAccountRequestDto requestDto) {
+    public ResponseEntity<CoreResponseDto<String>> updateMainAccount(@RequestBody MainAccountRequestDto requestDto) {
         accountService.updateMainAccount(requestDto);
-        return ResponseEntity.ok("메인 계좌가 수정되었습니다.");
+        return ResponseEntity.ok(
+                new CoreResponseDto<>("success", "메인 계좌가 수정되었습니다.", null)
+        );
     }
 
     // 즐겨찾기 계좌 설정
     @PostMapping("/favorite-account")
-    public ResponseEntity<String> setAndRetrieveFavoriteAccount(@RequestBody FavoriteAccountRequestDto requestDto) {
+    public ResponseEntity<CoreResponseDto<String>> setAndRetrieveFavoriteAccount(@RequestBody FavoriteAccountRequestDto requestDto) {
         favoriteAccountService.setAndRetrieveFavoriteAccount(requestDto);
-        return ResponseEntity.ok("즐겨찾기 계좌로 설정되었습니다.");
+        return ResponseEntity.ok(
+                new CoreResponseDto<>("success", "즐겨찾기 계좌가 설정되었습니다.", null)
+        );
     }
 
     // 즐겨찾기 계좌 취소
     @DeleteMapping("/favorite-account")
-    public ResponseEntity<String> cancelFavoriteAccount(@RequestBody FavoriteAccountRequestDto requestDto) {
+    public ResponseEntity<CoreResponseDto<String>> cancelFavoriteAccount(@RequestBody FavoriteAccountRequestDto requestDto) {
         favoriteAccountService.cancelFavoriteAccount(requestDto);
-        return ResponseEntity.ok("즐겨찾기 계좌가 성공적으로 취소되었습니다.");
+        return ResponseEntity.ok(
+                new CoreResponseDto<>("success", "즐겨찾기 계좌가 성공적으로 취소되었습니다.", null)
+        );
     }
 
     // 즐겨찾기 계좌 목록 조회
-    @GetMapping("/favorite-account/list")
-    public ResponseEntity<List<FavoriteAccountResponseDto>> getFavoriteAccounts(@RequestBody FavoriteAccountRequestDto requestDto) {
-        Long memberId = requestDto.getMemberId(); // JSON 바디에서 memberId 추출
+//    @GetMapping("/favorite-account/list")
+//    public ResponseEntity<CoreResponseDto<List<FavoriteAccountResponseDto>>> getFavoriteAccounts(@RequestBody FavoriteAccountRequestDto requestDto) {
+//        Long memberId = requestDto.getMemberId(); // JSON 바디에서 memberId 추출
+//        List<FavoriteAccountResponseDto> responseDtoList = favoriteAccountService.getFavoriteAccounts(memberId);
+//        return ResponseEntity.ok(
+//                new CoreResponseDto<>("success", "즐겨찾기 계좌 목록 조회 성공", responseDtoList)
+//        );
+//    }
+    // 즐겨찾기 계좌 목록 조회
+    @GetMapping("/favorite-account/list/{memberId}")
+    public ResponseEntity<CoreResponseDto<List<FavoriteAccountResponseDto>>> getFavoriteAccounts(
+            @PathVariable Long memberId) {
         List<FavoriteAccountResponseDto> responseDtoList = favoriteAccountService.getFavoriteAccounts(memberId);
-        return ResponseEntity.ok(responseDtoList);
+        return ResponseEntity.ok(
+                new CoreResponseDto<>("success", "즐겨찾기 계좌 목록 조회 성공", responseDtoList)
+        );
     }
 
     // 즐겨찾기, 최근 이체 계좌 조회
     @GetMapping("/transfer-options/{memberId}")
-    public ResponseEntity<?> getTransferOptions(@PathVariable Long memberId) {
+    public ResponseEntity<CoreResponseDto<TransferOptionsResponseDto>> getTransferOptions(@PathVariable Long memberId) {
         TransferOptionsResponseDto response = accountService.getTransferOptions(memberId);
-        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "계좌 조회 성공", response));
+        return ResponseEntity.ok(
+                new CoreResponseDto<>("success", "계좌 조회 성공", response)
+        );
     }
+
+//    // 메인 계좌 수정
+//    @PutMapping("/update-main")
+//    public ResponseEntity<String> updateMainAccount(@RequestBody MainAccountRequestDto requestDto) {
+//        accountService.updateMainAccount(requestDto);
+//        return ResponseEntity.ok("메인 계좌가 수정되었습니다.");
+//    }
+//
+//    // 즐겨찾기 계좌 설정
+//    @PostMapping("/favorite-account")
+//    public ResponseEntity<String> setAndRetrieveFavoriteAccount(@RequestBody FavoriteAccountRequestDto requestDto) {
+//        favoriteAccountService.setAndRetrieveFavoriteAccount(requestDto);
+//        return ResponseEntity.ok("즐겨찾기 계좌로 설정되었습니다.");
+//    }
+//
+//    // 즐겨찾기 계좌 취소
+//    @DeleteMapping("/favorite-account")
+//    public ResponseEntity<String> cancelFavoriteAccount(@RequestBody FavoriteAccountRequestDto requestDto) {
+//        favoriteAccountService.cancelFavoriteAccount(requestDto);
+//        return ResponseEntity.ok("즐겨찾기 계좌가 성공적으로 취소되었습니다.");
+//    }
+//
+//    // 즐겨찾기 계좌 목록 조회
+//    @GetMapping("/favorite-account/list")
+//    public ResponseEntity<List<FavoriteAccountResponseDto>> getFavoriteAccounts(@RequestBody FavoriteAccountRequestDto requestDto) {
+//        Long memberId = requestDto.getMemberId(); // JSON 바디에서 memberId 추출
+//        List<FavoriteAccountResponseDto> responseDtoList = favoriteAccountService.getFavoriteAccounts(memberId);
+//        return ResponseEntity.ok(responseDtoList);
+//    }
+//
+//    // 즐겨찾기, 최근 이체 계좌 조회
+//    @GetMapping("/transfer-options/{memberId}")
+//    public ResponseEntity<?> getTransferOptions(@PathVariable Long memberId) {
+//        TransferOptionsResponseDto response = accountService.getTransferOptions(memberId);
+//        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "계좌 조회 성공", response));
+//    }
 
 
 }

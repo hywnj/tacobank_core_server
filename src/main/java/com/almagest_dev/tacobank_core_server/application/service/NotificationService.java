@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
@@ -23,6 +22,7 @@ public class NotificationService {
     /**
      * 알림 생성하고 저장하기
      */
+    @Transactional
     public void sendNotification(Member member, String message) {
         Notification notification = new Notification();
         notification.setMember(member);

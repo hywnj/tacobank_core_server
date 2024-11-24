@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "friends")
@@ -33,22 +32,12 @@ public class Friend {
     @Column(columnDefinition = "VARCHAR(30) COMMENT '상태'")
     private String status;
 
-    @Column(columnDefinition = "DATETIME NOT NULL COMMENT '생성일자'")
+    @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '등록일자'")
     private LocalDateTime createdDate;
 
-    @Column (columnDefinition = "DATETIME NOT NULL COMMENT '수정일자'")
+    @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL COMMENT '수정일자'")
     private LocalDateTime updatedDate;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdDate = LocalDateTime.now();
-        this.updatedDate = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedDate = LocalDateTime.now();
-    }
 
     public Friend(Long requesterId, Long receiverId) {
         this.requesterId = requesterId;
@@ -60,5 +49,11 @@ public class Friend {
     }
 
 
+    public void setStatus(String acc) {
+        this.status = acc;
+    }
 
+    public void setLiked(String n) {
+        this.liked = n;
+    }
 }

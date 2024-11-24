@@ -4,13 +4,11 @@ import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@Setter
 @NoArgsConstructor
 public class Notification {
     @Id
@@ -27,12 +25,15 @@ public class Notification {
     @Column(columnDefinition = "VARCHAR(1) COMMENT '알림 확인 여부'")
     private String isRead;
 
-    @Column(columnDefinition = "DATETIME NOT NULL COMMENT '등록일자'")
+    @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '등록일자'")
     private LocalDateTime createdDate;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdDate = LocalDateTime.now();
+
+    public void setMember(Member member) {
+        this.member = member;
     }
 
+    public void setMessage(String message) {
+        this.message = message;
+    }
 }

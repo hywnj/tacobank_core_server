@@ -14,7 +14,6 @@ import java.util.List;
 
 @Entity
 @Getter
-@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "pay_group")
@@ -37,24 +36,30 @@ public class Group {
     @Column(columnDefinition = "VARCHAR(1) COMMENT '커스텀 여부'")
     private String customized;
 
-    @Column(columnDefinition = "DATETIME NOT NULL COMMENT '생성일자'")
+    @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '생성일자'")
     private LocalDateTime createdDate;
 
-    @Column (columnDefinition = "DATETIME NOT NULL COMMENT '수정일자'")
+    @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL COMMENT '수정일자'")
     private LocalDateTime updatedDate;
 
     @OneToMany(mappedBy = "payGroup", cascade = CascadeType.ALL, orphanRemoval = true)
+
     private List<GroupMember> payGroups = new ArrayList<>();
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdDate = LocalDateTime.now();
-        this.updatedDate = LocalDateTime.now();
+
+    public void setLeader(Member leader) {
+        this.leader = leader;
     }
 
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedDate = LocalDateTime.now();
+    public void setActivated(String y) {
+        this.activated = y;
     }
 
+    public void setCustomized(String y) {
+        this.customized = y;
+    }
+
+    public void setName(String groupName) {
+        this.name = groupName;
+    }
 }

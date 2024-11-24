@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "settlement_details")
@@ -35,20 +34,25 @@ public class SettlementDetails {
     @Column(name = "settlement_status", columnDefinition = "VARCHAR(1) COMMENT '개별 정산상태'")
     private String settlementStatus;
 
-    @Column(columnDefinition = "DATETIME NOT NULL COMMENT '생성일자'")
+    @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '생성일자'")
     private LocalDateTime createdDate;
 
-    @Column (columnDefinition = "DATETIME NOT NULL COMMENT '수정일자'")
+    @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL COMMENT '수정일자'")
     private LocalDateTime updatedDate;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdDate = LocalDateTime.now();
-        this.updatedDate = LocalDateTime.now();
+    public void setSettlement(Settlement settlement) {
+        this.settlement = settlement;
     }
 
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedDate = LocalDateTime.now();
+    public void setGroupMember(GroupMember groupMember) {
+        this.groupMember = groupMember;
+    }
+
+    public void setSettlementAmount(int amount) {
+        this.settlementAmount = amount;
+    }
+
+    public void setSettlementStatus(String n) {
+        this.settlementStatus = n;
     }
 }

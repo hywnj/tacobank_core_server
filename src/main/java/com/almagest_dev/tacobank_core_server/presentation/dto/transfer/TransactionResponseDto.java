@@ -2,6 +2,8 @@ package com.almagest_dev.tacobank_core_server.presentation.dto.transfer;
 
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Data
 public class TransactionResponseDto {
     private Long tranNum; // 거래 고유 시퀀스 번호
@@ -10,4 +12,5 @@ public class TransactionResponseDto {
     private Double amount; // 거래금액
     private Double afterBalanceAmount; // 거래 후 잔액
     private String tranDateTime; // 거래 일시 (YYYY.MM.DD HH:mm:ss)
+
 }

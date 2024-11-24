@@ -1,6 +1,7 @@
 package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.MemberService;
+import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.member.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -77,10 +78,17 @@ public class MemberController {
     /**
      * 이메일로 친구 검색
      */
-    @GetMapping("/search")
-    public ResponseEntity<MemberSearchResponseDto> searchMemberByEmailUsingRequestBody(
-            @RequestBody MemberSearchRequestDto requestDto) {
-        MemberSearchResponseDto memberInfo = memberService.searchMemberByEmail(requestDto.getEmail());
-        return ResponseEntity.ok(memberInfo);
+//    @GetMapping("/search")
+//    public ResponseEntity<MemberSearchResponseDto> searchMemberByEmailUsingRequestBody(
+//            @RequestBody MemberSearchRequestDto requestDto) {
+//        MemberSearchResponseDto memberInfo = memberService.searchMemberByEmail(requestDto.getEmail());
+//        return ResponseEntity.ok(memberInfo);
+//    }
+    @GetMapping("/search/{email}")
+    public ResponseEntity<CoreResponseDto<MemberSearchResponseDto>> searchMemberByEmail(@PathVariable String email) {
+        MemberSearchResponseDto memberInfo = memberService.searchMemberByEmail(email);
+        return ResponseEntity.ok(
+                new CoreResponseDto<>("success", "회원 검색 성공", memberInfo)
+        );
     }
 }

@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "favorite_account")
@@ -33,20 +32,34 @@ public class FavoriteAccount {
     @Column(columnDefinition = "VARCHAR(5) COMMENT '은행코드'")
     private String bankCode;
 
-    @Column(columnDefinition = "DATETIME NOT NULL COMMENT '등록일자'")
+    @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '등록일자'")
     private LocalDateTime createdDate;
 
-    @Column (columnDefinition = "DATETIME NOT NULL COMMENT '수정일자'")
+    @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL COMMENT '수정일자'")
     private LocalDateTime updatedDate;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdDate = LocalDateTime.now();
-        this.updatedDate = LocalDateTime.now();
+
+    public void setMember(Member member) {
+        this.member = member;
     }
 
-    @PreUpdate
-    protected void onUpdate() {
+    public void setAccountNumber(String accountNumber) {
+        this.accountNumber = accountNumber;
+    }
+
+    public void setAccountHolderName(String name) {
+        this.accountHolderName = name;
+    }
+
+    public void setBankCode(String bankCode) {
+        this.bankCode = bankCode;
+    }
+
+    public void setCreatedDate(LocalDateTime now) {
+        this.createdDate = LocalDateTime.now();
+    }
+
+    public void setUpdatedDate(LocalDateTime now) {
         this.updatedDate = LocalDateTime.now();
     }
 }

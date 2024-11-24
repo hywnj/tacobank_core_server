@@ -14,7 +14,6 @@ import java.util.List;
 
 @Entity
 @Getter
-@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "settlement")
@@ -44,25 +43,29 @@ public class Settlement {
     @Column(name = "settlement_status", columnDefinition = "VARCHAR(1) COMMENT '정산상태'")
     private String settlementStatus;
 
-    @Column(columnDefinition = "DATETIME NOT NULL COMMENT '생성일자'")
+    @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '생성일자'")
     private LocalDateTime createdDate;
 
-    @Column (columnDefinition = "DATETIME NOT NULL COMMENT '수정일자'")
+    @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL COMMENT '수정일자'")
     private LocalDateTime updatedDate;
 
     @OneToMany(mappedBy = "settlement")
     private List<Receipt> receipts;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdDate = LocalDateTime.now();
-        this.updatedDate = LocalDateTime.now();
+
+    public void setPayGroup(Group group) {
+        this.payGroup = group;
     }
 
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedDate = LocalDateTime.now();
+    public void setSettlementAccount(Account selectedAccount) {
+        this.settlementAccount = selectedAccount;
     }
 
+    public void setSettlementTotalAmount(int totalAmount) {
+        this.settlementTotalAmount = totalAmount;
+    }
 
+    public void setSettlementStatus(String n) {
+        this.settlementStatus = n;
+    }
 }

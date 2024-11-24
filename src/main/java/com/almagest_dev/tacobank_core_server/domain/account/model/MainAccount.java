@@ -9,7 +9,6 @@ import lombok.Setter;
 
 @Entity
 @Getter
-@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "main_account")
@@ -25,4 +24,12 @@ public class MainAccount {
     @OneToOne
     @JoinColumn(name = "account_id", nullable = false)
     private Account account;
+
+    public void setMember(Member member) {
+        this.member = member;
+    }
+
+    public void setAccount(Account account) {
+        this.account = account;
+    }
 }

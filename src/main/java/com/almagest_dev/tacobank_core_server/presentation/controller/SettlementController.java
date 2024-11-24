@@ -23,43 +23,86 @@ public class SettlementController {
     }
 
     // 송금 요청하기
+    // 송금 요청하기
     @PostMapping("/request")
-    public ResponseEntity<List<NotificationResponseDto>> requestSettlement(@RequestBody SettlementRequestDto request) {
-        List<NotificationResponseDto> response = settlementService.processSettlementRequest(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<CoreResponseDto<String>> requestSettlement(
+            @RequestBody SettlementRequestDto request) {
+        settlementService.processSettlementRequest(request);
+        return ResponseEntity.ok(new CoreResponseDto<>("success", "송금 요청이 성공적으로 처리되었습니다."));
     }
 
     // 정산 현황 조회
     @GetMapping("/status/{memberId}")
-    public ResponseEntity<SettlementStatusResponseDto> getSettlementStatus(@PathVariable Long memberId) {
+    public ResponseEntity<CoreResponseDto<SettlementStatusResponseDto>> getSettlementStatus(
+            @PathVariable Long memberId) {
         SettlementStatusResponseDto settlementStatus = settlementService.getSettlementStatus(memberId);
-        return ResponseEntity.ok(settlementStatus);
+        return ResponseEntity.ok(new CoreResponseDto<>("success", "정산 현황 조회 성공", settlementStatus));
     }
 
     // 정산 상세내역 조회
     @GetMapping("/{settlementId}/details/{memberId}")
-    public ResponseEntity<SettlementDetailsListResponseDto> getSettlementDetails(
+    public ResponseEntity<CoreResponseDto<SettlementDetailsListResponseDto>> getSettlementDetails(
             @PathVariable Long settlementId,
-            @PathVariable Long memberId
-    ) {
+            @PathVariable Long memberId) {
         SettlementDetailsListResponseDto response = settlementService.getSettlementDetails(settlementId, memberId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(new CoreResponseDto<>("success", "정산 상세내역 조회 성공", response));
     }
 
     // 독촉 알림 보내기
     @PostMapping("/{settlementId}/notify/{memberId}")
-    public ResponseEntity<NotificationResponseDto> notifyPendingSettlementForMember(
+    public ResponseEntity<CoreResponseDto<String>> notifyPendingSettlementForMember(
             @PathVariable Long settlementId,
-            @PathVariable Long memberId
-    ) {
-        NotificationResponseDto response = settlementService.notifyPendingSettlementForMember(settlementId, memberId);
-        return ResponseEntity.ok(response);
+            @PathVariable Long memberId) {
+        settlementService.notifyPendingSettlementForMember(settlementId, memberId);
+        return ResponseEntity.ok(new CoreResponseDto<>("success", "독촉 알림이 성공적으로 전송되었습니다."));
     }
 
+    // 사용자 출금 가능 계좌 잔액조회
     @PostMapping("/transfers")
-    public ResponseEntity<?> validateSettlementsAndGetAvailableBalances(@RequestBody @Valid SettlementTransferRequestDto requestDto) {
+    public ResponseEntity<CoreResponseDto<SettlementTransferResponseDto>> validateSettlementsAndGetAvailableBalances(
+            @RequestBody @Valid SettlementTransferRequestDto requestDto) {
         SettlementTransferResponseDto response = settlementService.validateSettlementsAndGetAvailableBalances(requestDto);
         return ResponseEntity.ok(new CoreResponseDto<>("success", "사용자 출금 가능 계좌 잔액조회 성공", response));
     }
+
+//    // 송금 요청하기
+//    @PostMapping("/request")
+//    public ResponseEntity<List<NotificationResponseDto>> requestSettlement(@RequestBody SettlementRequestDto request) {
+//        List<NotificationResponseDto> response = settlementService.processSettlementRequest(request);
+//        return ResponseEntity.ok(response);
+//    }
+//
+//    // 정산 현황 조회
+//    @GetMapping("/status/{memberId}")
+//    public ResponseEntity<SettlementStatusResponseDto> getSettlementStatus(@PathVariable Long memberId) {
+//        SettlementStatusResponseDto settlementStatus = settlementService.getSettlementStatus(memberId);
+//        return ResponseEntity.ok(settlementStatus);
+//    }
+//
+//    // 정산 상세내역 조회
+//    @GetMapping("/{settlementId}/details/{memberId}")
+//    public ResponseEntity<SettlementDetailsListResponseDto> getSettlementDetails(
+//            @PathVariable Long settlementId,
+//            @PathVariable Long memberId
+//    ) {
+//        SettlementDetailsListResponseDto response = settlementService.getSettlementDetails(settlementId, memberId);
+//        return ResponseEntity.ok(response);
+//    }
+//
+//    // 독촉 알림 보내기
+//    @PostMapping("/{settlementId}/notify/{memberId}")
+//    public ResponseEntity<NotificationResponseDto> notifyPendingSettlementForMember(
+//            @PathVariable Long settlementId,
+//            @PathVariable Long memberId
+//    ) {
+//        NotificationResponseDto response = settlementService.notifyPendingSettlementForMember(settlementId, memberId);
+//        return ResponseEntity.ok(response);
+//    }
+//
+//    @PostMapping("/transfers")
+//    public ResponseEntity<?> validateSettlementsAndGetAvailableBalances(@RequestBody @Valid SettlementTransferRequestDto requestDto) {
+//        SettlementTransferResponseDto response = settlementService.validateSettlementsAndGetAvailableBalances(requestDto);
+//        return ResponseEntity.ok(new CoreResponseDto<>("success", "사용자 출금 가능 계좌 잔액조회 성공", response));
+//    }
 
 }

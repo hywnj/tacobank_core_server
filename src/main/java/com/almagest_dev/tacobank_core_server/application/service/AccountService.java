@@ -158,7 +158,7 @@ public class AccountService {
             account.setAccountHolderName(accountInfo.getAccountHolder());
             account.setBankCode(accountInfo.getBankCodeStd());
             account.setFintechUseNum(accountInfo.getFintechUseNum());
-            account.setVerificated("Y");
+            account.setVerificated();
             return account;
         }).collect(Collectors.toList());
 

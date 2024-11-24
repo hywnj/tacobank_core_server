@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@Transactional
 public class SettlementService {
 
     private final GroupRepository groupRepository;
@@ -65,7 +64,11 @@ public class SettlementService {
     /**
      * 그룹 선택하여, 정산 요청하고 알림보내기
      */
-    public List<NotificationResponseDto> processSettlementRequest(SettlementRequestDto request) {
+    /**
+     * 그룹 선택하여, 정산 요청 처리
+     */
+    @Transactional
+    public void processSettlementRequest(SettlementRequestDto request) {
         Group group;
 
         // 1. 그룹 확인 또는 생성
@@ -90,9 +93,7 @@ public class SettlementService {
         settlement.setSettlementStatus("N");
         settlementRepository.save(settlement);
 
-        List<NotificationResponseDto> notificationResponses = new ArrayList<>();
-
-        // 3. 개인 멤버별 정산 데이터 저장 및 알림 생성
+        // 3. 개인 멤버별 정산 데이터 저장
         for (SettlementMemberDto memberDto : request.getMemberAmounts()) {
             GroupMember groupMember = groupMemberRepository.findByPayGroupAndMemberId(group, memberDto.getMemberId())
                     .orElseThrow(() -> new IllegalArgumentException("그룹에 해당 멤버가 존재하지 않습니다."));
@@ -104,21 +105,17 @@ public class SettlementService {
             settlementDetails.setSettlementStatus("N");
             settlementDetailsRepository.save(settlementDetails);
 
-            // 알림 전송
-            String message = String.format("정산 요청이 도착했습니다. 요청 금액: %d원", memberDto.getAmount());
-            notificationService.sendNotification(groupMember.getMember(), message);
-
-            // 알림 응답 생성
-            notificationResponses.add(new NotificationResponseDto(groupMember.getMember().getId(), message, LocalDateTime.now()));
+            // 알림 전송 (비즈니스 로직에서 제거)
+            notificationService.sendNotification(groupMember.getMember(),
+                    String.format("정산 요청이 도착했습니다. 요청 금액: %d원", memberDto.getAmount()));
         }
-
-        return notificationResponses;
     }
 
     /**
      * 친구 선택시, 임시 그룹 만들기
      */
-    private Group createTemporaryGroup(SettlementRequestDto request) {
+    @Transactional
+    protected Group createTemporaryGroup(SettlementRequestDto request) {
         // 그룹장 찾기
         Member leader = groupRepository.findLeaderById(request.getLeaderId())
                 .orElseThrow(() -> new IllegalArgumentException("그룹장을 찾을 수 없습니다."));
@@ -219,7 +216,8 @@ public class SettlementService {
     /**
      * 독촉 알림 보내기
      */
-    public NotificationResponseDto notifyPendingSettlementForMember(Long settlementId, Long memberId) {
+    @Transactional
+    public void notifyPendingSettlementForMember(Long settlementId, Long memberId) {
         // 특정 Settlement와 관련된 특정 Member의 정산 정보 조회
         SettlementDetails pendingDetail = settlementDetailsRepository.findBySettlement_IdAndGroupMember_Member_IdAndSettlementStatus(
                 settlementId, memberId, "N"
@@ -228,13 +226,6 @@ public class SettlementService {
         // 알림 전송
         String message = String.format("정산 요청이 아직 완료되지 않았습니다. 요청 금액: %d원", pendingDetail.getSettlementAmount());
         notificationService.sendNotification(pendingDetail.getGroupMember().getMember(), message);
-
-        // 알림 응답 생성
-        return new NotificationResponseDto(
-                pendingDetail.getGroupMember().getMember().getId(),
-                message,
-                LocalDateTime.now()
-        );
     }
 
     /**

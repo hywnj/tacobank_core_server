@@ -1,6 +1,7 @@
 package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.NotificationService;
+import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.notify.NotificationResponseDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,9 +19,16 @@ public class NotificationController {
     }
 
     // 받은 알림 조회하기
+//    @GetMapping("/{memberId}")
+//    public ResponseEntity<List<NotificationResponseDto>> getNotifications(@PathVariable Long memberId) {
+//        List<NotificationResponseDto> notifications = notificationService.getNotificationsForMember(memberId);
+//        return ResponseEntity.ok(notifications);
+//    }
     @GetMapping("/{memberId}")
-    public ResponseEntity<List<NotificationResponseDto>> getNotifications(@PathVariable Long memberId) {
+    public ResponseEntity<CoreResponseDto<List<NotificationResponseDto>>> getNotifications(@PathVariable Long memberId) {
         List<NotificationResponseDto> notifications = notificationService.getNotificationsForMember(memberId);
-        return ResponseEntity.ok(notifications);
+        return ResponseEntity.ok(
+                new CoreResponseDto<>("success", "알림 조회 성공", notifications)
+        );
     }
 }

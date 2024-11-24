@@ -14,7 +14,6 @@ import java.util.List;
 
 @Entity
 @Getter
-@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "pay_group_member")
@@ -38,25 +37,25 @@ public class GroupMember {
     @OneToMany(mappedBy = "groupMember")
     private List<ReceiptMember> receiptMembers;
 
-    @Column(columnDefinition = "DATETIME NOT NULL COMMENT '생성일자'")
+    @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '생성일자'")
     private LocalDateTime createdDate;
 
-    @Column (columnDefinition = "DATETIME NOT NULL COMMENT '수정일자'")
+    @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL COMMENT '수정일자'")
     private LocalDateTime updatedDate;
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdDate = LocalDateTime.now();
-        this.updatedDate = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedDate = LocalDateTime.now();
-    }
-
 
     public void setGroup(Group group) {
         this.payGroup = group;
+    }
+
+    public void setStatus(String invited) {
+        this.status = invited;
+    }
+
+    public void setPayGroup(Group group) {
+        this.payGroup = group;
+    }
+
+    public void setMember(Member member) {
+        this.member = member;
     }
 }
