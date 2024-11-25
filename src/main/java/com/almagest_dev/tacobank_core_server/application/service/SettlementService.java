@@ -9,6 +9,8 @@ import com.almagest_dev.tacobank_core_server.domain.group.repository.GroupMember
 import com.almagest_dev.tacobank_core_server.domain.group.repository.GroupRepository;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
+import com.almagest_dev.tacobank_core_server.domain.receipt.model.*;
+import com.almagest_dev.tacobank_core_server.domain.receipt.repository.*;
 import com.almagest_dev.tacobank_core_server.domain.settlememt.model.Settlement;
 import com.almagest_dev.tacobank_core_server.domain.settlememt.model.SettlementDetails;
 import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementDetailsRepository;
@@ -17,7 +19,7 @@ import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.cli
 
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountBalance;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.notify.NotificationResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.receipt.ProductMemberDetails;
 import com.almagest_dev.tacobank_core_server.presentation.dto.settlement.*;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.BalanceInquiryApiRequestDto;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.BalanceInquiryApiResponseDto;
@@ -27,8 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -44,12 +45,15 @@ public class SettlementService {
     private final NotificationService notificationService;
     private final AccountRepository accountRepository;
     private final MemberRepository memberRepository;
+    private final ReceiptRepository receiptRepository;
+    private final ReceiptProductRepository receiptProductRepository;
+    private final ReceiptMemberRepository receiptMemberRepository;
     private final TestbedApiClient testbedApiClient;
 
 
     public SettlementService(GroupRepository groupRepository, GroupMemberRepository groupMemberRepository,
                              SettlementRepository settlementRepository, SettlementDetailsRepository settlementDetailsRepository,
-                             MainAccountRepository mainAccountRepository, NotificationService notificationService, AccountRepository accountRepository, MemberRepository memberRepository, TestbedApiClient testbedApiClient) {
+                             MainAccountRepository mainAccountRepository, NotificationService notificationService, AccountRepository accountRepository, MemberRepository memberRepository, ReceiptRepository receiptRepository, ReceiptOcrLogRepository receiptOcrLogRepository, ReceiptProductRepository receiptProductRepository, ReceiptMemberRepository receiptMemberRepository, TestbedApiClient testbedApiClient) {
         this.groupRepository = groupRepository;
         this.groupMemberRepository = groupMemberRepository;
         this.settlementRepository = settlementRepository;
@@ -58,16 +62,32 @@ public class SettlementService {
         this.notificationService = notificationService;
         this.accountRepository = accountRepository;
         this.memberRepository = memberRepository;
+        this.receiptRepository = receiptRepository;
+        this.receiptProductRepository = receiptProductRepository;
+        this.receiptMemberRepository = receiptMemberRepository;
         this.testbedApiClient = testbedApiClient;
     }
 
     /**
-     * 그룹 선택하여, 정산 요청 처리
+     * 정산 요청
+     *  - 그룹 생성 여부 확인 / 커스텀 N이면 그룹 생성
+     *  - 영수증 정산 분기 처리
      */
     @Transactional
     public void processSettlementRequest(SettlementRequestDto request) {
-        Group group;
+        // 영수증 정산인 경우 Null Check
+        boolean receiptFlag = false;
+        if (request.getType().equals("receipt")) {
+            receiptFlag = true;
+            if (request.getReceiptId() == null) {
+                throw new IllegalArgumentException("영수증 정보를 보내주세요.");
+            }
+            if (request.getProductMemberDetails() == null) {
+                throw new IllegalArgumentException("영수증 품목별 멤버 정보를 보내주세요.");
+            }
+        }
 
+        Group group;
         // 1. 그룹 확인 또는 생성
         if (request.getGroupId() == null) {
             // 친구 선택으로 그룹 생성
@@ -90,7 +110,9 @@ public class SettlementService {
         settlement.setSettlementStatus("N");
         settlementRepository.save(settlement);
 
-        // 3. 개인 멤버별 정산 데이터 저장
+        // 3. 개인 멤버별 정산 데이터 저장 및 알림 생성
+        //  - 영수증 정산 DB 연산시 사용할 MemberId - GroupMemberId 리스트 생성
+        Map<Long, GroupMember> memberMappingGroupMembers = new HashMap<>(); // key: memberId | value: 해당 GroupMember
         for (SettlementMemberDto memberDto : request.getMemberAmounts()) {
             GroupMember groupMember = groupMemberRepository.findByPayGroupAndMemberId(group, memberDto.getMemberId())
                     .orElseThrow(() -> new IllegalArgumentException("그룹에 해당 멤버가 존재하지 않습니다."));
@@ -102,9 +124,20 @@ public class SettlementService {
             settlementDetails.setSettlementStatus("N");
             settlementDetailsRepository.save(settlementDetails);
 
-            // 알림 전송 (비즈니스 로직에서 제거)
+            // 알림 전송
             notificationService.sendNotification(groupMember.getMember(),
                     String.format("정산 요청이 도착했습니다. 요청 금액: %d원", memberDto.getAmount()));
+
+            // 영수증 정산인 경우, MemberId - GroupMemberId 매핑
+            if (receiptFlag) {
+                memberMappingGroupMembers.put(memberDto.getMemberId(), groupMember);
+                log.info("memberMappingGroupMembers: key - {} , value - {}", memberDto.getMemberId(), groupMember.getId());
+            }
+        }
+
+        // 영수증 정산인 경우
+        if (receiptFlag) {
+            processReceiptSettlement(request, memberMappingGroupMembers);
         }
     }
 
@@ -112,10 +145,11 @@ public class SettlementService {
      * 친구 선택시, 임시 그룹 만들기
      */
     @Transactional
-    protected Group createTemporaryGroup(SettlementRequestDto request) {
+    public Group createTemporaryGroup(SettlementRequestDto request) {
+        log.info("createTemporaryGroup START");
         // 그룹장 찾기
-        Member leader = memberRepository.findById(request.getLeaderId())
-                .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
+        Member leader = memberRepository.findByIdAndDeleted(request.getLeaderId(), "N")
+                .orElseThrow(() -> new IllegalArgumentException("요청 그룹장은 존재하지 않는 회원입니다."));
 
         // 그룹 생성
         Group group = new Group();
@@ -125,9 +159,11 @@ public class SettlementService {
         group.setCustomized("N");
         groupRepository.save(group);
 
+        log.info("createTemporaryGroup friends : {}", request.getFriendIds());
+
         // 친구 목록 추가
         for (Long friendId : request.getFriendIds()) {
-            Member friend = memberRepository.findMemberById(friendId)
+            Member friend = memberRepository.findByIdAndDeleted(friendId, "N")
                     .orElseThrow(() -> new IllegalArgumentException("친구를 찾을 수 없습니다."));
 
             GroupMember groupMember = new GroupMember();
@@ -136,8 +172,55 @@ public class SettlementService {
             groupMember.setStatus("ACCEPTED");
             groupMemberRepository.save(groupMember);
         }
-
+        log.info("createTemporaryGroup END");
         return group;
+    }
+
+    /**
+     * 영수증 정산 요청
+     */
+    private void processReceiptSettlement(SettlementRequestDto requestDto, Map<Long, GroupMember> memberMappingGroupMembers) {
+        log.info("SettlementService::processReceiptSettlement START");
+        // Receipt 조회
+        Receipt receipt = receiptRepository.findById(requestDto.getReceiptId()).orElse(null);
+        if (receipt == null) {
+            log.warn("SettlementService::processReceiptSettlement 조회되는 Receipt가 없습니다. - receiptId: {}", requestDto.getReceiptId());
+            return;
+        }
+        log.info("SettlementService::processReceiptSettlement 요청 정보 - receiptId: {} | productMemberDetails: {}", requestDto.getReceiptId(), requestDto.getProductMemberDetails());
+
+        // ReceiptMember 값 세팅 & ReceiptProduct 조회
+        if (requestDto.getProductMemberDetails() == null) {
+            log.warn("SettlementService::processReceiptSettlement 영수증 품목별 포함 멤버 정보가 없습니다. - receiptId: {}", requestDto.getReceiptId());
+            return;
+        }
+        // 데이터 세팅
+        List<ReceiptMember> receiptMembers = new ArrayList<>(); // 영수증 품목 지불대상자 - 저장할 리스트
+        for (ProductMemberDetails productMemberDetail : requestDto.getProductMemberDetails()) {
+            if (productMemberDetail.getProductId() < 0) {
+                log.warn("SettlementService::processReceiptSettlement 영수증 ID가 없습니다.");
+                continue;
+            }
+            // 영수증 품목 정보 조회
+            ReceiptProduct receiptProduct = receiptProductRepository.findById(productMemberDetail.getProductId()).orElse(null);
+            if (receiptProduct == null) {
+                log.warn("SettlementService::processReceiptSettlement 영수증 품목 정보가 없습니다. - receiptId: {} | productId: {}", requestDto.getReceiptId(), productMemberDetail.getProductId());
+                continue;
+            }
+
+            // 멤버 ID를 정산 그룹 구성원 ID로 매핑해서 리스트에 저장
+            if (productMemberDetail.getProductMembers() == null) {
+                log.warn("SettlementServ청ice::processReceiptSettlement 영수증 품목별 멤버 리스트가 없습니다. - receiptId: {} | productId: {}", requestDto.getReceiptId(), productMemberDetail.getProductId());
+                continue;
+            }
+            for (Long memberId : productMemberDetail.getProductMembers()) {
+                receiptMembers.add(ReceiptMember.createReceiptMember(receiptProduct, memberMappingGroupMembers.get(memberId)));
+            }
+        }
+
+        // ReceiptMember INSERT
+        receiptMemberRepository.saveAll(receiptMembers);
+        log.info("SettlementService::processReceiptSettlement END");
     }
 
 

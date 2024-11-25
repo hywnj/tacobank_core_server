@@ -24,7 +24,7 @@ public class SettlementController {
 
     // 송금 요청하기
     @PostMapping
-    public ResponseEntity<CoreResponseDto<String>> requestSettlement(
+    public ResponseEntity<?> requestSettlement(
             @RequestBody SettlementRequestDto request) {
         settlementService.processSettlementRequest(request);
         return ResponseEntity.ok(new CoreResponseDto<>("success", "송금 요청이 성공적으로 처리되었습니다."));
@@ -56,13 +56,12 @@ public class SettlementController {
         return ResponseEntity.ok(new CoreResponseDto<>("success", "독촉 알림이 성공적으로 전송되었습니다."));
     }
 
-    // 사용자 출금 가능 계좌 잔액조회
+    // 바로 송금 - 정산 데이터 검증 & 사용자 전 계좌 잔액 조회
     @PostMapping("/transfers")
     public ResponseEntity<CoreResponseDto<SettlementTransferResponseDto>> validateSettlementsAndGetAvailableBalances(
             @RequestBody @Valid SettlementTransferRequestDto requestDto) {
         SettlementTransferResponseDto response = settlementService.validateSettlementsAndGetAvailableBalances(requestDto);
         return ResponseEntity.ok(new CoreResponseDto<>("success", "사용자 출금 가능 계좌 잔액조회 성공", response));
     }
-
 
 }

@@ -45,7 +45,7 @@ dependencies {
 	implementation 'io.micrometer:micrometer-registry-prometheus'
 
 	compileOnly 'org.projectlombok:lombok'
-	runtimeOnly 'org.mariadb.jdbc:mariadb-java-external'
+	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
 	implementation 'org.mariadb.jdbc:mariadb-java-client:3.1.2'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'

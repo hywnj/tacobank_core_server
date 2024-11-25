@@ -29,9 +29,6 @@ public class ReceiptMember {
     @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '생성일시'")
     private LocalDateTime createdDate;
 
-    @Column(columnDefinition = "DATETIME ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시'")
-    private LocalDateTime updatedDate;
-
     /**
      * 생성자
      */
@@ -39,7 +36,6 @@ public class ReceiptMember {
         this.receiptProduct = receiptProduct;
         this.groupMember = groupMember;
         this.createdDate = LocalDateTime.now(); // 생성일시
-        this.updatedDate = LocalDateTime.now(); // 수정일시 초기화
     }
 
     /**
