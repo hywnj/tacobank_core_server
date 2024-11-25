@@ -21,6 +21,7 @@ import com.almagest_dev.tacobank_core_server.presentation.dto.notify.Notificatio
 import com.almagest_dev.tacobank_core_server.presentation.dto.settlement.*;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.BalanceInquiryApiRequestDto;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.BalanceInquiryApiResponseDto;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +35,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class SettlementService {
 
     private final GroupRepository groupRepository;
@@ -46,20 +48,19 @@ public class SettlementService {
     private final MemberRepository memberRepository;
     private final TestbedApiClient testbedApiClient;
 
-
-    public SettlementService(GroupRepository groupRepository, GroupMemberRepository groupMemberRepository,
-                             SettlementRepository settlementRepository, SettlementDetailsRepository settlementDetailsRepository,
-                             MainAccountRepository mainAccountRepository, NotificationService notificationService, AccountRepository accountRepository, MemberRepository memberRepository, TestbedApiClient testbedApiClient) {
-        this.groupRepository = groupRepository;
-        this.groupMemberRepository = groupMemberRepository;
-        this.settlementRepository = settlementRepository;
-        this.settlementDetailsRepository = settlementDetailsRepository;
-        this.mainAccountRepository = mainAccountRepository;
-        this.notificationService = notificationService;
-        this.accountRepository = accountRepository;
-        this.memberRepository = memberRepository;
-        this.testbedApiClient = testbedApiClient;
-    }
+//    public SettlementService(GroupRepository groupRepository, GroupMemberRepository groupMemberRepository,
+//                             SettlementRepository settlementRepository, SettlementDetailsRepository settlementDetailsRepository,
+//                             MainAccountRepository mainAccountRepository, NotificationService notificationService, AccountRepository accountRepository, MemberRepository memberRepository, TestbedApiClient testbedApiClient) {
+//        this.groupRepository = groupRepository;
+//        this.groupMemberRepository = groupMemberRepository;
+//        this.settlementRepository = settlementRepository;
+//        this.settlementDetailsRepository = settlementDetailsRepository;
+//        this.mainAccountRepository = mainAccountRepository;
+//        this.notificationService = notificationService;
+//        this.accountRepository = accountRepository;
+//        this.memberRepository = memberRepository;
+//        this.testbedApiClient = testbedApiClient;
+//    }
 
     /**
      * 그룹 선택하여, 정산 요청 처리
@@ -82,7 +83,25 @@ public class SettlementService {
         Account selectedAccount = accountRepository.findById(request.getSettlementAccountId())
                 .orElseThrow(() -> new IllegalArgumentException("선택된 계좌가 존재하지 않습니다."));
 
-        // 2. 정산 데이터 생성 및 저장
+        // 리더 ID와 계좌 소유자 검증
+        if (!selectedAccount.getMember().getId().equals(request.getLeaderId())) {
+            throw new IllegalArgumentException("선택된 계좌는 정산 요청을 한 리더의 계좌가 아닙니다.");
+        }
+
+
+        // 2. 총 금액과 개별 정산 금액 검증
+        int calculatedTotalAmount = request.getMemberAmounts().stream()
+                .mapToInt(SettlementMemberDto::getAmount)
+                .sum();
+
+        if (calculatedTotalAmount != request.getTotalAmount()) {
+            throw new IllegalArgumentException(String.format(
+                    "총 정산 금액(%d)과 개별 금액 합계(%d)가 일치하지 않습니다.",
+                    request.getTotalAmount(), calculatedTotalAmount
+            ));
+        }
+
+        // 3. 정산 데이터 생성 및 저장
         Settlement settlement = new Settlement();
         settlement.setPayGroup(group);
         settlement.setSettlementAccount(selectedAccount);
@@ -90,7 +109,7 @@ public class SettlementService {
         settlement.setSettlementStatus("N");
         settlementRepository.save(settlement);
 
-        // 3. 개인 멤버별 정산 데이터 저장
+        // 4. 개인 멤버별 정산 데이터 저장
         for (SettlementMemberDto memberDto : request.getMemberAmounts()) {
             GroupMember groupMember = groupMemberRepository.findByPayGroupAndMemberId(group, memberDto.getMemberId())
                     .orElseThrow(() -> new IllegalArgumentException("그룹에 해당 멤버가 존재하지 않습니다."));
@@ -167,7 +186,7 @@ public class SettlementService {
                         detail.getSettlementStatus(),
                         new AccountDto(
                                 detail.getSettlement().getSettlementAccount().getAccountHolderName(),
-                                detail.getSettlement().getSettlementAccount().getAccountNumber(),
+                                detail.getSettlement().getSettlementAccount().getAccountNum(),
                                 detail.getSettlement().getSettlementAccount().getBankCode()
                         )
                 ))
@@ -177,7 +196,7 @@ public class SettlementService {
         List<AccountDto> availableAccounts = accountRepository.findByMember_Id(memberId).stream()
                 .map(account -> new AccountDto(
                         account.getAccountHolderName(),
-                        account.getAccountNumber(),
+                        account.getAccountNum(),
                         account.getBankCode()
                 ))
                 .collect(Collectors.toList());
@@ -218,7 +237,7 @@ public class SettlementService {
         // 특정 Settlement와 관련된 특정 Member의 정산 정보 조회
         SettlementDetails pendingDetail = settlementDetailsRepository.findBySettlement_IdAndGroupMember_Member_IdAndSettlementStatus(
                 settlementId, memberId, "N"
-        ).orElseThrow(() -> new IllegalStateException("해당 멤버의 정산 정보가 없거나 이미 완료된 정산입니다."));
+        ).orElseThrow(() -> new IllegalArgumentException("해당 멤버의 정산 정보가 없거나 이미 완료된 정산입니다."));
 
         // 알림 전송
         String message = String.format("정산 요청이 아직 완료되지 않았습니다. 요청 금액: %d원", pendingDetail.getSettlementAmount());
@@ -258,7 +277,7 @@ public class SettlementService {
         // 사용자의 출금 가능한 전 계좌 잔액 조회
         List<Account> availableAccounts = accountRepository.findByMember_IdAndVerificated(requestDto.getMemberId(), "Y");
         if (availableAccounts == null) { // 출금 가능한(본인 인증 완료한) 계좌가 없는 경우
-            throw new IllegalStateException("출금할 수 있는 계좌가 없습니다. 출금을 위한 본인 인증을 진행해주세요.");
+            throw new IllegalArgumentException("출금할 수 있는 계좌가 없습니다. 출금을 위한 본인 인증을 진행해주세요.");
         }
 
         // TestBed 잔액조회 호출

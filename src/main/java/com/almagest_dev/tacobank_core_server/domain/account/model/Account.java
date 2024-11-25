@@ -26,7 +26,7 @@ public class Account {
     private Member member;
 
     @Column(columnDefinition = "VARCHAR(20) COMMENT '계좌번호'")
-    private String accountNumber;
+    private String accountNum;
 
     @Column(columnDefinition = "VARCHAR(255) COMMENT '예금주'")
     private String accountHolderName;
@@ -57,8 +57,8 @@ public class Account {
         this.updatedDate = LocalDateTime.now();
     }
 
-    public void setAccountNumber(String accountNumber) {
-        this.accountNumber = accountNumber;
+    public void setAccountNum(String accountNum) {
+        this.accountNum = accountNum;
     }
 
     public void setAccountHolderName(String accountHolderName) {

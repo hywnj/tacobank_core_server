@@ -5,6 +5,6 @@ import lombok.Data;
 @Data
 public class FavoriteAccountRequestDto {
     private Long memberId; // 사용자 ID
-    private String accountNumber; // 계좌 번호
+    private String accountNum; // 계좌 번호
 
 }

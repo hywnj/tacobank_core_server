@@ -22,6 +22,7 @@ import com.almagest_dev.tacobank_core_server.presentation.dto.account.MainAccoun
 import com.almagest_dev.tacobank_core_server.presentation.dto.member.MemberRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransactionResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransferOptionsResponseDto;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class AccountService {
 
     private final MemberRepository memberRepository;
@@ -41,15 +43,15 @@ public class AccountService {
     private final TransferRepository transferRepository;
     private final TransferService transferService;
 
-    public AccountService(MemberRepository memberRepository, AccountRepository accountRepository, TestbedApiClient testbedApiClient, MainAccountRepository mainAccountRepository, FavoriteAccountRepository favoriteAccountRepository, TransferRepository transferRepository, TransferService transferService) {
-        this.memberRepository = memberRepository;
-        this.accountRepository = accountRepository;
-        this.testbedApiClient = testbedApiClient;
-        this.mainAccountRepository = mainAccountRepository;
-        this.favoriteAccountRepository = favoriteAccountRepository;
-        this.transferRepository = transferRepository;
-        this.transferService = transferService;
-    }
+//    public AccountService(MemberRepository memberRepository, AccountRepository accountRepository, TestbedApiClient testbedApiClient, MainAccountRepository mainAccountRepository, FavoriteAccountRepository favoriteAccountRepository, TransferRepository transferRepository, TransferService transferService) {
+//        this.memberRepository = memberRepository;
+//        this.accountRepository = accountRepository;
+//        this.testbedApiClient = testbedApiClient;
+//        this.mainAccountRepository = mainAccountRepository;
+//        this.favoriteAccountRepository = favoriteAccountRepository;
+//        this.transferRepository = transferRepository;
+//        this.transferService = transferService;
+//    }
 
     /**
      * 메인 계좌 설정
@@ -96,7 +98,7 @@ public class AccountService {
     public AccountMemberReponseDto getUserAccounts(MemberRequestDto memberRequestDto) {
         // 멤버 조회
         Member member = memberRepository.findById(memberRequestDto.getMemberId())
-                .orElseThrow(() -> new IllegalArgumentException("Member not found"));
+                .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
 
         String userFinanceId = member.getUserFinanceId();
         String userName = member.getName();
@@ -154,7 +156,7 @@ public class AccountService {
         List<Account> accounts = accountInfoList.stream().map(accountInfo -> {
             Account account = new Account();
             account.setMember(member);
-            account.setAccountNumber(accountInfo.getAccountNum());
+            account.setAccountNum(accountInfo.getAccountNum());
             account.setAccountHolderName(accountInfo.getAccountHolder());
             account.setBankCode(accountInfo.getBankCodeStd());
             account.setFintechUseNum(accountInfo.getFintechUseNum());
@@ -184,12 +186,12 @@ public class AccountService {
                 .map(accountInfo -> {
                     AccountResponseDto accountDto = new AccountResponseDto();
                     accountDto.setAccountId(
-                            accountRepository.findByAccountNumber(accountInfo.getAccountNum())
+                            accountRepository.findByAccountNum(accountInfo.getAccountNum())
                                     .map(Account::getId)
                                     .orElse(null)
                     );
                     accountDto.setAccountName(accountInfo.getProductName());
-                    accountDto.setAccountNumber(accountInfo.getAccountNum());
+                    accountDto.setAccountNum(accountInfo.getAccountNum());
                     accountDto.setAccountHolder(accountInfo.getAccountHolder());
                     accountDto.setBankName(accountInfo.getBankCodeStd());
                     accountDto.setBalance(Double.valueOf(accountInfo.getBalanceAmt()));
@@ -224,7 +226,7 @@ public class AccountService {
         List<AccountDto> favoriteAccountDtos = favoriteAccounts.stream()
                 .map(account -> new AccountDto(
                         account.getAccountHolderName(),
-                        account.getAccountNumber(),
+                        account.getAccountNum(),
                         account.getBankCode()
                 ))
                 .toList();

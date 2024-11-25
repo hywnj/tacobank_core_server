@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class FavoriteAccountResponseDto {
     private Long memberId;
-    private String accountNumber;
+    private String accountNum;
     private String accountHolder;
     private String bankName; // 은행명
 

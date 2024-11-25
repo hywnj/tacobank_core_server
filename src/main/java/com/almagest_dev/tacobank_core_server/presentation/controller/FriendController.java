@@ -4,6 +4,7 @@ import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.friend.FriendRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.friend.FriendResponseDto;
 import com.almagest_dev.tacobank_core_server.application.service.FriendService;
+import com.almagest_dev.tacobank_core_server.presentation.dto.friend.FriendResponseDto2;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -75,8 +76,8 @@ public class FriendController {
 
     // 차단한 친구 조회
     @GetMapping("/blocked/{requesterId}")
-    public ResponseEntity<CoreResponseDto<List<FriendResponseDto>>> getBlockedFriends(@PathVariable Long requesterId) {
-        List<FriendResponseDto> blockedFriends = friendService.getBlockedFriends(requesterId);
+    public ResponseEntity<CoreResponseDto<List<FriendResponseDto2>>> getBlockedFriends(@PathVariable Long requesterId) {
+        List<FriendResponseDto2> blockedFriends = friendService.getBlockedFriends(requesterId);
         return ResponseEntity.ok(
                 new CoreResponseDto<>("success", "차단한 친구 목록 조회 성공", blockedFriends)
         );
@@ -111,8 +112,8 @@ public class FriendController {
 
     // 받은 친구 요청 조회
     @GetMapping("/received/list/{requesterId}")
-    public ResponseEntity<CoreResponseDto<List<FriendResponseDto>>> getReceivedFriendRequests(@PathVariable Long requesterId) {
-        List<FriendResponseDto> receivedRequests = friendService.getReceivedFriendRequests(requesterId);
+    public ResponseEntity<CoreResponseDto<List<FriendResponseDto2>>> getReceivedFriendRequests(@PathVariable Long requesterId) {
+        List<FriendResponseDto2> receivedRequests = friendService.getReceivedFriendRequests(requesterId);
         return ResponseEntity.ok(
                 new CoreResponseDto<>("success", "받은 친구 요청 목록 조회 성공", receivedRequests)
         );

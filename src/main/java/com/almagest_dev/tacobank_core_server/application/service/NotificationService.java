@@ -4,6 +4,7 @@ import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.notification.model.Notification;
 import com.almagest_dev.tacobank_core_server.domain.notification.repository.NotificationRepository;
 import com.almagest_dev.tacobank_core_server.presentation.dto.notify.NotificationResponseDto;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,13 +12,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
 
-    public NotificationService(NotificationRepository notificationRepository) {
-        this.notificationRepository = notificationRepository;
-    }
+//    public NotificationService(NotificationRepository notificationRepository) {
+//        this.notificationRepository = notificationRepository;
+//    }
 
     /**
      * 알림 생성하고 저장하기

@@ -10,12 +10,14 @@ import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
 import com.almagest_dev.tacobank_core_server.presentation.dto.group.*;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class GroupService {
 
     private final GroupRepository groupRepository;
@@ -23,20 +25,20 @@ public class GroupService {
     private final FriendRepository friendRepository;
     private final MemberRepository memberRepository;
 
-    public GroupService(GroupRepository groupRepository, GroupMemberRepository groupMemberRepository,
-                        FriendRepository friendRepository, MemberRepository memberRepository) {
-        this.groupRepository = groupRepository;
-        this.groupMemberRepository = groupMemberRepository;
-        this.friendRepository = friendRepository;
-        this.memberRepository = memberRepository;
-    }
+//    public GroupService(GroupRepository groupRepository, GroupMemberRepository groupMemberRepository,
+//                        FriendRepository friendRepository, MemberRepository memberRepository) {
+//        this.groupRepository = groupRepository;
+//        this.groupMemberRepository = groupMemberRepository;
+//        this.friendRepository = friendRepository;
+//        this.memberRepository = memberRepository;
+//    }
 
     /**
      * 그룹장 확인 메서드
      */
     private void validateLeader(Long userId, Group group) {
         if (!group.getLeader().getId().equals(userId)) {
-            throw new IllegalStateException("그룹장만 수행할 수 있는 작업입니다.");
+            throw new IllegalArgumentException("그룹장만 수행할 수 있는 작업입니다.");
         }
     }
 
@@ -99,11 +101,11 @@ public class GroupService {
         GroupMember existingMember = groupMemberRepository.findByPayGroupIdAndMemberId(groupId, friendId).orElse(null);
 
         if (existingMember != null) {
-            if ("LEAVED".equals(existingMember.getStatus()) || "EXPELLED".equals(existingMember.getStatus())) {
+            if ("LEAVED".equals(existingMember.getStatus()) || "EXPELLED".equals(existingMember.getStatus()) || "REJECTED".equals(existingMember.getStatus())) {
                 existingMember.setStatus("INVITED");
                 groupMemberRepository.save(existingMember);
             } else {
-                throw new IllegalStateException("이미 그룹에 초대되었거나 수락한 멤버입니다.");
+                throw new IllegalArgumentException("이미 그룹에 초대되었거나 수락한 멤버입니다.");
             }
         } else {
             GroupMember groupMember = new GroupMember();
@@ -158,7 +160,7 @@ public class GroupService {
                 .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
 
         if (!"ACCEPTED".equals(groupMember.getStatus())) {
-            throw new IllegalStateException("수락한 멤버만 추방할 수 있습니다.");
+            throw new IllegalArgumentException("수락한 멤버만 추방할 수 있습니다.");
         }
 
         groupMember.setStatus("EXPELLED");
@@ -174,10 +176,10 @@ public class GroupService {
                 .orElseThrow(() -> new IllegalArgumentException("초대를 찾을 수 없습니다."));
 
         if ("ACCEPTED".equals(groupMember.getStatus())) {
-            throw new IllegalStateException("이미 초대를 수락한 상태입니다.");
+            throw new IllegalArgumentException("이미 초대를 수락한 상태입니다.");
         }
         if (!"INVITED".equals(groupMember.getStatus())) {
-            throw new IllegalStateException("초대 상태가 아닙니다.");
+            throw new IllegalArgumentException("초대 상태가 아닙니다.");
         }
 
         groupMember.setStatus("ACCEPTED");
@@ -197,11 +199,11 @@ public class GroupService {
                 .orElseThrow(() -> new IllegalArgumentException("초대를 찾을 수 없습니다."));
 
         if (!"INVITED".equals(groupMember.getStatus())) {
-            throw new IllegalStateException("초대 상태가 아닙니다.");
+            throw new IllegalArgumentException("초대 상태가 아닙니다.");
         }
 
         if ("ACCEPTED".equals(groupMember.getStatus())) {
-            throw new IllegalStateException("이미 초대를 수락한 상태에서는 거절할 수 없습니다.");
+            throw new IllegalArgumentException("이미 초대를 수락한 상태에서는 거절할 수 없습니다.");
         }
 
         groupMember.setStatus("REJECTED");
@@ -221,11 +223,11 @@ public class GroupService {
                 .orElseThrow(() -> new IllegalArgumentException("그룹 멤버를 찾을 수 없습니다."));
 
         if ("EXPELLED".equals(groupMember.getStatus())) {
-            throw new IllegalStateException("추방된 멤버는 그룹을 나갈 수 없습니다.");
+            throw new IllegalArgumentException("추방된 멤버는 그룹을 나갈 수 없습니다.");
         }
 
         if (!"ACCEPTED".equals(groupMember.getStatus())) {
-            throw new IllegalStateException("그룹 나가기가 불가능한 상태입니다.");
+            throw new IllegalArgumentException("그룹 나가기가 불가능한 상태입니다.");
         }
 
         groupMember.setStatus("LEAVED");

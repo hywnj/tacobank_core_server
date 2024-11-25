@@ -7,21 +7,24 @@ import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
 import com.almagest_dev.tacobank_core_server.presentation.dto.friend.FriendRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.friend.FriendResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.friend.FriendResponseDto2;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class FriendService {
 
     private final FriendRepository friendRepository;
     private final MemberRepository memberRepository;
 
-    public FriendService(FriendRepository friendRepository, MemberRepository memberRepository) {
-        this.friendRepository = friendRepository;
-        this.memberRepository = memberRepository;
-    }
+//    public FriendService(FriendRepository friendRepository, MemberRepository memberRepository) {
+//        this.friendRepository = friendRepository;
+//        this.memberRepository = memberRepository;
+//    }
 
     /**
      * 친구상태 관리 조건제약
@@ -65,10 +68,12 @@ public class FriendService {
                 break;
 
             case "BLOCKED_BY":
-                // 차단 당한 사용자는 차단 해제를 포함한 모든 작업을 할 수 없음
-                if (isReceiver && (action.equals("block") || action.equals("unblock") || action.equals("request") || action.equals("accept") ||
-                        action.equals("reject") || action.equals("delete") || action.equals("like") || action.equals("unlike"))) {
-                    throw new IllegalStateException("해당 사용자에게 차단 당했습니다. 추가 동작이 불가 합니다.");
+                if (action.equals("like") || action.equals("unlike")) {
+                    throw new IllegalStateException("차단된 사용자는 좋아요 또는 좋아요 취소를 수행할 수 없습니다.");
+                }
+                if (isReceiver && (action.equals("block") || action.equals("unblock") || action.equals("request") ||
+                        action.equals("accept") || action.equals("reject") || action.equals("delete"))) {
+                    throw new IllegalStateException("해당 사용자에게 차단 당했습니다. 추가 동작이 불가합니다.");
                 }
                 break;
 
@@ -127,10 +132,10 @@ public class FriendService {
 
         if (reverseFriend != null) {
             if ("REQ".equals(reverseFriend.getStatus())) {
-                throw new IllegalStateException("상대방이 이미 요청을 보낸 상태입니다.");
+                throw new IllegalArgumentException("상대방이 이미 요청을 보낸 상태입니다.");
             }
             if ("REQ_RECEIVED".equals(reverseFriend.getStatus())) {
-                throw new IllegalStateException("이미 요청을 한 상태입니다.");
+                throw new IllegalArgumentException("이미 요청을 한 상태입니다.");
             }
 
             // 상대방이 ACC 상태일 경우, 바로 친구 관계 설정
@@ -303,7 +308,7 @@ public class FriendService {
             reverseFriend.setStatus("NONE");
             friendRepository.save(reverseFriend);
         } else {
-            throw new IllegalStateException("차단한 사용자만 차단 해제를 할 수 있습니다.");
+            throw new IllegalArgumentException("차단한 사용자만 차단 해제를 할 수 있습니다.");
         }
         friend.updateGroup();
     }
@@ -312,18 +317,18 @@ public class FriendService {
      * 친구 좋아요
      */
     @Transactional
-    public void likeFriend(Long userId,FriendRequestDto requestDto) {
+    public void likeFriend(Long userId, FriendRequestDto requestDto) {
         validateUserId(userId, requestDto.getRequesterId());
         Friend friend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getRequesterId(), requestDto.getReceiverId()
         ).orElseThrow(() -> new IllegalArgumentException("친구 관계가 존재하지 않습니다."));
 
-        if ("Y".equals(friend.getLiked())) {
-            throw new IllegalStateException("이미 좋아요를 누른 상태입니다.");
-        }
-
         // 좋아요 가능한 상태인지 확인
-        checkActionPermission(friend, "like",userId);
+        checkActionPermission(friend, "like", userId);
+
+        if ("Y".equals(friend.getLiked())) {
+            throw new IllegalArgumentException("이미 좋아요를 누른 상태입니다.");
+        }
 
         friend.setLiked("Y"); // 좋아요 상태 설정
         friendRepository.save(friend);
@@ -334,18 +339,18 @@ public class FriendService {
      * 친구 좋아요 취소
      */
     @Transactional
-    public void unlikeFriend(Long userId,FriendRequestDto requestDto) {
+    public void unlikeFriend(Long userId, FriendRequestDto requestDto) {
         validateUserId(userId, requestDto.getRequesterId());
         Friend friend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getRequesterId(), requestDto.getReceiverId()
         ).orElseThrow(() -> new IllegalArgumentException("친구 관계가 존재하지 않습니다."));
 
-        if ("N".equals(friend.getLiked())) {
-            throw new IllegalStateException("이미 좋아요 취소 상태입니다.");
-        }
-
         // 좋아요 취소 가능한 상태인지 확인
-        checkActionPermission(friend, "unlike",userId);
+        checkActionPermission(friend, "unlike", userId);
+
+        if ("N".equals(friend.getLiked())) {
+            throw new IllegalArgumentException("이미 좋아요 취소 상태입니다.");
+        }
 
         friend.setLiked("N"); // 좋아요 취소 상태 설정
         friendRepository.save(friend);
@@ -374,7 +379,7 @@ public class FriendService {
     /**
      * 자신이 차단한 친구 목록 조회
      */
-    public List<FriendResponseDto> getBlockedFriends(Long requesterId) {
+    public List<FriendResponseDto2> getBlockedFriends(Long requesterId) {
         List<Friend> blockedFriends = friendRepository.findByRequesterIdAndStatus(requesterId, "BLOCKED");
 
         return blockedFriends.stream()
@@ -383,7 +388,7 @@ public class FriendService {
                     String friendName = memberRepository.findById(friendId)
                             .map(Member::getName) // 친구의 이름 가져오기
                             .orElse("Unknown");
-                    return new FriendResponseDto(friendId, friendName, friend.getLiked()); // DTO 생성
+                    return new FriendResponseDto2(friendId, friendName); // DTO 생성
                 })
                 .collect(Collectors.toList());
     }
@@ -391,7 +396,7 @@ public class FriendService {
     /**
      * 받은 친구 요청 조회
      */
-    public List<FriendResponseDto> getReceivedFriendRequests(Long requesterId) {
+    public List<FriendResponseDto2> getReceivedFriendRequests(Long requesterId) {
         // requesterId 기준으로 요청 상태가 "REQ_RECEIVED"인 데이터 조회
         List<Friend> receivedRequests = friendRepository.findByRequesterIdAndStatus(requesterId, "REQ_RECEIVED");
 
@@ -401,7 +406,7 @@ public class FriendService {
                     String friendName = memberRepository.findById(friendId)
                             .map(Member::getName)
                             .orElse("Unknown");
-                    return new FriendResponseDto(friendId, friendName, friend.getLiked());
+                    return new FriendResponseDto2(friendId, friendName);
                 })
                 .collect(Collectors.toList());
     }

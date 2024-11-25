@@ -114,7 +114,7 @@ public class TransferService {
                 withdrawalAccount.getFintechUseNum(),       // 출금 계좌 핀테크 이용번호
                 new WithdrawalDetails(
                         requestDto.getWithdrawalAccountId(),        // 출금 계좌 아이디
-                        withdrawalAccount.getAccountNumber(),       // 출금 계좌 번호
+                        withdrawalAccount.getAccountNum(),       // 출금 계좌 번호
                         withdrawalAccount.getAccountHolderName(),   // 출금 예금주
                         withdrawalAccount.getBankCode()             // 출금 은행 코드
                 ),
@@ -135,7 +135,7 @@ public class TransferService {
                 requestDto.getIdempotencyKey(),
                 receiverInquiryApiResponse.getAccountHolderName(),
                 withdrawalAccount.getId(),
-                withdrawalAccount.getAccountNumber(),
+                withdrawalAccount.getAccountNum(),
                 Integer.parseInt(balanceInquiryApiResponse.getBalanceAmt())
         );
         log.info("TransferService - [{}] inquireReceiverAccount 수취인 조회 응답 : {} ", sessionId, response);

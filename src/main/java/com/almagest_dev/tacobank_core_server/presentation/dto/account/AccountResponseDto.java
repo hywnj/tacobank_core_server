@@ -10,7 +10,7 @@ import java.util.List;
 public class AccountResponseDto {
     private Long accountId; // 계좌 식별자
     private String accountName; // 계좌명
-    private String accountNumber; // 계좌 번호
+    private String accountNum; // 계좌 번호
     private String accountHolder; // 예금주
     private String bankName; // 은행 이름
     private Double balance; // 잔액

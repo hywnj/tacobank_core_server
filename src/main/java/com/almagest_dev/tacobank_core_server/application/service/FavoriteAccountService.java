@@ -34,11 +34,11 @@ public class FavoriteAccountService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
         // Account 조회
-        Account account = accountRepository.findByAccountNumber(requestDto.getAccountNumber())
+        Account account = accountRepository.findByAccountNum(requestDto.getAccountNum())
                 .orElseThrow(() -> new IllegalArgumentException("해당 계좌가 존재하지 않습니다."));
 
         // 중복된 즐겨찾기 계좌인지 확인
-        boolean isDuplicate = favoriteAccountRepository.existsByMemberAndAccountNumber(member, account.getAccountNumber());
+        boolean isDuplicate = favoriteAccountRepository.existsByMemberAndAccountNum(member, account.getAccountNum());
         if (isDuplicate) {
             throw new IllegalArgumentException("이미 즐겨찾기 계좌로 등록된 계좌입니다.");
         }
@@ -47,10 +47,10 @@ public class FavoriteAccountService {
                 .orElseThrow(() -> new IllegalArgumentException("계좌 소유자가 존재하지 않습니다."));
 
         // FavoriteAccount 저장
-        FavoriteAccount favoriteAccount = favoriteAccountRepository.findByMemberAndAccountNumber(member, requestDto.getAccountNumber())
+        FavoriteAccount favoriteAccount = favoriteAccountRepository.findByMemberAndAccountNum(member, requestDto.getAccountNum())
                 .orElse(new FavoriteAccount());
         favoriteAccount.setMember(member);
-        favoriteAccount.setAccountNumber(account.getAccountNumber());
+        favoriteAccount.setAccountNum(account.getAccountNum());
         favoriteAccount.setAccountHolderName(accountOwner.getName()); // 소유자의 이름을 저장
         favoriteAccount.setBankCode(account.getBankCode());
         favoriteAccount.setCreatedDate(LocalDateTime.now());
@@ -61,7 +61,7 @@ public class FavoriteAccountService {
         // 응답 생성
         return new FavoriteAccountResponseDto(
                 member.getId(),
-                favoriteAccount.getAccountNumber(),
+                favoriteAccount.getAccountNum(),
                 favoriteAccount.getAccountHolderName(),
                 favoriteAccount.getBankCode()
         );
@@ -83,7 +83,7 @@ public class FavoriteAccountService {
         // 응답 생성
         return favoriteAccounts.stream().map(favoriteAccount -> new FavoriteAccountResponseDto(
                 member.getId(),
-                favoriteAccount.getAccountNumber(),
+                favoriteAccount.getAccountNum(),
                 favoriteAccount.getAccountHolderName(),
                 favoriteAccount.getBankCode()
         )).collect(Collectors.toList());
@@ -99,7 +99,7 @@ public class FavoriteAccountService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
         // FavoriteAccount 조회
-        FavoriteAccount favoriteAccount = favoriteAccountRepository.findByMemberAndAccountNumber(member, requestDto.getAccountNumber())
+        FavoriteAccount favoriteAccount = favoriteAccountRepository.findByMemberAndAccountNum(member, requestDto.getAccountNum())
                 .orElseThrow(() -> new IllegalArgumentException("즐겨찾기에 등록되지 않은 계좌입니다."));
 
         // 즐겨찾기 계좌 삭제

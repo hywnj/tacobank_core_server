@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface FavoriteAccountRepository extends JpaRepository<FavoriteAccount, Long> {
-    boolean existsByMemberAndAccountNumber(Member member, String accountNumber);
+    boolean existsByMemberAndAccountNum(Member member, String accountNum);
     List<FavoriteAccount> findAllByMember(Member member);
-    Optional<FavoriteAccount> findByMemberAndAccountNumber(Member member, String accountNumber);
+    Optional<FavoriteAccount> findByMemberAndAccountNum(Member member, String accountNum);
 }
