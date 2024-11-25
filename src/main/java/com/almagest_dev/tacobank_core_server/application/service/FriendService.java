@@ -167,7 +167,9 @@ public class FriendService {
 
         // 저장
         friendRepository.save(friend);
-        friendRepository.save(reverseFriend); // 반대 상태 저장
+        friendRepository.save(reverseFriend);// 반대 상태 저장
+
+        friend.updateGroup();
 
     }
 
@@ -194,6 +196,7 @@ public class FriendService {
         ).orElseGet(() -> new Friend(requestDto.getReceiverId(), requestDto.getRequesterId()));
         reverseFriend.setStatus("ACC");
         friendRepository.save(reverseFriend);
+        friend.updateGroup();
     }
 
     /**
@@ -219,6 +222,7 @@ public class FriendService {
         ).orElseGet(() -> new Friend(requestDto.getReceiverId(), requestDto.getRequesterId()));
         reverseFriend.setStatus("NONE");
         friendRepository.save(reverseFriend);
+        friend.updateGroup();
     }
 
     /**
@@ -249,6 +253,7 @@ public class FriendService {
             reverseFriend.setStatus("ACC");
         }
         friendRepository.save(reverseFriend);
+        friend.updateGroup();
     }
 
 
@@ -273,6 +278,7 @@ public class FriendService {
         reverseFriend.setStatus("BLOCKED_BY");
         reverseFriend.setLiked("N");
         friendRepository.save(reverseFriend);
+        friend.updateGroup();
     }
 
     /**
@@ -299,6 +305,7 @@ public class FriendService {
         } else {
             throw new IllegalStateException("차단한 사용자만 차단 해제를 할 수 있습니다.");
         }
+        friend.updateGroup();
     }
 
     /**
@@ -320,6 +327,7 @@ public class FriendService {
 
         friend.setLiked("Y"); // 좋아요 상태 설정
         friendRepository.save(friend);
+        friend.updateGroup();
     }
 
     /**
@@ -341,6 +349,7 @@ public class FriendService {
 
         friend.setLiked("N"); // 좋아요 취소 상태 설정
         friendRepository.save(friend);
+        friend.updateGroup();
     }
 
     /**

@@ -62,9 +62,6 @@ public class SettlementService {
     }
 
     /**
-     * 그룹 선택하여, 정산 요청하고 알림보내기
-     */
-    /**
      * 그룹 선택하여, 정산 요청 처리
      */
     @Transactional
@@ -117,8 +114,8 @@ public class SettlementService {
     @Transactional
     protected Group createTemporaryGroup(SettlementRequestDto request) {
         // 그룹장 찾기
-        Member leader = groupRepository.findLeaderById(request.getLeaderId())
-                .orElseThrow(() -> new IllegalArgumentException("그룹장을 찾을 수 없습니다."));
+        Member leader = memberRepository.findById(request.getLeaderId())
+                .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
 
         // 그룹 생성
         Group group = new Group();

@@ -28,6 +28,10 @@ public class Notification {
     @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '등록일자'")
     private LocalDateTime createdDate;
 
+    @PrePersist
+    public void prePersist() {
+        this.createdDate = LocalDateTime.now();
+    }
 
     public void setMember(Member member) {
         this.member = member;

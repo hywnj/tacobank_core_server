@@ -48,12 +48,13 @@ public class GroupService {
         Member leader = memberRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("그룹장을 찾을 수 없습니다."));
 
-        Group group = new Group();
-        group.setLeader(leader);
-        group.setActivated("Y");
-        group.setCustomized("Y");
-        group.setName(requestDto.getGroupName());
-
+        // 그룹 생성
+        Group group = Group.createGroup(
+                leader,
+                requestDto.getGroupName(),
+                "Y", // 활성화 상태
+                "Y"  // 커스텀 여부
+        );
 
         final Group savedGroup = groupRepository.save(group);
 
@@ -112,6 +113,10 @@ public class GroupService {
             groupMember.setStatus("INVITED");
             groupMemberRepository.save(groupMember);
         }
+
+        // 그룹 수정 날짜 업데이트
+        group.updateGroup();
+        groupRepository.save(group);
     }
 
     /**
@@ -177,10 +182,14 @@ public class GroupService {
 
         groupMember.setStatus("ACCEPTED");
         groupMemberRepository.save(groupMember);
+
+        Group group = groupMember.getPayGroup();
+        group.updateGroup();
+        groupRepository.save(group);
     }
 
     /**
-     * 그룹 삭제하기
+     * 그룹 거절하기
      */
     @Transactional
     public void rejectInvitation(Long userId, Long groupId) {
@@ -197,6 +206,10 @@ public class GroupService {
 
         groupMember.setStatus("REJECTED");
         groupMemberRepository.save(groupMember);
+
+        Group group = groupMember.getPayGroup();
+        group.updateGroup();
+        groupRepository.save(group);
     }
 
     /**
@@ -217,6 +230,10 @@ public class GroupService {
 
         groupMember.setStatus("LEAVED");
         groupMemberRepository.save(groupMember);
+
+        Group group = groupMember.getPayGroup();
+        group.updateGroup();
+        groupRepository.save(group);
     }
 
     /**

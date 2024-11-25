@@ -38,6 +38,17 @@ public class FavoriteAccount {
     @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL COMMENT '수정일자'")
     private LocalDateTime updatedDate;
 
+    @PrePersist
+    public void prePersist() {
+        this.createdDate = LocalDateTime.now();
+        this.updatedDate = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedDate = LocalDateTime.now();
+    }
+
 
     public void setMember(Member member) {
         this.member = member;

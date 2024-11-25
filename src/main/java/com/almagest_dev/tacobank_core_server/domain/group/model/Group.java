@@ -46,7 +46,6 @@ public class Group {
 
     private List<GroupMember> payGroups = new ArrayList<>();
 
-
     public void setLeader(Member leader) {
         this.leader = leader;
     }
@@ -61,5 +60,33 @@ public class Group {
 
     public void setName(String groupName) {
         this.name = groupName;
+    }
+
+    // 그룹 생성 메서드
+    public static Group createGroup(Member leader, String groupName, String activated, String customized) {
+        Group group = new Group();
+        group.leader = leader;
+        group.name = groupName;
+        group.activated = activated;
+        group.customized = customized;
+        group.createdDate = LocalDateTime.now(); // 생성 시 현재 시간
+        group.updatedDate = LocalDateTime.now(); // 생성 시 현재 시간
+        return group;
+    }
+
+    // 그룹 업데이트 메서드
+    public void updateGroup() {
+        this.updatedDate = LocalDateTime.now(); // 수정 시 현재 시간 갱신
+    }
+
+    @PrePersist
+    public void prePersist() {
+        this.createdDate = LocalDateTime.now();
+        this.updatedDate = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedDate = LocalDateTime.now();
     }
 }

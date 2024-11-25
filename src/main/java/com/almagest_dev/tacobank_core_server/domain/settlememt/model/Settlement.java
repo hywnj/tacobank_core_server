@@ -52,6 +52,17 @@ public class Settlement {
     @OneToMany(mappedBy = "settlement")
     private List<Receipt> receipts;
 
+    @PrePersist
+    public void prePersist() {
+        this.createdDate = LocalDateTime.now();
+        this.updatedDate = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedDate = LocalDateTime.now();
+    }
+
 
     public void setPayGroup(Group group) {
         this.payGroup = group;

@@ -51,9 +51,15 @@ public class Friend {
 
     public void setStatus(String acc) {
         this.status = acc;
+        this.updatedDate = LocalDateTime.now();
     }
 
     public void setLiked(String n) {
         this.liked = n;
+        this.updatedDate = LocalDateTime.now();
+    }
+
+    public void updateGroup() {
+        this.updatedDate = LocalDateTime.now(); // 수정 시 현재 시간 갱신
     }
 }

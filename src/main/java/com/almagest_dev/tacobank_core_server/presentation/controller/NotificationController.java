@@ -18,12 +18,6 @@ public class NotificationController {
         this.notificationService = notificationService;
     }
 
-    // 받은 알림 조회하기
-//    @GetMapping("/{memberId}")
-//    public ResponseEntity<List<NotificationResponseDto>> getNotifications(@PathVariable Long memberId) {
-//        List<NotificationResponseDto> notifications = notificationService.getNotificationsForMember(memberId);
-//        return ResponseEntity.ok(notifications);
-//    }
     @GetMapping("/{memberId}")
     public ResponseEntity<CoreResponseDto<List<NotificationResponseDto>>> getNotifications(@PathVariable Long memberId) {
         List<NotificationResponseDto> notifications = notificationService.getNotificationsForMember(memberId);

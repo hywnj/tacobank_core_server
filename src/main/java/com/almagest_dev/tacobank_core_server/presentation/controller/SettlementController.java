@@ -23,8 +23,7 @@ public class SettlementController {
     }
 
     // 송금 요청하기
-    // 송금 요청하기
-    @PostMapping("/request")
+    @PostMapping
     public ResponseEntity<CoreResponseDto<String>> requestSettlement(
             @RequestBody SettlementRequestDto request) {
         settlementService.processSettlementRequest(request);
