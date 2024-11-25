@@ -1,7 +1,9 @@
 package com.almagest_dev.tacobank_core_server.common.exception;
-public class InvalidVerificationException extends RuntimeException {
-    public InvalidVerificationException() {
-        super("인증이 실패했습니다.");
+
+public class InvalidVerificationException extends BaseCustomException {
+
+    public InvalidVerificationException(String message, Throwable cause) {
+        super(message, cause);
     }
 
     public InvalidVerificationException(String message) {

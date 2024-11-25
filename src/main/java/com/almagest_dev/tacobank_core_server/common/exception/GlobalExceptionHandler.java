@@ -1,7 +1,6 @@
 package com.almagest_dev.tacobank_core_server.common.exception;
 
 import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
-import com.almagest_dev.tacobank_core_server.common.dto.ExceptionResponseDto;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -40,32 +39,30 @@ public class GlobalExceptionHandler {
 
         if (errorMessages.size() == 1) {
             // 오류 메시지가 하나면 String 형태로 반환
-            ExceptionResponseDto response = new ExceptionResponseDto("Validation Error", errorMessages.get(0));
+            CoreResponseDto response = new CoreResponseDto("FAILURE", errorMessages.get(0));
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         } else {
-            // 여러 개의 오류 메시지가 있으면 Map 형태로 반환
-            Map<String, Object> response = new HashMap<>();
-            response.put("error", "Validation Error");
-            response.put("message", errorMessages);
+            // 오류 메시지가 여러개인 경우
+            CoreResponseDto response = new CoreResponseDto("FAILURE", "요청이 유효하지 않습니다.", errorMessages);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<?> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
         log.warn("HttpMessageNotReadableException - " + ex.getMessage());
-        ExceptionResponseDto response = new ExceptionResponseDto("Invalid Request Body", "요청 본문이 비어있거나 올바르지 않습니다.");
+        CoreResponseDto response = new CoreResponseDto("FAILURE", "요청 본문이 비어있거나 올바르지 않습니다.");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
     @ExceptionHandler(DataIntegrityViolationException.class) // 데이터 무결성 제약 조건을 위반했을 때 발생하는 예외 (데이터베이스에 저장할 때 NULL 값이 들어가면 안 되는 칼럼에 NULL이 들어간 경우나 고유 제약 조건을 위반한 경우)
     public ResponseEntity<?> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         log.warn("DataIntegrityViolationException - " + ex.getMessage());
-        ExceptionResponseDto response = new ExceptionResponseDto("Bad Request", "필수 데이터가 누락되었거나 잘못된 데이터가 입력되었습니다.");
+        CoreResponseDto response = new CoreResponseDto("FAILURE", "필수 데이터가 누락되었거나 잘못된 데이터가 입력되었습니다.");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
     @ExceptionHandler(ConstraintViolationException.class) // 데이터베이스 제약 조건을 위반 등
     public ResponseEntity<?> handleConstraintViolationException(ConstraintViolationException ex) {
         log.warn("ConstraintViolationException - " + ex.getMessage());
-        ExceptionResponseDto response = new ExceptionResponseDto("Bad Request", "필수 데이터가 누락되었거나 잘못된 데이터가 입력되었습니다.");
+        CoreResponseDto response = new CoreResponseDto("FAILURE", "필수 데이터가 누락되었거나 잘못된 데이터가 입력되었습니다.");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
     @ExceptionHandler(SmsSendFailedException.class) // SMS 전송시 예외처리
@@ -77,7 +74,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(OcrFailedException.class) // OCR 인식시 예외처리
     public ResponseEntity<?> handleOcrSendFailedException(OcrFailedException ex) {
         log.warn("OcrSendFailedException - {}", ex.getMessage());
-        ExceptionResponseDto response = new ExceptionResponseDto("Bad Request", "영수증 인식이 실패했습니다. 다시 시도해주세요.");
+        CoreResponseDto response = new CoreResponseDto(ex.getStatus(), "영수증 인식이 실패했습니다. 다시 시도해주세요.");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
@@ -85,12 +82,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RedisSessionException.class)
     public ResponseEntity<?> handleRedisSessionException(RedisSessionException ex) {
         log.warn("RedisSessionException - " + ex.getMessage());
-        HttpStatus status = (ex.getStatus() == null) ? HttpStatus.INTERNAL_SERVER_ERROR : ex.getStatus();
-
-        String error = (status == HttpStatus.INTERNAL_SERVER_ERROR) ? "Internal Server Error" : "Bad Request";
+        HttpStatus status = (ex.getHttpStatus() == null) ? HttpStatus.INTERNAL_SERVER_ERROR : ex.getHttpStatus();
         String message = (status == HttpStatus.INTERNAL_SERVER_ERROR) ? "서버 내부 오류가 발생했습니다. 관리자에게 문의해주세요." : ex.getMessage();
 
-        ExceptionResponseDto response = new ExceptionResponseDto(error, message);
+        CoreResponseDto response = new CoreResponseDto(ex.getStatus(), message);
         return ResponseEntity.status(status).body(response);
     }
 
@@ -99,38 +94,38 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleNaverApiException(NaverApiException ex) {
         log.warn("NaverApiException - " + ex.getMessage());
 
-        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
-        String error = "Internal Server Error";
+        HttpStatus httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
 
         // 발생 원인에 따른 상태 코드 설정
         if (ex.getCause() instanceof UnsupportedEncodingException ||
                 ex.getCause() instanceof NoSuchAlgorithmException ||
                 ex.getCause() instanceof InvalidKeyException) {
-            status = HttpStatus.BAD_REQUEST;
-            error = "Bad Request";
+            httpStatus = HttpStatus.BAD_REQUEST;
         }
-        ExceptionResponseDto response = new ExceptionResponseDto(error, "요청이 실패했습니다. 관리자에게 문의해주세요.");
-        return ResponseEntity.status(status).body(response);
+        CoreResponseDto response = new CoreResponseDto(ex.getStatus(), "요청이 실패했습니다. 관리자에게 문의해주세요.");
+        return ResponseEntity.status(httpStatus).body(response);
     }
 
     // 테스트베드 API 예외처리
     @ExceptionHandler(TestbedApiException.class)
-    public ResponseEntity<String> handleTestbedApiException(TestbedApiException ex) {
+    public ResponseEntity<?> handleTestbedApiException(TestbedApiException ex) {
         log.warn("TestbedApiException - " + ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+        CoreResponseDto response = new CoreResponseDto(ex.getStatus(), ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     // 인증 관련 예외 처리
     @ExceptionHandler(InvalidVerificationException.class)
-    public ResponseEntity<String> handleInvalidVerificationException(InvalidVerificationException ex) {
+    public ResponseEntity<?> handleInvalidVerificationException(InvalidVerificationException ex) {
         log.warn("InvalidVerificationException - " + ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+        CoreResponseDto response = new CoreResponseDto(ex.getStatus(), ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
     // 출금 비밀번호 예외 처리
     @ExceptionHandler(TransferPasswordValidationException.class)
     public ResponseEntity<?> handleTransferPasswordValidationException(TransferPasswordValidationException ex) {
         log.warn("TransferPasswordValidationException - " + ex.getMessage());
-        ExceptionResponseDto response = new ExceptionResponseDto("Validation Exception", ex.getMessage());
+        CoreResponseDto response = new CoreResponseDto(ex.getStatus(), ex.getMessage());
         return ResponseEntity.status(ex.getHttpStatus()).body(response);
     }
     // 송금 예외 처리
@@ -165,14 +160,14 @@ public class GlobalExceptionHandler {
         ex.printStackTrace();
 
         // 사용자에게 반환할 메시지
-        ExceptionResponseDto response = new ExceptionResponseDto("Internal Server Error", "서버 내부 오류가 발생했습니다. 관리자에게 문의해주세요.");
+        CoreResponseDto response = new CoreResponseDto("FAILURE", "서버 내부 오류가 발생했습니다. 관리자에게 문의해주세요.");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<?> handleIllegalStateException(IllegalStateException ex) {
         log.warn("IllegalStateException - " + ex.getMessage());
-        ExceptionResponseDto response = new ExceptionResponseDto("Internal Server Error", "서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        CoreResponseDto response = new CoreResponseDto("FAILURE", "서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }

@@ -18,6 +18,34 @@ public abstract class BaseCustomException extends RuntimeException {
         this.httpStatus = httpStatus;
     }
 
+    /**
+     * 메시지만 설정하는 경우
+     * (status, Http 상태 코드의 별도 지정이 필요하지 않는 경우)
+     *  - status: FAILURE
+     *  - Http Status Code: BAD_REQUEST
+     */
+    public BaseCustomException(String message, Throwable cause) {
+        super(message, cause);
+        this.status = "FAILURE";
+        this.httpStatus = HttpStatus.BAD_REQUEST;
+    }
+
+    public BaseCustomException(String message) {
+        super(message);
+        this.status = "FAILURE";
+        this.httpStatus = HttpStatus.BAD_REQUEST;
+    }
+
+    /**
+     * Message, HttpStatus만 받는 경우
+     */
+    public BaseCustomException(String message, HttpStatus httpStatus) {
+        super(message);
+        this.status = "FAILURE";
+        this.httpStatus = httpStatus;
+    }
+
+
     public HttpStatus getHttpStatus() {
         return httpStatus;
     }
