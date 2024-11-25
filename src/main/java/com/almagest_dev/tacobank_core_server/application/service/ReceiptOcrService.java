@@ -191,10 +191,10 @@ public class ReceiptOcrService {
     @Transactional
     public void saveReceiptAndProduct(Receipt receipt, List<ReceiptProduct> productDetails) {
         // 1. Receipt 저장
-        receiptRepository.save(receipt); // Receipt 영속화
+        receiptRepository.save(receipt); // Receipt 저장
 
         // 2. ReceiptProduct 저장
-        receiptProductRepository.saveAll(productDetails); // List 저장
+        receiptProductRepository.saveAll(productDetails); // ReceiptProduct List 저장
     }
 
 
