@@ -1,6 +1,6 @@
 package com.almagest_dev.tacobank_core_server.common.exception;
 
-public class OcrFailedException extends RuntimeException {
+public class OcrFailedException extends BaseCustomException {
     public OcrFailedException(String message) {
         super(message);
     }
