@@ -1,6 +1,6 @@
 package com.almagest_dev.tacobank_core_server.presentation.dto.transfer;
 
-import com.almagest_dev.tacobank_core_server.common.util.MaskingUtil;
+import com.almagest_dev.tacobank_core_server.common.utils.MaskingUtil;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

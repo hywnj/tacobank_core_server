@@ -35,6 +35,9 @@ public class Member {
     @Column(columnDefinition = "VARCHAR(20) NOT NULL COMMENT '이름'")
     private String name;
 
+    @Column(columnDefinition = "VARCHAR(10) NOT NULL COMMENT '생년월일(yyMMdd)'")
+    private String birth;
+
     @Column(columnDefinition = "VARCHAR(20) NOT NULL COMMENT '전화번호'")
     private String tel;
 

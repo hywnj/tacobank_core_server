@@ -70,9 +70,18 @@ public class MemberController {
      * 출금 비밀번호 설정
      */
     @PostMapping("/transfer-pin")
-    public ResponseEntity<String> setTransferPin(@RequestBody @Valid SetPinRequestDto requestDto) {
+    public ResponseEntity<?> setTransferPin(@RequestBody @Valid SetPinRequestDto requestDto) {
         memberService.setTransferPin(requestDto);
-        return ResponseEntity.ok("Transfer PIN 설정 완료");
+        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "출금 비밀번호가 성공적으로 설정되었습니다."));
+    }
+
+    /**
+     * 출금 비밀번호 수정
+     */
+    @PutMapping("/transfer-pin")
+    public ResponseEntity<?> changeTransferPin(@RequestBody @Valid ChangePinRequestDto requestDto) {
+        memberService.changeTransferPin(requestDto);
+        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "출금 비밀번호가 성공적으로 변경되었습니다."));
     }
 
     /**

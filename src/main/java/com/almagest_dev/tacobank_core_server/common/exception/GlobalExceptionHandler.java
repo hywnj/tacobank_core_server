@@ -68,7 +68,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(SmsSendFailedException.class) // SMS 전송시 예외처리
     public ResponseEntity<?> handleSmsSendFailedException(SmsSendFailedException ex) {
         log.warn("SmsSendFailedException - " + ex.getMessage());
-        CoreResponseDto response = new CoreResponseDto(ex.getStatus(), "문자 발송이 실패했습니다. 다시 시도해주세요.");
+        CoreResponseDto response = new CoreResponseDto(ex.getStatus(), ex.getMessage());
         return ResponseEntity.status(ex.getHttpStatus()).body(response);
     }
     @ExceptionHandler(OcrFailedException.class) // OCR 인식시 예외처리

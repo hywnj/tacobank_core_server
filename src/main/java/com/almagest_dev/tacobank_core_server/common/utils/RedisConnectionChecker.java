@@ -1,4 +1,4 @@
-package com.almagest_dev.tacobank_core_server.common.util;
+package com.almagest_dev.tacobank_core_server.common.utils;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
