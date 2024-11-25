@@ -18,7 +18,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/core/transfers")
+@RequestMapping("/taco/core/transfers")
 public class TransferController {
     private final TransferService transferService;
 

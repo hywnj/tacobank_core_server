@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/core/receipts")
+@RequestMapping("/taco/core/receipts")
 @RequiredArgsConstructor
 public class ReceiptOcrController {
     private final ReceiptOcrService receiptOcrService;

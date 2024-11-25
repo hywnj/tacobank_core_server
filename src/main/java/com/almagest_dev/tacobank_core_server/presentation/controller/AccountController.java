@@ -16,7 +16,7 @@ import java.util.List;
 
 
 @RestController
-@RequestMapping("/core/accounts")
+@RequestMapping("/taco/core/accounts")
 public class AccountController {
 
     private final AccountService accountService;

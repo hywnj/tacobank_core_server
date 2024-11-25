@@ -14,7 +14,7 @@ import java.util.List;
 
 @Getter
 @RestController
-@RequestMapping("/core/settlement")
+@RequestMapping("/taco/core/settlement")
 public class SettlementController {
 
     private final SettlementService settlementService;

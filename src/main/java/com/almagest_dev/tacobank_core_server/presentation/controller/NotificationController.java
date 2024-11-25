@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("core/notifications")
+@RequestMapping("/taco/core/notifications")
 public class NotificationController {
 
     private final NotificationService notificationService;

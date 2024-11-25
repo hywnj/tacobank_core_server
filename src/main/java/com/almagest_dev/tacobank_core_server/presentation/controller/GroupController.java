@@ -11,7 +11,7 @@ import java.util.Map;
 
 
 @RestController
-@RequestMapping("/core/groups")
+@RequestMapping("/taco/core/groups")
 public class GroupController {
 
     private final GroupService groupService;
