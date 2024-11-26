@@ -1,6 +1,7 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
 import com.almagest_dev.tacobank_core_server.common.exception.InvalidVerificationException;
+import com.almagest_dev.tacobank_core_server.common.utils.ValidationUtil;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
 import com.almagest_dev.tacobank_core_server.infrastructure.sms.SmsAuthUtil;
@@ -56,6 +57,12 @@ public class MemberService {
         Member member = memberRepository.findByEmailAndTel(requestDto.getEmail(), requestDto.getTel())
                 .orElseThrow(() -> new IllegalArgumentException("회원 정보를 찾을 수 없습니다."));
 
+        // 요청 member ID랑 조회한 ID랑 다른 경우
+        log.info("GetId: {} , request get ID: {}", member.getId(), requestDto.getMemberId());
+        if (member.getId() != requestDto.getMemberId()) {
+            throw new IllegalArgumentException("회원 정보가 잘못되었습니다.");
+        }
+
         // 2. 문자 인증번호 발송 및 인증 요청
         smsAuthUtil.sendVerificationCode(member.getTel());
     }
@@ -68,16 +75,28 @@ public class MemberService {
         Member member = memberRepository.findByIdAndDeleted(requestDto.getMemberId(), "N")
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
-        // 2. 인증번호 검증
+        // 2. 인증 여부 확인 & 인증번호 검증
+        // @TODO 인증여부 확인 어떻게? : DB Log? Redis?
         if (!smsAuthUtil.verifyCode(requestDto.getTel(), requestDto.getInputCode())) {
             throw new InvalidVerificationException("인증 번호가 일치하지 않습니다.");
         }
+        if (!smsAuthUtil.isVerified(requestDto.getTel())) {
+            throw new InvalidVerificationException("인증 세션이 만료되었습니다. 다시 시도해주세요.");
+        }
 
-        // 3. 비밀번호 Update & 저장
+        // 3. 비밀번호 규칙 검사
+        if (!ValidationUtil.validatePassword(requestDto.getNewPassword(), 8, member.getBirth(), member.getTel())) {
+            throw new InvalidVerificationException("비밀번호를 규칙에 맞게 설정해주세요.");
+        }
+
+        // 4. 비밀번호 Update & 저장
         String encodedPassword = passwordEncoder.encode(requestDto.getNewPassword());
         member.changePassword(encodedPassword);
 
         memberRepository.save(member);
+
+        // 관련 세션 모두 삭제
+        smsAuthUtil.cleanupAllSmsSession(requestDto.getTel());
     }
 
     /**
@@ -129,6 +148,11 @@ public class MemberService {
         Member member = memberRepository.findByIdAndDeleted(requestDto.getMemberId(), "N")
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
+        // 출금 비밀번호 유효성 검사
+        if (!ValidationUtil.validateTransferPin(requestDto.getTransferPin())) {
+            throw new InvalidVerificationException("출금 비밀번호를 규칙에 맞게 설정해주세요.");
+        }
+
         // 비밀번호 해싱 및 저장
         String encodedPin = passwordEncoder.encode(requestDto.getTransferPin());
         member.changeTransferPin(encodedPin);
@@ -136,6 +160,37 @@ public class MemberService {
 
         log.info("MemberService::setTransferPin END - Transfer PIN 설정 완료");
     }
+
+    /**
+     * 출금 비밀번호 수정
+     */
+    public void changeTransferPin(ChangePinRequestDto requestDto) {
+        log.info("MemberService::changeTransferPin START");
+        // Member 조회
+        Member member = memberRepository.findByIdAndDeleted(requestDto.getMemberId(), "N")
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        // 기존 비밀번호 확인
+        if (!passwordEncoder.matches(requestDto.getCurrentPin(), member.getTransferPin())) {
+            throw new InvalidVerificationException("비밀번호가 일치하지 않습니다");
+        }
+        // 새로운 비밀번호와 확인 비밀번호 일치여부
+        if (!requestDto.getNewPin().equals(requestDto.getConfirmPin())) {
+            throw new InvalidVerificationException("새 비밀번호와 확인 비밀번호가 일치하지 않습니다.");
+        }
+        // 새로운 비밀번호 유효성 검사
+        if (!ValidationUtil.validateTransferPin(requestDto.getNewPin())) {
+            throw new InvalidVerificationException("출금 비밀번호를 규칙에 맞게 설정해주세요.");
+        }
+
+        // 새로운 비밀번호 해싱 및 저장
+        String encodedPin = passwordEncoder.encode(requestDto.getNewPin());
+        member.changeTransferPin(encodedPin);
+        memberRepository.save(member);
+
+        log.info("MemberService::changeTransferPin END");
+    }
+
 
     /**
      * 이메일로 친구 검색

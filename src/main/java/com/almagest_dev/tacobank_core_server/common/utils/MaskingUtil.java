@@ -1,4 +1,4 @@
-package com.almagest_dev.tacobank_core_server.common.util;
+package com.almagest_dev.tacobank_core_server.common.utils;
 
 import org.springframework.stereotype.Component;
 import org.apache.commons.lang3.StringUtils;
