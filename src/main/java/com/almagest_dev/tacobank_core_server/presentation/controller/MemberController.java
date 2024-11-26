@@ -19,7 +19,7 @@ public class MemberController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> findMemberById(@PathVariable Long id) {
-        return ResponseEntity.ok(memberService.findMemberById(id));
+        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "사용자 조회 성공", memberService.findMemberById(id)));
     }
 
     /**
@@ -27,7 +27,7 @@ public class MemberController {
      */
     @PostMapping("/email-recovery")
     public ResponseEntity<?> findMemberEmailByTel(@RequestBody @Valid FindEmailRequestDto requestDto) {
-        return ResponseEntity.ok(memberService.findEmailByTel(requestDto));
+        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "이메일 찾기 성공", memberService.findEmailByTel(requestDto)));
     }
 
     /**
@@ -36,7 +36,7 @@ public class MemberController {
     @PostMapping("/password-reset/verify")
     public ResponseEntity<?> findMemberPasswordAndSendSmsAuth(@RequestBody @Valid FindPasswordRequestDto requestDto) {
         memberService.findPasswordAndSendSmsAuth(requestDto);
-        return ResponseEntity.ok("인증 번호를 발송했습니다.");
+        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "인증 번호를 발송했습니다."));
     }
     /**
      * 비밀번호 재설정: 인증번호 검증 & 새로운 비밀번호로 설정
@@ -44,7 +44,7 @@ public class MemberController {
     @PostMapping("/password-reset/confirm")
     public ResponseEntity<?> confirmMemberPassword(@RequestBody @Valid ResetPasswordRequestDto requestDto) {
         memberService.confirmPassword(requestDto);
-        return ResponseEntity.ok("비밀번호 재설정이 완료되었습니다.");
+        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "비밀번호 재설정이 완료되었습니다."));
     }
 
 
@@ -54,7 +54,7 @@ public class MemberController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateMember(@PathVariable Long id, @RequestBody UpdateMemberRequestDto requestDto) {
         memberService.updateMember(id, requestDto);
-        return ResponseEntity.ok("회원 정보가 성공적으로 수정되었습니다.");
+        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "회원 정보가 성공적으로 수정되었습니다."));
     }
 
     /**
@@ -63,7 +63,7 @@ public class MemberController {
     @PutMapping("/{id}/deactivation")
     public ResponseEntity<?> deleteMember(@PathVariable Long id) {
         memberService.deactivateMember(id);
-        return ResponseEntity.ok("회원 탈퇴가 완료되었습니다.");
+        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "회원 탈퇴가 완료되었습니다."));
     }
 
     /**
@@ -97,7 +97,7 @@ public class MemberController {
     public ResponseEntity<CoreResponseDto<MemberSearchResponseDto>> searchMemberByEmail(@PathVariable String email) {
         MemberSearchResponseDto memberInfo = memberService.searchMemberByEmail(email);
         return ResponseEntity.ok(
-                new CoreResponseDto<>("success", "회원 검색 성공", memberInfo)
+                new CoreResponseDto<>("SUCCESS", "회원 검색 성공", memberInfo)
         );
     }
 }

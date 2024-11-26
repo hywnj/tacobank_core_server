@@ -71,6 +71,11 @@ public class SmsAuthUtil {
      * 인증 번호 검증
      */
     public boolean verifyCode(String tel, String inputCode) {
+        // 기존 성공여부 확인
+        String isSuccess = sessionUtil.getValueIfExists(SMS_SUCCESS_PREFIX + tel);
+        // 인증번호 검증 성공 내역이 있는 경우
+        if (isSuccess != null && "1".equals(isSuccess)) return true;
+
         String smsKey = SMS_KEY_PREFIX + tel;
         String pinFailureKey = SMS_FAILURE_PREFIX + tel;
         String storedCode = sessionUtil.getRawSessionData(smsKey);
@@ -78,22 +83,20 @@ public class SmsAuthUtil {
 
         // Redis 조회 - 실패 내역
         String failCntStr = sessionUtil.getValueIfExists(pinFailureKey);
-        // 실패 내역이 없다면 실패 횟수를 0으로 초기화
-        Long failCnt = (failCntStr == null) ? 0L : Long.parseLong(failCntStr);
 
         // 비밀번호 검증
         storedCode = storedCode.replace("\"", "");
         if (inputCode.equals(storedCode)) {
             log.info("SmsAuthUtil::verifyCode SUCCESS");
-            sessionUtil.cleanupRedisKeys("SmsAuthUtil", tel, SMS_FAILURE_PREFIX);
+            sessionUtil.cleanupRedisKeys("SmsAuthUtil", tel, SMS_KEY_PREFIX, SMS_FAILURE_PREFIX);
 
-            // 성공 여부 세션 생성 (5분간 유지)
-            // @TODO 세션 TTL 5분?
-            sessionUtil.storeSessionData(SMS_SUCCESS_PREFIX + tel, "1", 5, TimeUnit.MINUTES, false);
+            // 성공 여부 세션 생성 (3분간 유지)
+            // @TODO 세션 TTL 3분?
+            sessionUtil.storeSessionData(SMS_SUCCESS_PREFIX + tel, "1", 3, TimeUnit.MINUTES, false);
             return true;
         } else {
             // 실패 횟수 증가 및 TTL 설정
-            failCnt = sessionUtil.incrementAndSetExpire(pinFailureKey, 1L, 20L, TimeUnit.MINUTES);
+            Long failCnt = sessionUtil.incrementAndSetExpire(pinFailureKey, 1L, 3, TimeUnit.MINUTES);
             log.info("SmsAuthUtil - [{}] verifyCode 인증번호 불일치 {}번째", pinFailureKey, failCnt);
 
             // 실패 횟수 초과 시 인증 실패로 종료
@@ -114,10 +117,8 @@ public class SmsAuthUtil {
     public boolean isVerified(String tel) {
         String successKey = SMS_SUCCESS_PREFIX + tel;
         String status = sessionUtil.getRawSessionData(successKey);
-        status = status.replace("\"", "");
-        if ("1".equals(status)) {
-            return true;
-        }
+        // 성공한 경우 true
+        if ("1".equals(status)) return true;
 
         return false;
         // @TODO Redis에 없을 경우 DB 확인

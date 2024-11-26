@@ -39,13 +39,22 @@ public class SessionUtil {
      * Redis 저장
      */
     public <T> void storeSessionData(String redisKey, T data, long duration, TimeUnit unit, boolean encryptFlag) {
-        try {
-            String jsonData = objectMapper.writeValueAsString(data);
-            String valueToStore = encryptFlag ? encryptionUtil.encrypt(jsonData) : jsonData;
+        if (redisKey == null || data == null) {
+            throw new RedisSessionException("Key 또는 데이터가 없습니다.", HttpStatus.BAD_REQUEST);
+        }
 
+        try {
+            String valueToStore = (data instanceof String) ? (String) data : objectMapper.writeValueAsString(data);
+            if (encryptFlag) { // 암호화 해야하는 경우
+                valueToStore = encryptionUtil.encrypt(valueToStore);
+            }
+            // Redis에 Set
             redisTemplate.opsForValue().set(redisKey, valueToStore, duration, unit);
         } catch (Exception e) {
-            throw new RedisSessionException("Redis 저장 중 오류", HttpStatus.INTERNAL_SERVER_ERROR);
+            String errorMessage = (e instanceof IllegalArgumentException)
+                    ? "Redis Key 또는 데이터 직렬화 오류"
+                    : "Redis 저장 중 암호화 오류";
+            throw new RedisSessionException(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -98,12 +107,8 @@ public class SessionUtil {
         }
 
         try {
-            Boolean exists = redisTemplate.hasKey(redisKey);
-            if (Boolean.TRUE.equals(exists)) {
-                return redisTemplate.opsForValue().get(redisKey);
-            } else {
-                return null;
-            }
+            String value = redisTemplate.opsForValue().get(redisKey);
+            return value;
         } catch (Exception e) {
             log.warn("SessionUtil::getValueIfExists Redis 키 확인 및 값 조회 중 예외 발생 - Key: {}, Error: {}", redisKey, e.getMessage());
             throw new RedisSessionException("Redis 키 확인 또는 값 조회 중 오류 발생", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -158,13 +163,14 @@ public class SessionUtil {
      * @param timeUnit TTL의 단위 (ttl이 null이면 무시됨)
      * @return 증가된 값
      */
-    public Long incrementAndSetExpire(String redisKey, long incrementValue, Long ttl, TimeUnit timeUnit) {
+    public Long incrementAndSetExpire(String redisKey, long incrementValue, long ttl, TimeUnit timeUnit) {
         try {
             // 값 증가
+            //  - increment : 값이 없을 경우, 1로 초기화
             Long newValue = redisTemplate.opsForValue().increment(redisKey, incrementValue);
 
             // TTL 설정
-            if (ttl != null && timeUnit != null) {
+            if (ttl > 0 && timeUnit != null) {
                 redisTemplate.expire(redisKey, ttl, timeUnit);
             }
 
