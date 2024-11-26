@@ -21,11 +21,6 @@ public class FriendService {
     private final FriendRepository friendRepository;
     private final MemberRepository memberRepository;
 
-//    public FriendService(FriendRepository friendRepository, MemberRepository memberRepository) {
-//        this.friendRepository = friendRepository;
-//        this.memberRepository = memberRepository;
-//    }
-
     /**
      * 친구상태 관리 조건제약
      */
@@ -140,34 +135,34 @@ public class FriendService {
 
             // 상대방이 ACC 상태일 경우, 바로 친구 관계 설정
             if ("ACC".equals(reverseFriend.getStatus()) && "DEL".equals(friend.getStatus())) {
-                friend.setStatus("ACC");
-                reverseFriend.setStatus("ACC");
+                friend.saveStatus("ACC");
+                reverseFriend.saveStatus("ACC");
             }
             else if ("DEL".equals(reverseFriend.getStatus())) {
                 // 둘 다 DEL 상태일 경우, 요청-수락 상태로 전환
-                friend.setStatus("REQ");
-                reverseFriend.setStatus("REQ_RECEIVED");
+                friend.saveStatus("REQ");
+                reverseFriend.saveStatus("REQ_RECEIVED");
             }
             // 둘 다 NONE 상태일 경우, REQ - REQ_RECEIVED 상태로 설정
             else if ("NONE".equals(friend.getStatus()) && "NONE".equals(reverseFriend.getStatus())) {
-                friend.setStatus("REQ");
-                reverseFriend.setStatus("REQ_RECEIVED");
+                friend.saveStatus("REQ");
+                reverseFriend.saveStatus("REQ_RECEIVED");
             }
 
             else if ("NONE".equals(friend.getStatus()) && "REJ".equals(reverseFriend.getStatus())) {
-                friend.setStatus("REQ");
-                reverseFriend.setStatus("REQ_RECEIVED");
+                friend.saveStatus("REQ");
+                reverseFriend.saveStatus("REQ_RECEIVED");
             }
 
             else if ("REJ".equals(friend.getStatus()) && "NONE".equals(reverseFriend.getStatus())) {
-                friend.setStatus("REQ");
-                reverseFriend.setStatus("REQ_RECEIVED");
+                friend.saveStatus("REQ");
+                reverseFriend.saveStatus("REQ_RECEIVED");
             }
         } else {
             // 반대 관계가 없는 경우, REQ - REQ_RECEIVED 상태로 초기화
-            friend.setStatus("REQ");
+            friend.saveStatus("REQ");
             reverseFriend = new Friend(requestDto.getReceiverId(), requestDto.getRequesterId());
-            reverseFriend.setStatus("REQ_RECEIVED");
+            reverseFriend.saveStatus("REQ_RECEIVED");
         }
 
         // 저장
@@ -192,14 +187,14 @@ public class FriendService {
 
         checkActionPermission(friend, "accept",userId);
 
-        friend.setStatus("ACC");
+        friend.saveStatus("ACC");
         friendRepository.save(friend);
 
         // 반대 관계 상태를 수락 상태로 설정
         Friend reverseFriend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getReceiverId(), requestDto.getRequesterId()
         ).orElseGet(() -> new Friend(requestDto.getReceiverId(), requestDto.getRequesterId()));
-        reverseFriend.setStatus("ACC");
+        reverseFriend.saveStatus("ACC");
         friendRepository.save(reverseFriend);
         friend.updateGroup();
     }
@@ -218,14 +213,14 @@ public class FriendService {
 
         checkActionPermission(friend, "reject",userId);
 
-        friend.setStatus("REJ");
+        friend.saveStatus("REJ");
         friendRepository.save(friend);
 
         // 반대 관계 상태를 NONE으로 설정하여 요청을 보낼 수 있게 초기화
         Friend reverseFriend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getReceiverId(), requestDto.getRequesterId()
         ).orElseGet(() -> new Friend(requestDto.getReceiverId(), requestDto.getRequesterId()));
-        reverseFriend.setStatus("NONE");
+        reverseFriend.saveStatus("NONE");
         friendRepository.save(reverseFriend);
         friend.updateGroup();
     }
@@ -242,8 +237,8 @@ public class FriendService {
 
         checkActionPermission(friend, "delete",userId);
 
-        friend.setStatus("DEL");
-        friend.setLiked("N");
+        friend.saveStatus("DEL");
+        friend.saveLiked("N");
         friendRepository.save(friend);
 
         // 반대 관계 상태를 NONE으로 설정
@@ -253,9 +248,9 @@ public class FriendService {
 
         // 상대방의 상태가 DEL이라면 DEL로 유지, 그렇지 않으면 ACC로 설정
         if ("DEL".equals(reverseFriend.getStatus())) {
-            reverseFriend.setStatus("DEL");
+            reverseFriend.saveStatus("DEL");
         } else {
-            reverseFriend.setStatus("ACC");
+            reverseFriend.saveStatus("ACC");
         }
         friendRepository.save(reverseFriend);
         friend.updateGroup();
@@ -273,15 +268,15 @@ public class FriendService {
                 requestDto.getRequesterId(), requestDto.getReceiverId()
         ).orElseGet(() -> new Friend(requestDto.getRequesterId(), requestDto.getReceiverId()));
         checkActionPermission(friend, "block",userId);
-        friend.setStatus("BLOCKED");
-        friend.setLiked("N");
+        friend.saveStatus("BLOCKED");
+        friend.saveLiked("N");
         friendRepository.save(friend);
 
         Friend reverseFriend = friendRepository.findByRequesterIdAndReceiverId(
                 requestDto.getReceiverId(), requestDto.getRequesterId()
         ).orElseGet(() -> new Friend(requestDto.getReceiverId(), requestDto.getRequesterId()));
-        reverseFriend.setStatus("BLOCKED_BY");
-        reverseFriend.setLiked("N");
+        reverseFriend.saveStatus("BLOCKED_BY");
+        reverseFriend.saveLiked("N");
         friendRepository.save(reverseFriend);
         friend.updateGroup();
     }
@@ -299,13 +294,13 @@ public class FriendService {
         checkActionPermission(friend, "unblock",userId);
 
         if ("BLOCKED".equals(friend.getStatus()) && userId.equals(friend.getRequesterId())) {
-            friend.setStatus("NONE");
+            friend.saveStatus("NONE");
             friendRepository.save(friend);
 
             Friend reverseFriend = friendRepository.findByRequesterIdAndReceiverId(
                     requestDto.getReceiverId(), requestDto.getRequesterId()
             ).orElseThrow(() -> new IllegalArgumentException("차단된 관계가 없습니다."));
-            reverseFriend.setStatus("NONE");
+            reverseFriend.saveStatus("NONE");
             friendRepository.save(reverseFriend);
         } else {
             throw new IllegalArgumentException("차단한 사용자만 차단 해제를 할 수 있습니다.");
@@ -330,7 +325,7 @@ public class FriendService {
             throw new IllegalArgumentException("이미 좋아요를 누른 상태입니다.");
         }
 
-        friend.setLiked("Y"); // 좋아요 상태 설정
+        friend.saveLiked("Y"); // 좋아요 상태 설정
         friendRepository.save(friend);
         friend.updateGroup();
     }
@@ -352,7 +347,7 @@ public class FriendService {
             throw new IllegalArgumentException("이미 좋아요 취소 상태입니다.");
         }
 
-        friend.setLiked("N"); // 좋아요 취소 상태 설정
+        friend.saveLiked("N"); // 좋아요 취소 상태 설정
         friendRepository.save(friend);
         friend.updateGroup();
     }

@@ -25,11 +25,6 @@ public class MainAccount {
     @JoinColumn(name = "account_id", nullable = false)
     private Account account;
 
-    public void setMember(Member member) {
-        this.member = member;
-    }
-
-    public void setAccount(Account account) {
-        this.account = account;
-    }
+    public void saveMember(Member member) {this.member = member;}
+    public void saveAccount(Account account) {this.account = account;}
 }

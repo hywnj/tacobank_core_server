@@ -25,13 +25,6 @@ public class GroupService {
     private final FriendRepository friendRepository;
     private final MemberRepository memberRepository;
 
-//    public GroupService(GroupRepository groupRepository, GroupMemberRepository groupMemberRepository,
-//                        FriendRepository friendRepository, MemberRepository memberRepository) {
-//        this.groupRepository = groupRepository;
-//        this.groupMemberRepository = groupMemberRepository;
-//        this.friendRepository = friendRepository;
-//        this.memberRepository = memberRepository;
-//    }
 
     /**
      * 그룹장 확인 메서드
@@ -49,6 +42,11 @@ public class GroupService {
     public GroupResponseDto createGroup(Long userId, GroupRequestDto requestDto) {
         Member leader = memberRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("그룹장을 찾을 수 없습니다."));
+
+        // 그룹 이름 검증
+        if (requestDto.getGroupName() == null || requestDto.getGroupName().trim().isEmpty()) {
+            throw new IllegalArgumentException("그룹 이름 입력을 안했습니다.");
+        }
 
         // 그룹 생성
         Group group = Group.createGroup(
@@ -102,17 +100,17 @@ public class GroupService {
 
         if (existingMember != null) {
             if ("LEAVED".equals(existingMember.getStatus()) || "EXPELLED".equals(existingMember.getStatus()) || "REJECTED".equals(existingMember.getStatus())) {
-                existingMember.setStatus("INVITED");
+                existingMember.saveStatus("INVITED");
                 groupMemberRepository.save(existingMember);
             } else {
                 throw new IllegalArgumentException("이미 그룹에 초대되었거나 수락한 멤버입니다.");
             }
         } else {
             GroupMember groupMember = new GroupMember();
-            groupMember.setPayGroup(group);
-            groupMember.setMember(memberRepository.findById(friendId)
+            groupMember.savePayGroup(group);
+            groupMember.saveMember(memberRepository.findById(friendId)
                     .orElseThrow(() -> new IllegalArgumentException("친구를 찾을 수 없습니다.")));
-            groupMember.setStatus("INVITED");
+            groupMember.saveStatus("INVITED");
             groupMemberRepository.save(groupMember);
         }
 
@@ -163,7 +161,7 @@ public class GroupService {
             throw new IllegalArgumentException("수락한 멤버만 추방할 수 있습니다.");
         }
 
-        groupMember.setStatus("EXPELLED");
+        groupMember.saveStatus("EXPELLED");
         groupMemberRepository.save(groupMember);
     }
 
@@ -182,7 +180,7 @@ public class GroupService {
             throw new IllegalArgumentException("초대 상태가 아닙니다.");
         }
 
-        groupMember.setStatus("ACCEPTED");
+        groupMember.saveStatus("ACCEPTED");
         groupMemberRepository.save(groupMember);
 
         Group group = groupMember.getPayGroup();
@@ -206,7 +204,7 @@ public class GroupService {
             throw new IllegalArgumentException("이미 초대를 수락한 상태에서는 거절할 수 없습니다.");
         }
 
-        groupMember.setStatus("REJECTED");
+        groupMember.saveStatus("REJECTED");
         groupMemberRepository.save(groupMember);
 
         Group group = groupMember.getPayGroup();
@@ -230,7 +228,7 @@ public class GroupService {
             throw new IllegalArgumentException("그룹 나가기가 불가능한 상태입니다.");
         }
 
-        groupMember.setStatus("LEAVED");
+        groupMember.saveStatus("LEAVED");
         groupMemberRepository.save(groupMember);
 
         Group group = groupMember.getPayGroup();

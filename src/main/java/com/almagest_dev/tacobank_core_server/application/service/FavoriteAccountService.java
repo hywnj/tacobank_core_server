@@ -49,13 +49,10 @@ public class FavoriteAccountService {
         // FavoriteAccount 저장
         FavoriteAccount favoriteAccount = favoriteAccountRepository.findByMemberAndAccountNum(member, requestDto.getAccountNum())
                 .orElse(new FavoriteAccount());
-        favoriteAccount.setMember(member);
-        favoriteAccount.setAccountNum(account.getAccountNum());
-        favoriteAccount.setAccountHolderName(accountOwner.getName()); // 소유자의 이름을 저장
-        favoriteAccount.setBankCode(account.getBankCode());
-        favoriteAccount.setCreatedDate(LocalDateTime.now());
-        favoriteAccount.setUpdatedDate(LocalDateTime.now());
-
+        favoriteAccount.saveMember(member);
+        favoriteAccount.saveAccountNum(account.getAccountNum());
+        favoriteAccount.saveAccountHolderName(accountOwner.getName()); // 소유자의 이름을 저장
+        favoriteAccount.saveBankCode(account.getBankCode());
         favoriteAccountRepository.save(favoriteAccount);
 
         // 응답 생성

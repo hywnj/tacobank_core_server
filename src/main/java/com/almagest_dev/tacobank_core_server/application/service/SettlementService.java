@@ -52,20 +52,6 @@ public class SettlementService {
     private final ReceiptMemberRepository receiptMemberRepository;
     private final TestbedApiClient testbedApiClient;
 
-//    public SettlementService(GroupRepository groupRepository, GroupMemberRepository groupMemberRepository,
-//                             SettlementRepository settlementRepository, SettlementDetailsRepository settlementDetailsRepository,
-//                             MainAccountRepository mainAccountRepository, NotificationService notificationService, AccountRepository accountRepository, MemberRepository memberRepository, TestbedApiClient testbedApiClient) {
-//        this.groupRepository = groupRepository;
-//        this.groupMemberRepository = groupMemberRepository;
-//        this.settlementRepository = settlementRepository;
-//        this.settlementDetailsRepository = settlementDetailsRepository;
-//        this.mainAccountRepository = mainAccountRepository;
-//        this.notificationService = notificationService;
-//        this.accountRepository = accountRepository;
-//        this.memberRepository = memberRepository;
-//        this.testbedApiClient = testbedApiClient;
-//    }
-
     /**
      * 정산 요청
      *  - 그룹 생성 여부 확인 / 커스텀 N이면 그룹 생성
@@ -120,10 +106,10 @@ public class SettlementService {
 
         // 3. 정산 데이터 생성 및 저장
         Settlement settlement = new Settlement();
-        settlement.setPayGroup(group);
-        settlement.setSettlementAccount(selectedAccount);
-        settlement.setSettlementTotalAmount(request.getTotalAmount());
-        settlement.setSettlementStatus("N");
+        settlement.savePayGroup(group);
+        settlement.saveSettlementAccount(selectedAccount);
+        settlement.saveSettlementTotalAmount(request.getTotalAmount());
+        settlement.saveSettlementStatus("N");
         settlementRepository.save(settlement);
 
         // 4. 개인 멤버별 정산 데이터 저장 및 알림 생성
@@ -134,10 +120,10 @@ public class SettlementService {
                     .orElseThrow(() -> new IllegalArgumentException("그룹에 해당 멤버가 존재하지 않습니다."));
 
             SettlementDetails settlementDetails = new SettlementDetails();
-            settlementDetails.setSettlement(settlement);
-            settlementDetails.setGroupMember(groupMember);
-            settlementDetails.setSettlementAmount(memberDto.getAmount());
-            settlementDetails.setSettlementStatus("N");
+            settlementDetails.saveSettlement(settlement);
+            settlementDetails.saveGroupMember(groupMember);
+            settlementDetails.saveSettlementAmount(memberDto.getAmount());
+            settlementDetails.saveSettlementStatus("N");
             settlementDetailsRepository.save(settlementDetails);
 
             // 알림 전송 (비즈니스 로직에서 제거)
@@ -169,10 +155,10 @@ public class SettlementService {
 
         // 그룹 생성
         Group group = new Group();
-        group.setLeader(leader);
-        group.setName(leader.getName() + "과 아이들");
-        group.setActivated("N");
-        group.setCustomized("N");
+        group.createLeader(leader);
+        group.createName(leader.getName() + "과 아이들");
+        group.createActivated("N");
+        group.createCustomized("N");
         groupRepository.save(group);
 
         log.info("createTemporaryGroup friends : {}", request.getFriendIds());
@@ -183,9 +169,9 @@ public class SettlementService {
                     .orElseThrow(() -> new IllegalArgumentException("친구를 찾을 수 없습니다."));
 
             GroupMember groupMember = new GroupMember();
-            groupMember.setPayGroup(group);
-            groupMember.setMember(friend);
-            groupMember.setStatus("ACCEPTED");
+            groupMember.savePayGroup(group);
+            groupMember.saveMember(friend);
+            groupMember.saveStatus("ACCEPTED");
             groupMemberRepository.save(groupMember);
         }
         log.info("createTemporaryGroup END");

@@ -49,28 +49,8 @@ public class FavoriteAccount {
         this.updatedDate = LocalDateTime.now();
     }
 
-
-    public void setMember(Member member) {
-        this.member = member;
-    }
-
-    public void setAccountNum(String accountNum) {
-        this.accountNum = accountNum;
-    }
-
-    public void setAccountHolderName(String name) {
-        this.accountHolderName = name;
-    }
-
-    public void setBankCode(String bankCode) {
-        this.bankCode = bankCode;
-    }
-
-    public void setCreatedDate(LocalDateTime now) {
-        this.createdDate = LocalDateTime.now();
-    }
-
-    public void setUpdatedDate(LocalDateTime now) {
-        this.updatedDate = LocalDateTime.now();
-    }
+    public void saveMember(Member member) {this.member = member;}
+    public void saveAccountNum(String accountNum) {this.accountNum = accountNum;}
+    public void saveAccountHolderName(String name) {this.accountHolderName = name;}
+    public void saveBankCode(String bankCode) {this.bankCode = bankCode;}
 }

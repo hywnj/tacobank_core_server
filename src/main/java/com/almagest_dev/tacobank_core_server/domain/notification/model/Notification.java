@@ -33,11 +33,6 @@ public class Notification {
         this.createdDate = LocalDateTime.now();
     }
 
-    public void setMember(Member member) {
-        this.member = member;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
+    public void saveMember(Member member) {this.member = member;}
+    public void saveMessage(String message) {this.message = message;}
 }

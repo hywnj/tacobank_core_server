@@ -46,19 +46,16 @@ public class Group {
 
     private List<GroupMember> payGroups = new ArrayList<>();
 
-    public void setLeader(Member leader) {
+    public void createLeader(Member leader) {
         this.leader = leader;
     }
-
-    public void setActivated(String y) {
+    public void createActivated(String y) {
         this.activated = y;
     }
-
-    public void setCustomized(String y) {
+    public void createCustomized(String y) {
         this.customized = y;
     }
-
-    public void setName(String groupName) {
+    public void createName(String groupName) {
         this.name = groupName;
     }
 

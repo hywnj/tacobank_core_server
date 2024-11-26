@@ -64,19 +64,16 @@ public class Settlement {
     }
 
 
-    public void setPayGroup(Group group) {
+    public void savePayGroup(Group group) {
         this.payGroup = group;
     }
-
-    public void setSettlementAccount(Account selectedAccount) {
+    public void saveSettlementAccount(Account selectedAccount) {
         this.settlementAccount = selectedAccount;
     }
-
-    public void setSettlementTotalAmount(int totalAmount) {
+    public void saveSettlementTotalAmount(int totalAmount) {
         this.settlementTotalAmount = totalAmount;
     }
-
-    public void setSettlementStatus(String n) {
+    public void saveSettlementStatus(String n) {
         this.settlementStatus = n;
     }
 }

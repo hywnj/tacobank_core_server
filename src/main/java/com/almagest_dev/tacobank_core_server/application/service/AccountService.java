@@ -43,16 +43,6 @@ public class AccountService {
     private final TransferRepository transferRepository;
     private final TransferService transferService;
 
-//    public AccountService(MemberRepository memberRepository, AccountRepository accountRepository, TestbedApiClient testbedApiClient, MainAccountRepository mainAccountRepository, FavoriteAccountRepository favoriteAccountRepository, TransferRepository transferRepository, TransferService transferService) {
-//        this.memberRepository = memberRepository;
-//        this.accountRepository = accountRepository;
-//        this.testbedApiClient = testbedApiClient;
-//        this.mainAccountRepository = mainAccountRepository;
-//        this.favoriteAccountRepository = favoriteAccountRepository;
-//        this.transferRepository = transferRepository;
-//        this.transferService = transferService;
-//    }
-
     /**
      * 메인 계좌 설정
      */
@@ -68,8 +58,8 @@ public class AccountService {
 
         //새로운 메인 계좌 저장
         MainAccount mainAccount = new MainAccount();
-        mainAccount.setMember(member);
-        mainAccount.setAccount(account);
+        mainAccount.saveMember(member);
+        mainAccount.saveAccount(account);
         mainAccountRepository.save(mainAccount);
     }
 
@@ -87,7 +77,7 @@ public class AccountService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 계좌가 존재하지 않거나 회원의 계좌가 아닙니다."));
 
         // 기존 엔티티 업데이트
-        mainAccount.setAccount(account);
+        mainAccount.saveAccount(account);
         mainAccountRepository.save(mainAccount);
     }
 
@@ -155,12 +145,12 @@ public class AccountService {
     private void saveAccounts(List<AccountInfoDto> accountInfoList, Member member) {
         List<Account> accounts = accountInfoList.stream().map(accountInfo -> {
             Account account = new Account();
-            account.setMember(member);
-            account.setAccountNum(accountInfo.getAccountNum());
-            account.setAccountHolderName(accountInfo.getAccountHolder());
-            account.setBankCode(accountInfo.getBankCodeStd());
-            account.setFintechUseNum(accountInfo.getFintechUseNum());
-            account.setVerificated();
+            account.saveMember(member);
+            account.saveAccountNum(accountInfo.getAccountNum());
+            account.saveAccountHolderName(accountInfo.getAccountHolder());
+            account.saveBankCode(accountInfo.getBankCodeStd());
+            account.saveFintechUseNum(accountInfo.getFintechUseNum());
+            account.saveVerificated();
             return account;
         }).collect(Collectors.toList());
 

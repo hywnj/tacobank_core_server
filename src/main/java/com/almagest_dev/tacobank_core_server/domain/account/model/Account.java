@@ -57,29 +57,24 @@ public class Account {
         this.updatedDate = LocalDateTime.now();
     }
 
-    public void setAccountNum(String accountNum) {
+    public void saveAccountNum(String accountNum) {
         this.accountNum = accountNum;
     }
-
-    public void setAccountHolderName(String accountHolderName) {
+    public void saveAccountHolderName(String accountHolderName) {
         this.accountHolderName = accountHolderName;
     }
-
-    public void setBankCode(String bankCode) {
+    public void saveBankCode(String bankCode) {
         this.bankCode = bankCode;
     }
-
-    public void setFintechUseNum(String fintechUseNum) {
+    public void saveFintechUseNum(String fintechUseNum) {
         this.fintechUseNum = fintechUseNum;
     }
-
-
-    public void setMember(Member member) {
+    public void saveVerificated() {
+        this.verificated = "Y";
+    }
+    public void saveMember(Member member) {
         this.member = member;
     }
 
 
-    public void setVerificated() {
-        this.verificated = "Y";
-    }
 }

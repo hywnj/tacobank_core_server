@@ -49,12 +49,12 @@ public class Friend {
     }
 
 
-    public void setStatus(String acc) {
+    public void saveStatus(String acc) {
         this.status = acc;
         this.updatedDate = LocalDateTime.now();
     }
 
-    public void setLiked(String n) {
+    public void saveLiked(String n) {
         this.liked = n;
         this.updatedDate = LocalDateTime.now();
     }

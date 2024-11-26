@@ -55,19 +55,16 @@ public class GroupMember {
         this.updatedDate = LocalDateTime.now();
     }
 
-    public void setGroup(Group group) {
+    public void saveGroup(Group group) {
         this.payGroup = group;
     }
-
-    public void setStatus(String invited) {
+    public void saveStatus(String invited) {
         this.status = invited;
     }
-
-    public void setPayGroup(Group group) {
+    public void savePayGroup(Group group) {
         this.payGroup = group;
     }
-
-    public void setMember(Member member) {
+    public void saveMember(Member member) {
         this.member = member;
     }
 }

@@ -17,18 +17,14 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
 
-//    public NotificationService(NotificationRepository notificationRepository) {
-//        this.notificationRepository = notificationRepository;
-//    }
-
     /**
      * 알림 생성하고 저장하기
      */
     @Transactional
     public void sendNotification(Member member, String message) {
         Notification notification = new Notification();
-        notification.setMember(member);
-        notification.setMessage(message);
+        notification.saveMember(member);
+        notification.saveMessage(message);
         notificationRepository.save(notification);
     }
 
