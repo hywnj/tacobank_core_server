@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SessionUtil {
+public class RedisSessionUtil {
     private final EncryptionUtil encryptionUtil;
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;

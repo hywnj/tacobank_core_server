@@ -3,7 +3,7 @@ package com.almagest_dev.tacobank_core_server.application.service;
 import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
 import com.almagest_dev.tacobank_core_server.common.exception.TransferException;
 import com.almagest_dev.tacobank_core_server.common.exception.TransferPasswordValidationException;
-import com.almagest_dev.tacobank_core_server.common.utils.SessionUtil;
+import com.almagest_dev.tacobank_core_server.common.utils.RedisSessionUtil;
 import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.AccountRepository;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
@@ -45,7 +45,7 @@ public class TransferService {
     private final SettlementDetailsRepository settlementDetailsRepository;
 
     private final TestbedApiClient testbedApiClient;
-    private final SessionUtil sessionUtil;
+    private final RedisSessionUtil redisSessionUtil;
 
     private final RedisTemplate<String, String> redisTemplate;
 
@@ -57,7 +57,7 @@ public class TransferService {
      */
     public ReceiverInquiryResponseDto inquireReceiverAccount(ReceiverInquiryRequestDto requestDto) {
         // Session ID 할당
-        String sessionId = sessionUtil.generateSessionId(requestDto.getWithdrawalMemberId(), requestDto.getIdempotencyKey());
+        String sessionId = redisSessionUtil.generateSessionId(requestDto.getWithdrawalMemberId(), requestDto.getIdempotencyKey());
         log.info("TransferService - [{}] inquireReceiverAccount START", sessionId);
 
         // Member(송금 보내는 사람) 조회
@@ -127,7 +127,7 @@ public class TransferService {
                 0,
                 false
         );
-        sessionUtil.storeSessionData(TRANSFER_SESSION_PREFIX + sessionId, data, 20, TimeUnit.MINUTES, true);
+        redisSessionUtil.storeSessionData(TRANSFER_SESSION_PREFIX + sessionId, data, 20, TimeUnit.MINUTES, true);
         log.info("TransferService - [{}] inquireReceiverAccount Redis Set : {} ", sessionId, receiverInquiryApiResponse);
 
         // 클라이언트에 응답 반환
@@ -199,14 +199,14 @@ public class TransferService {
             throw new TransferException("FAILURE", "비밀번호를 입력해주세요.", HttpStatus.BAD_REQUEST);
         }
 
-        String sessionId = sessionUtil.generateSessionId(requestDto.getMemberId(), requestDto.getIdempotencyKey());
+        String sessionId = redisSessionUtil.generateSessionId(requestDto.getMemberId(), requestDto.getIdempotencyKey());
         String transferSessionRedisKey = TRANSFER_SESSION_PREFIX + sessionId;
         String pinFailureRedisKey = PIN_FAILURE_PREFIX + sessionId;
 
         log.info("TransferService - [{}] verifyPassword START", sessionId);
 
         // Redis 조회 - 송금 요청건
-        TransferSessionData sessionData = sessionUtil.getSessionData(transferSessionRedisKey, TransferSessionData.class, true);
+        TransferSessionData sessionData = redisSessionUtil.getSessionData(transferSessionRedisKey, TransferSessionData.class, true);
         if (sessionData == null) {
             throw new TransferException("TERMINATED", "송금 요청건이 존재하지 않습니다.", HttpStatus.BAD_REQUEST);
         }
@@ -215,7 +215,7 @@ public class TransferService {
             validateTransferData(sessionId, requestDto, sessionData);
         } catch (TransferException ex) {
             if (ex.getStatus().equals("TERMINATED")) { // 완전 종료인 경우에만 삭제
-                sessionUtil.cleanupRedisKeys("Transfer", sessionId, TRANSFER_SESSION_PREFIX, PIN_FAILURE_PREFIX);
+                redisSessionUtil.cleanupRedisKeys("Transfer", sessionId, TRANSFER_SESSION_PREFIX, PIN_FAILURE_PREFIX);
             }
             throw ex;
         }
@@ -259,7 +259,7 @@ public class TransferService {
         // 송금 요청 Redis 업데이트
         sessionData.changePasswordVerified(true);
         sessionData.assignAmount(requestDto.getAmount());
-        sessionUtil.updateSessionData(TRANSFER_SESSION_PREFIX + sessionId, sessionData, 0, null, false, true);
+        redisSessionUtil.updateSessionData(TRANSFER_SESSION_PREFIX + sessionId, sessionData, 0, null, false, true);
         log.info("TransferService - [{}] verifyPassword sessionData UPDATE - {}", sessionId, sessionData);
         log.info("TransferService- [{}] verifyPassword END", sessionId);
     }
@@ -268,14 +268,14 @@ public class TransferService {
      * 송금
      */
     public CoreResponseDto<TransferResponseDto> transfer(TransferRequestDto requestDto) {
-        String sessionId = sessionUtil.generateSessionId(requestDto.getMemberId(), requestDto.getIdempotencyKey());
+        String sessionId = redisSessionUtil.generateSessionId(requestDto.getMemberId(), requestDto.getIdempotencyKey());
         String sessionKey = TRANSFER_SESSION_PREFIX + sessionId;
 
         log.info("TransferService - [{}] transfer START", sessionId);
         log.info("TransferService - [{}] transfer requestDto :{} ", sessionId, requestDto);
 
         // Redis에서 송금 세션 확인
-        TransferSessionData sessionData = sessionUtil.getSessionData(sessionKey, TransferSessionData.class, true);
+        TransferSessionData sessionData = redisSessionUtil.getSessionData(sessionKey, TransferSessionData.class, true);
         if (sessionData == null) {
             throw new TransferException("TERMINATED", "유효하지 않은 송금 요청입니다.", HttpStatus.BAD_REQUEST);
         }
@@ -394,7 +394,7 @@ public class TransferService {
             throw ex; // 예외 재발생
         } finally {
             // Redis 세션 삭제
-            sessionUtil.cleanupRedisKeys("Transfer", sessionId, TRANSFER_SESSION_PREFIX, PIN_FAILURE_PREFIX);
+            redisSessionUtil.cleanupRedisKeys("Transfer", sessionId, TRANSFER_SESSION_PREFIX, PIN_FAILURE_PREFIX);
         }
     }
 

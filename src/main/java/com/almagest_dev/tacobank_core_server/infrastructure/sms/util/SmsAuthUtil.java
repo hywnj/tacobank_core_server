@@ -2,7 +2,7 @@ package com.almagest_dev.tacobank_core_server.infrastructure.sms.util;
 
 import com.almagest_dev.tacobank_core_server.common.exception.SmsSendFailedException;
 import com.almagest_dev.tacobank_core_server.common.utils.JsonUtil;
-import com.almagest_dev.tacobank_core_server.common.utils.SessionUtil;
+import com.almagest_dev.tacobank_core_server.common.utils.RedisSessionUtil;
 import com.almagest_dev.tacobank_core_server.domain.sms.model.SmsVerificationLog;
 import com.almagest_dev.tacobank_core_server.domain.sms.repository.SmsVerificationLogRepository;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.naver.dto.sms.Message;
@@ -32,7 +32,7 @@ public class SmsAuthUtil {
     private static final String SMS_FAILURE_PREFIX = "sms:failures";
 
     private final NaverSmsApiClient naverSmsApiClient;
-    private final SessionUtil sessionUtil;
+    private final RedisSessionUtil redisSessionUtil;
     private final JsonUtil jsonUtil;
     private final SmsVerificationLogRepository smsVerificationLogRepository;
 
@@ -96,14 +96,14 @@ public class SmsAuthUtil {
             VerificationDataDto data = new VerificationDataDto(logId, requestId, code, "REQUEST");
 
             log.info("SmsAuthUtil::storeVerificationData Redis Key - {}, Value - {}", smsKey, data);
-            sessionUtil.storeSessionData(smsKey, data, 3, TimeUnit.MINUTES, false);
+            redisSessionUtil.storeSessionData(smsKey, data, 3, TimeUnit.MINUTES, false);
 
             // 응답 반환
             return logId;
 
         } catch (SmsSendFailedException ex) {
             // 해당 인증 요청 삭제
-            sessionUtil.cleanupRedisKeys("SmsAuthUtil", String.format("%s:%s", tel, logId), SMS_KEY_PREFIX);
+            redisSessionUtil.cleanupRedisKeys("SmsAuthUtil", String.format("%s:%s", tel, logId), SMS_KEY_PREFIX);
             throw ex; // 예외 전달
 
         } finally {
@@ -127,7 +127,7 @@ public class SmsAuthUtil {
 
         VerificationDataDto verificationData;
         // 세션 데이터 확인
-        verificationData = sessionUtil.getSessionData(smsKey, VerificationDataDto.class, false);
+        verificationData = redisSessionUtil.getSessionData(smsKey, VerificationDataDto.class, false);
 
         log.info("SmsAuthUtil::storeVerificationData Redis Key - {}, Value - {}", smsKey, verificationData);
 
@@ -154,17 +154,17 @@ public class SmsAuthUtil {
             updateSmsVerificationStatus("VERIFIED", tel, inputCode, verificationData.getLogId(), verificationData);
 
             // Redis 세션 삭제 - 실패 횟수 세션
-            sessionUtil.cleanupRedisKeys("SmsAuthUtil", String.format("%s:%s", tel, logId), SMS_FAILURE_PREFIX);
+            redisSessionUtil.cleanupRedisKeys("SmsAuthUtil", String.format("%s:%s", tel, logId), SMS_FAILURE_PREFIX);
 
             // 인증 상태 업데이트 - 성공 세션 3분간 유지
             verificationData.setVerificationStatus("VERIFIED");
-            sessionUtil.updateSessionData(smsKey, verificationData, 3, TimeUnit.MINUTES, true, false);
+            redisSessionUtil.updateSessionData(smsKey, verificationData, 3, TimeUnit.MINUTES, true, false);
             return true;
 
         } else {
             // 실패 횟수 증가 및 TTL 설정
             String pinFailureKey = String.format("%s:%s:%s", SMS_FAILURE_PREFIX, tel, logId);
-            Long failCnt = sessionUtil.incrementAndSetExpire(pinFailureKey, 1L, 3, TimeUnit.MINUTES);
+            Long failCnt = redisSessionUtil.incrementAndSetExpire(pinFailureKey, 1L, 3, TimeUnit.MINUTES);
             log.info("SmsAuthUtil - [{}] verifyCode 인증번호 불일치 {}번째", pinFailureKey, failCnt);
 
             // 실패 횟수 초과 시 인증 실패로 종료
@@ -173,7 +173,7 @@ public class SmsAuthUtil {
                 updateSmsVerificationStatus("FAIL", tel, inputCode, verificationData.getLogId(), verificationData);
 
                 // 관련 Redis 모두 삭제
-                sessionUtil.cleanupRedisKeys("SmsAuthUtil", String.format("%s:%s", tel, logId), SMS_KEY_PREFIX, SMS_FAILURE_PREFIX);
+                redisSessionUtil.cleanupRedisKeys("SmsAuthUtil", String.format("%s:%s", tel, logId), SMS_KEY_PREFIX, SMS_FAILURE_PREFIX);
                 throw new SmsSendFailedException("FAILURE", "비밀번호 입력 횟수가 초과하여 인증이 실패하였습니다.", HttpStatus.FORBIDDEN);
             }
 
@@ -186,7 +186,7 @@ public class SmsAuthUtil {
      * SMS 관련 세션 모두 삭제
      */
     public void cleanupAllSmsSession(long logId, String tel) {
-        sessionUtil.cleanupRedisKeys("SmsAuthUtil", String.format("%s:%s", tel, logId), SMS_KEY_PREFIX, SMS_FAILURE_PREFIX);
+        redisSessionUtil.cleanupRedisKeys("SmsAuthUtil", String.format("%s:%s", tel, logId), SMS_KEY_PREFIX, SMS_FAILURE_PREFIX);
     }
 
     /**
