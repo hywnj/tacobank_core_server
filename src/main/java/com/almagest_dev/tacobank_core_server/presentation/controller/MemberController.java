@@ -35,8 +35,8 @@ public class MemberController {
      */
     @PostMapping("/password-recovery/verify")
     public ResponseEntity<?> findMemberPasswordAndSendSmsAuth(@RequestBody @Valid FindPasswordRequestDto requestDto) {
-        memberService.findPasswordAndSendSmsAuth(requestDto);
-        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "인증 번호를 발송했습니다."));
+        FindPasswordResponseDto response = memberService.findPasswordAndSendSmsAuth(requestDto);
+        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "인증 번호를 발송했습니다.", response));
     }
     /**
      * 비밀번호 찾기 2) 인증번호 검증 & 새로운 비밀번호로 설정

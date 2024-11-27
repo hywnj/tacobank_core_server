@@ -23,7 +23,7 @@ public class ValidationUtil {
             throw new IllegalArgumentException("비밀번호에는 영문자, 숫자, 특수문자가 최소 1개 이상 포함되어야 합니다.");
         }
         if (hasRepeatedNumbers(password)) {
-            throw new IllegalArgumentException("비밀번호에 동일한 문자가 3번 이상 반복될 수 없습니다.");
+            throw new IllegalArgumentException("비밀번호에 동일한 숫자가 3번 이상 반복될 수 없습니다.");
         }
         if (hasSequentialNumbers(password)) {
             throw new IllegalArgumentException("비밀번호에 연속된 숫자가 포함될 수 없습니다.");

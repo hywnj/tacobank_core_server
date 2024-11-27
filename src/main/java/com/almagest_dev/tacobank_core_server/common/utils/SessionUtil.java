@@ -181,7 +181,7 @@ public class SessionUtil {
     public void cleanupRedisKeys(String className, String sessionId, String... prefixes) {
         // Redis 키 삭제 로직
         for (String prefix : prefixes) {
-            String key = prefix + sessionId; // 키 생성
+            String key = prefix + ":" + sessionId; // 키 생성
             try {
                 boolean deleted = Boolean.TRUE.equals(redisTemplate.delete(key));
                 log.info("{} - [{}] Redis 키 삭제 - Key: {}, 성공 여부: {}", className, sessionId, key, deleted);

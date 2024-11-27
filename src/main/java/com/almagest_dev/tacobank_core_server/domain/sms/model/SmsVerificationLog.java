@@ -35,6 +35,9 @@ public class SmsVerificationLog {
     @Column(columnDefinition = "VARCHAR(20) COMMENT '수신 번호'")
     private String receiverTel;
 
+    @Column(columnDefinition = "VARCHAR(10) COMMENT '사용자가 입력한 인증 번호'")
+    private String inputCode;
+
     @Column(columnDefinition = "VARCHAR(10) COMMENT '인증 번호'")
     private String verificationCode;
 
@@ -86,8 +89,9 @@ public class SmsVerificationLog {
         this.updatedDate = LocalDateTime.now(); // 수정일시 갱신
     }
 
-    public void updateVerificationStatus(String verificationStatus) {
+    public void updateVerificationStatusAndInputCode(String verificationStatus, String inputCode) {
         this.verificationStatus = verificationStatus;
+        this.inputCode = inputCode;
         this.updatedDate = LocalDateTime.now(); // 수정일시 갱신
     }
 }
