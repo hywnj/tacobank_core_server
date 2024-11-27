@@ -27,7 +27,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<?> handleIllegalArgumentException(IllegalArgumentException ex) {
         log.warn("handleIllegalArgumentException - " + ex.getMessage());
-        CoreResponseDto response = new CoreResponseDto("TERMINATED", ex.getMessage());
+        CoreResponseDto response = new CoreResponseDto("FAILURE", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
     @ExceptionHandler(MethodArgumentNotValidException.class)

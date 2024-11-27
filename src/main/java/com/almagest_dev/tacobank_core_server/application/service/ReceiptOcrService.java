@@ -1,6 +1,7 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
 import com.almagest_dev.tacobank_core_server.common.exception.OcrFailedException;
+import com.almagest_dev.tacobank_core_server.common.utils.JsonUtil;
 import com.almagest_dev.tacobank_core_server.domain.receipt.model.Receipt;
 import com.almagest_dev.tacobank_core_server.domain.receipt.model.ReceiptOcrLog;
 import com.almagest_dev.tacobank_core_server.domain.receipt.model.ReceiptProduct;
@@ -13,8 +14,6 @@ import com.almagest_dev.tacobank_core_server.infrastructure.external.naver.dto.o
 import com.almagest_dev.tacobank_core_server.infrastructure.external.naver.dto.ocr.ReceiptResult;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.naver.client.NaverOcrApiClient;
 import com.almagest_dev.tacobank_core_server.presentation.dto.receipt.ReceiptOcrResponseDto;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,7 +34,7 @@ public class ReceiptOcrService {
 
     private final NaverOcrApiClient naverOcrApiClient;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final JsonUtil jsonUtil;
     private final String OCR_VERSION = "V2";
 
     /**
@@ -68,7 +67,7 @@ public class ReceiptOcrService {
                 )
         );
         log.info("ReceiptOcrService::processReceiptOcr message - {}", message);
-        String jsonRequest = toJsonString(message);
+        String jsonRequest = jsonUtil.toJsonString(message);
 
         // ReceiptOcrLog INSERT
         ReceiptOcrLog receiptOcrLog = ReceiptOcrLog.createReceiptOcrLog(OCR_VERSION, requestId, jsonRequest);
@@ -89,7 +88,7 @@ public class ReceiptOcrService {
             }
 
             // 응답 UPDATE
-            String jsonResponse = toJsonString(apiResponse);
+            String jsonResponse = jsonUtil.toJsonString(apiResponse);
             receiptOcrLog.updateReceiptOcrLog(
                     apiResponse.getTimestamp(),
                     image.getUid() != null          ? image.getUid() : "",
@@ -98,7 +97,7 @@ public class ReceiptOcrService {
                     image.getMessage() != null      ? image.getMessage() : "",
                     image.getReceipt().getMeta().getEstimatedLanguage() != null
                             ? image.getReceipt().getMeta().getEstimatedLanguage() : "",
-                    toJsonString(apiResponse) != null ? jsonResponse : ""
+                    jsonUtil.toJsonString(apiResponse) != null ? jsonResponse : ""
             );
             receiptOcrLogRepository.save(receiptOcrLog);
             log.info("ReceiptOcrService::processReceiptOcr Response UPDATE");
@@ -216,20 +215,6 @@ public class ReceiptOcrService {
         long maxSizeInBytes = 5 * 1024 * 1024; // 5MB
         if (file.getSize() > maxSizeInBytes) {
             throw new IllegalArgumentException("업로드된 파일이 5MB를 초과합니다.");
-        }
-    }
-
-    /**
-     * 객체를 JSON 문자열로 변환
-     * @param object 변환할 객체
-     * @return JSON 문자열
-     * @throws RuntimeException 변환 실패 시 예외 발생
-     */
-    public String toJsonString(Object object) {
-        try {
-            return objectMapper.writeValueAsString(object);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("JSON 직렬화 중 오류 발생", e);
         }
     }
 

@@ -150,7 +150,7 @@ public class AccountService {
             account.saveAccountHolderName(accountInfo.getAccountHolder());
             account.saveBankCode(accountInfo.getBankCodeStd());
             account.saveFintechUseNum(accountInfo.getFintechUseNum());
-            account.saveVerificated();
+            account.saveVerified();
             return account;
         }).collect(Collectors.toList());
 

@@ -9,29 +9,49 @@ public class ValidationUtil {
     /**
      * 비밀번호 규칙 검사
      */
-    public static boolean validatePassword(String password, int minLen, String birthDate, String tel) {
-        if (!isValidLength(password, minLen)) return false; // 길이 체크
-        if (!containsAllowedCharacters(password)) return false; // 허용되는 문자가 아닌 문자가 있는 경우
-        if (containsSensitiveInfo(password, birthDate, tel)) return false; // 개인식별 번호가 포함된 경우
-        if (!containsRequiredTypes(password)) return false; // 영문자, 숫자, 특수문자가 모두 1개 이상 포함되어있지 않은 경우
-        if (hasRepeatedCharacters(password)) return false; // 반복되는 문자가 있는 경우
-        if (hasSequentialNumbers(password)) return false; // 연속된 숫자가 있는 경우
-
-        return true;
+    public static void validatePassword(String password, int minLen, String birthDate, String tel) {
+        if (!isValidLength(password, minLen)) {
+            throw new IllegalArgumentException("비밀번호는 최소 " + minLen + "자 이상이어야 합니다.");
+        }
+        if (!containsAllowedCharacters(password)) {
+            throw new IllegalArgumentException("비밀번호는 허용되지 않은 문자를 포함할 수 없습니다.");
+        }
+        if (containsSensitiveInfo(password, birthDate, tel)) {
+            throw new IllegalArgumentException("비밀번호에 생년월일 또는 전화번호를 포함할 수 없습니다.");
+        }
+        if (!containsRequiredTypes(password)) {
+            throw new IllegalArgumentException("비밀번호에는 영문자, 숫자, 특수문자가 최소 1개 이상 포함되어야 합니다.");
+        }
+        if (hasRepeatedNumbers(password)) {
+            throw new IllegalArgumentException("비밀번호에 동일한 문자가 3번 이상 반복될 수 없습니다.");
+        }
+        if (hasSequentialNumbers(password)) {
+            throw new IllegalArgumentException("비밀번호에 연속된 숫자가 포함될 수 없습니다.");
+        }
     }
 
     /**
      * 출금 비밀번호 규칙 검사
      */
-    public static boolean validateTransferPin(String pin) {
-        if (pin == null || pin.isEmpty()) return false; // Null 또는 빈 값 체크
-        if (!pin.matches("\\d+")) return false; // 숫자가 아닌 문자가 포함된 경우
-        if (removeNonDigits(pin).length() == 0) return false; // 숫자가 아닌 문자로 온 경우를 거르기 위함
-        if (pin.length() != 6) return false; // 6자리가 아닌 경우
-        if (hasRepeatedCharacters(pin)) return false; // 반복되는 숫자가 있는 경우
-        if (hasSequentialNumbers(pin)) return false; // 연속된 숫자가 있는 경우
-
-        return true;
+    public static void validateTransferPin(String pin) {
+        if (pin == null || pin.isEmpty()) {
+            throw new IllegalArgumentException("출금 비밀번호는 비어 있을 수 없습니다.");
+        }
+        if (!pin.matches("\\d+")) {
+            throw new IllegalArgumentException("출금 비밀번호는 숫자만 포함해야 합니다.");
+        }
+        if (removeNonDigits(pin).length() == 0) {
+            throw new IllegalArgumentException("출금 비밀번호에 숫자가 포함되어야 합니다.");
+        }
+        if (pin.length() != 6) {
+            throw new IllegalArgumentException("출금 비밀번호는 6자리여야 합니다.");
+        }
+        if (hasRepeatedNumbers(pin)) {
+            throw new IllegalArgumentException("출금 비밀번호에 동일한 숫자가 3번 이상 반복될 수 없습니다.");
+        }
+        if (hasSequentialNumbers(pin)) {
+            throw new IllegalArgumentException("출금 비밀번호에 연속된 숫자가 포함될 수 없습니다.");
+        }
     }
 
     /**
@@ -76,10 +96,10 @@ public class ValidationUtil {
     }
 
     /**
-     * 3개 이상의 동일한 문자가 있다면 True
+     * 3개 이상의 동일한 숫자가 있다면 True
      */
-    public static boolean hasRepeatedCharacters(String str) {
-        return str.matches(".*(.)\\1{2,}.*");
+    public static boolean hasRepeatedNumbers(String str) {
+        return str.matches(".*(\\d)\\1{2,}.*");
     }
 
     /**

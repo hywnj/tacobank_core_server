@@ -31,19 +31,29 @@ public class MemberController {
     }
 
     /**
-     * 비밀번호 재설정: 본인 인증 & 인증번호 발송
+     * 비밀번호 찾기 1) 본인 인증 & 인증번호 발송
      */
-    @PostMapping("/password-reset/verify")
+    @PostMapping("/password-recovery/verify")
     public ResponseEntity<?> findMemberPasswordAndSendSmsAuth(@RequestBody @Valid FindPasswordRequestDto requestDto) {
         memberService.findPasswordAndSendSmsAuth(requestDto);
         return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "인증 번호를 발송했습니다."));
     }
     /**
-     * 비밀번호 재설정: 인증번호 검증 & 새로운 비밀번호로 설정
+     * 비밀번호 찾기 2) 인증번호 검증 & 새로운 비밀번호로 설정
      */
-    @PostMapping("/password-reset/confirm")
-    public ResponseEntity<?> confirmMemberPassword(@RequestBody @Valid ResetPasswordRequestDto requestDto) {
+    @PostMapping("/password-recovery/confirm")
+    public ResponseEntity<?> confirmMemberPassword(@RequestBody @Valid ConfirmPasswordRequestDto requestDto) {
         memberService.confirmPassword(requestDto);
+        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "비밀번호 재설정이 완료되었습니다."));
+    }
+
+    /**
+     * 비밀번호 재설정
+     * - 기존 비밀번호, 새로운 비밀번호, 확인용 비밀번호
+     */
+    @PutMapping("/password")
+    public ResponseEntity<?> resetMemberPassword(@RequestBody @Valid ResetPasswordRequestDto requestDto) {
+        memberService.resetMemberPassword(requestDto);
         return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "비밀번호 재설정이 완료되었습니다."));
     }
 

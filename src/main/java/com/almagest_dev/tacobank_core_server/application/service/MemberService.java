@@ -48,59 +48,9 @@ public class MemberService {
         return member.getEmail();
     }
 
-
-    /**
-     * 비밀번호 재설정: 본인 인증 & 인증번호 발송
-     */
-    public void findPasswordAndSendSmsAuth(FindPasswordRequestDto requestDto) {
-        // 1. 멤버 확인
-        Member member = memberRepository.findByEmailAndTel(requestDto.getEmail(), requestDto.getTel())
-                .orElseThrow(() -> new IllegalArgumentException("회원 정보를 찾을 수 없습니다."));
-
-        // 요청 member ID랑 조회한 ID랑 다른 경우
-        log.info("GetId: {} , request get ID: {}", member.getId(), requestDto.getMemberId());
-        if (member.getId() != requestDto.getMemberId()) {
-            throw new IllegalArgumentException("회원 정보가 잘못되었습니다.");
-        }
-
-        // 2. 문자 인증번호 발송 및 인증 요청
-        smsAuthUtil.sendVerificationCode(member.getTel());
-    }
-
-    /**
-     * 비밀번호 재설정: 인증번호 검증 & 새로운 비밀번호로 설정
-     */
-    public void confirmPassword(ResetPasswordRequestDto requestDto) {
-        // 1. 멤버 확인
-        Member member = memberRepository.findByIdAndDeleted(requestDto.getMemberId(), "N")
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
-
-        // 2. 인증 여부 확인 & 인증번호 검증
-        // @TODO 인증여부 확인 어떻게? : DB Log? Redis?
-        if (!smsAuthUtil.verifyCode(requestDto.getTel(), requestDto.getInputCode())) {
-            throw new InvalidVerificationException("인증 번호가 일치하지 않습니다.");
-        }
-        if (!smsAuthUtil.isVerified(requestDto.getTel())) {
-            throw new InvalidVerificationException("인증 세션이 만료되었습니다. 다시 시도해주세요.");
-        }
-
-        // 3. 비밀번호 규칙 검사
-        if (!ValidationUtil.validatePassword(requestDto.getNewPassword(), 8, member.getBirth(), member.getTel())) {
-            throw new InvalidVerificationException("비밀번호를 규칙에 맞게 설정해주세요.");
-        }
-
-        // 4. 비밀번호 Update & 저장
-        String encodedPassword = passwordEncoder.encode(requestDto.getNewPassword());
-        member.changePassword(encodedPassword);
-
-        memberRepository.save(member);
-
-        // 관련 세션 모두 삭제
-        smsAuthUtil.cleanupAllSmsSession(requestDto.getTel());
-    }
-
     /**
      * 회원정보 수정
+     * @TODO 전화번호 수정시 문자 인증 추가
      */
     public void updateMember(Long id, UpdateMemberRequestDto requestDto) {
         if (id == null || id < 1) {
@@ -121,6 +71,81 @@ public class MemberService {
         }
         // 수정 값이 있을때만 업데이트
         if (!hasChanges) throw new IllegalArgumentException("수정 사항이 없습니다.");
+        memberRepository.save(member);
+    }
+
+
+    /**
+     * 비밀번호 찾기 1) 본인 인증 & 인증번호 발송
+     */
+    public void findPasswordAndSendSmsAuth(FindPasswordRequestDto requestDto) {
+        // 1. 멤버 확인
+        Member member = memberRepository.findByEmailAndTel(requestDto.getEmail(), requestDto.getTel())
+                .orElseThrow(() -> new IllegalArgumentException("회원 정보를 찾을 수 없습니다."));
+
+        // 요청 member ID랑 조회한 ID랑 다른 경우
+        log.info("GetId: {} , request get ID: {}", member.getId(), requestDto.getMemberId());
+        if (member.getId() != requestDto.getMemberId()) {
+            throw new IllegalArgumentException("회원 정보가 잘못되었습니다.");
+        }
+
+        // 2. 문자 인증번호 발송 및 인증 요청
+        smsAuthUtil.sendVerificationCode(member.getId(), member.getTel(), "PW");
+    }
+
+    /**
+     * 비밀번호 찾기 2) 인증번호 검증 & 새로운 비밀번호로 설정
+     */
+    public void confirmPassword(ConfirmPasswordRequestDto requestDto) {
+        // 1. 멤버 확인
+        Member member = memberRepository.findByIdAndDeleted(requestDto.getMemberId(), "N")
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        // 2. 인증 여부 확인 & 인증번호 검증
+        if (!smsAuthUtil.verifyCode(member.getId(), requestDto.getTel(), requestDto.getInputCode())) {
+            throw new InvalidVerificationException("인증 번호가 일치하지 않습니다.");
+        }
+
+        // 비밀번호 규칙 검사 & Member UPDATE
+        validateAndUpdatePassword(member, requestDto.getNewPassword(), requestDto.getConfirmPassword());
+
+        // 관련 세션 모두 삭제
+        smsAuthUtil.cleanupAllSmsSession(requestDto.getTel());
+    }
+
+    /**
+     * 비밀번호 재설정: 기존 비밀번호, 새 비밀번호
+     */
+    public void resetMemberPassword(ResetPasswordRequestDto requestDto) {
+        // 멤버 확인
+        Member member = memberRepository.findByIdAndDeleted(requestDto.getMemberId(), "N")
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        // 기존 비밀번호 확인
+        if (!passwordEncoder.matches(requestDto.getCurrentPassword(), member.getPassword())) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+
+        // 비밀번호 규칙 검사 & Member UPDATE
+        validateAndUpdatePassword(member, requestDto.getNewPassword(), requestDto.getConfirmPassword());
+    }
+
+    /**
+     * 비밀번호 규칙 검사 & UPDATE
+     */
+    private void validateAndUpdatePassword(Member member, String newPassword, String confirmPassword) {
+        // 비밀번호 규칙 검사
+        ValidationUtil.validatePassword(newPassword, 8, member.getBirth(), member.getTel());
+
+        // 새 비밀번호, 확인 비밀번호 일치 여부
+        if (!newPassword.equals(confirmPassword)) {
+            throw new IllegalArgumentException("새 비밀번호와 확인 비밀번호가 일치하지 않습니다.");
+        }
+
+        // 비밀번호 Update & 저장
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        member.changePassword(encodedPassword);
+
         memberRepository.save(member);
     }
 
@@ -149,9 +174,7 @@ public class MemberService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
         // 출금 비밀번호 유효성 검사
-        if (!ValidationUtil.validateTransferPin(requestDto.getTransferPin())) {
-            throw new InvalidVerificationException("출금 비밀번호를 규칙에 맞게 설정해주세요.");
-        }
+        ValidationUtil.validateTransferPin(requestDto.getTransferPin());
 
         // 비밀번호 해싱 및 저장
         String encodedPin = passwordEncoder.encode(requestDto.getTransferPin());
@@ -163,6 +186,7 @@ public class MemberService {
 
     /**
      * 출금 비밀번호 수정
+     *  - 로그인 한 상태에서만 수정이 가능함
      */
     public void changeTransferPin(ChangePinRequestDto requestDto) {
         log.info("MemberService::changeTransferPin START");
@@ -179,9 +203,7 @@ public class MemberService {
             throw new InvalidVerificationException("새 비밀번호와 확인 비밀번호가 일치하지 않습니다.");
         }
         // 새로운 비밀번호 유효성 검사
-        if (!ValidationUtil.validateTransferPin(requestDto.getNewPin())) {
-            throw new InvalidVerificationException("출금 비밀번호를 규칙에 맞게 설정해주세요.");
-        }
+        ValidationUtil.validateTransferPin(requestDto.getNewPin());
 
         // 새로운 비밀번호 해싱 및 저장
         String encodedPin = passwordEncoder.encode(requestDto.getNewPin());

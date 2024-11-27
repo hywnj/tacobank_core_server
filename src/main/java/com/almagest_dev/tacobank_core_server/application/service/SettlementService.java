@@ -341,7 +341,7 @@ public class SettlementService {
         }
 
         // 사용자의 출금 가능한 전 계좌 잔액 조회
-        List<Account> availableAccounts = accountRepository.findByMember_IdAndVerificated(requestDto.getMemberId(), "Y");
+        List<Account> availableAccounts = accountRepository.findByMember_IdAndVerified(requestDto.getMemberId(), "Y");
         if (availableAccounts == null) { // 출금 가능한(본인 인증 완료한) 계좌가 없는 경우
             throw new IllegalArgumentException("출금할 수 있는 계좌가 없습니다. 출금을 위한 본인 인증을 진행해주세요.");
         }
