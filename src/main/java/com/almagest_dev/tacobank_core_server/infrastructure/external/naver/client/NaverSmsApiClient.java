@@ -1,7 +1,6 @@
 package com.almagest_dev.tacobank_core_server.infrastructure.external.naver.client;
 
 import com.almagest_dev.tacobank_core_server.common.exception.SmsSendFailedException;
-import com.almagest_dev.tacobank_core_server.infrastructure.external.naver.dto.sms.Message;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.naver.dto.sms.NaverSmsRequestDto;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.naver.dto.sms.NaverSmsResponseDto;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.naver.util.NaverApiUtil;
@@ -60,7 +59,7 @@ public class NaverSmsApiClient {
 
         } catch (HttpClientErrorException | HttpServerErrorException ex) {
             log.error("NaverSmsApiClient::sendSms Http Exception: {}, Response Body: {}", ex.getStatusCode(), ex.getResponseBodyAsString());
-            throw new SmsSendFailedException("TERMINATED", ex.getMessage(), HttpStatus.BAD_REQUEST,ex);
+            throw new SmsSendFailedException("FAILURE", ex.getMessage(), HttpStatus.BAD_REQUEST,ex);
         }
     }
 

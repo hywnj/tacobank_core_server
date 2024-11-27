@@ -13,7 +13,7 @@ public class ExceptionResponseWriter {
     /**
      * Exception 응답 출력
      */
-    public static void writeExceptionResponse(HttpServletResponse response, String status, int httpStatus, String message) {
+    public static void writeExceptionResponse(HttpServletResponse response, int httpStatus, String status, String message) {
         response.setStatus(httpStatus);
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
