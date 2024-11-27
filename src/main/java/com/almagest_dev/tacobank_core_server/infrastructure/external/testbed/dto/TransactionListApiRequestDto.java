@@ -13,5 +13,6 @@ public class TransactionListApiRequestDto {
     private String toTime;
     private String sortOrder;
     private String tranDtime;
+    private String dataLength; // 기본값: "null"
 }
 // 거래내역 조회 DTO

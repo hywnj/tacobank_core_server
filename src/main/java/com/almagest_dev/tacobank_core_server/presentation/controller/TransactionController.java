@@ -1,8 +1,8 @@
 package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.TransactionService;
-import com.almagest_dev.tacobank_core_server.presentation.dto.transantion.TransactionListRequestDto2;
-import com.almagest_dev.tacobank_core_server.presentation.dto.transantion.TransactionResponseDto2;
+import com.almagest_dev.tacobank_core_server.presentation.dto.transantion.TransactionListRequestDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransactionResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,9 +23,9 @@ public class TransactionController {
      * 거래 내역 조회
      */
     @PostMapping("/list")
-    public ResponseEntity<List<TransactionResponseDto2>> getTransactionList(
-            @RequestBody TransactionListRequestDto2 requestDto) {
-        List<TransactionResponseDto2> transactionList = transactionService.getTransactionList(requestDto);
+    public ResponseEntity<List<TransactionResponseDto>> getTransactionList(
+            @RequestBody TransactionListRequestDto requestDto) {
+        List<TransactionResponseDto> transactionList = transactionService.getTransactionList(requestDto);
         return ResponseEntity.ok(transactionList);
     }
 }
