@@ -24,7 +24,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final MemberLockFilter memberLockFilter;
 
-    private static final String[] PUBLIC_API_URL = { "/taco/auth/**", "/taco/core/auth/**" }; // 인증 없이도 접근 가능한 경로
+    private static final String[] PUBLIC_API_URL = { "/taco/auth/**", "/taco/core/auth/**", "/taco/core/**" }; // 인증 없이도 접근 가능한 경로
     private static final String ADMIN_API_URL = "/admin/**"; // 관리자만 접근 가능한 경로
 
     public SecurityConfig(JwtProvider jwtProvider, JwtAuthenticationFilter jwtAuthenticationFilter, MemberLockFilter memberLockFilter) {
