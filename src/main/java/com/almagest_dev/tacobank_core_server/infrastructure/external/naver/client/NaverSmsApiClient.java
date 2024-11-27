@@ -22,8 +22,7 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class NaverSmsApiClient {
-    @Value("${naver.sms.from}")
-    private String NAVER_SMS_FROM_NUM;
+
     @Value("${naver.sms.service.id}")
     private String NAVER_SMS_SERVICE_ID;
     private static final String NAVER_SMS_API_URL ="https://sens.apigw.ntruss.com/sms/v2";
@@ -34,23 +33,14 @@ public class NaverSmsApiClient {
      * Naver SMS API 요청
      *  - 메시지 리스트로 받아서 요청
      */
-    public NaverSmsResponseDto sendSms(List<Message> messages) {
+    public NaverSmsResponseDto sendSms(NaverSmsRequestDto requestBody, Long time) {
         log.info("NaverSmsApiClient::sendSms START");
-        log.info("NaverSmsApiClient::sendSms from - {}", NAVER_SMS_FROM_NUM);
-        Long time = System.currentTimeMillis();
-        // Set Request Body
-        NaverSmsRequestDto requestBody = new NaverSmsRequestDto(
-                "SMS"
-                , "COMM"
-                , "82"
-                , NAVER_SMS_FROM_NUM
-                , "기본 메시지 내용"
-                , messages
-        );
+
         // Set Request Entity (+Header)
         HttpHeaders headers = naverApiUtil.createSmsHeaders(time);
         HttpEntity<NaverSmsRequestDto> requestEntity = new HttpEntity<>(requestBody, headers);
         log.info("NaverSmsApiClient::sendSms Request Header - " + headers + " | Body - " + requestBody);
+
         // Naver SMS API 요청
         try {
             log.info("NaverSmsApiClient::sendSms CALL Naver API");
@@ -61,15 +51,8 @@ public class NaverSmsApiClient {
             );
             log.info("NaverSmsApiClient::sendSms Response: {}", response);
 
-            // 응답 결과가 실패인 경우
-            if (response.getStatusName().equals("fail") || !response.getStatusCode().equals("202")) {
-                throw new SmsSendFailedException(
-                        "TERMINATED",
-                        "NaverSmsApiClient::sendSms 요청 실패 - " +
-                        "[" + response.getRequestId() + "] "
-                        + response.getStatusCode() + " | " + response.getStatusName()
-                        + " (" + response.getRequestTime() + ")",
-                        HttpStatus.BAD_REQUEST);
+            if (response == null) {
+                throw new SmsSendFailedException("응답이 null이거나 유효하지 않습니다.");
             }
 
             log.info("NaverSmsApiClient::sendSms END");

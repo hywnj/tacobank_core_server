@@ -10,7 +10,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -44,7 +46,7 @@ public class SessionUtil {
         }
 
         try {
-            String valueToStore = (data instanceof String) ? (String) data : objectMapper.writeValueAsString(data);
+            String valueToStore = objectMapper.writeValueAsString(data);
             if (encryptFlag) { // 암호화 해야하는 경우
                 valueToStore = encryptionUtil.encrypt(valueToStore);
             }
@@ -59,22 +61,24 @@ public class SessionUtil {
     }
 
     /**
-     * Redis 조회 - 암호화 된 객체 데이터
+     * Redis 조회
      */
-    public <T> T getDecryptedSessionData(String redisKey, Class<T> clazz) {
+    public <T> T getSessionData(String redisKey, Class<T> clazz, boolean encryptFlag) {
         if (StringUtils.isBlank(redisKey)) {
             throw new RedisSessionException("유효하지 않은 요청 입니다.", HttpStatus.BAD_REQUEST);
         }
 
-        // Redis 송금 세션 조회
-        String encryptedData = redisTemplate.opsForValue().get(redisKey);
-        if (encryptedData == null) {
-            throw new RedisSessionException("송금 요청 내역이 존재하지 않습니다.", HttpStatus.BAD_REQUEST);
+        // Redis 세션 조회
+        String sessionData = redisTemplate.opsForValue().get(redisKey);
+        if (sessionData == null) {
+            throw new RedisSessionException("요청 내역이 존재하지 않습니다.", HttpStatus.BAD_REQUEST);
         }
 
         try {
-            String decryptedData = encryptionUtil.decrypt(encryptedData);
-            return objectMapper.readValue(decryptedData, clazz);
+            if (encryptFlag) {
+                sessionData = encryptionUtil.decrypt(sessionData);
+            }
+            return objectMapper.readValue(sessionData, clazz);
         } catch (Exception e) {
             String message = (e.getMessage() == null) ? "Redis 조회 중 오류" : e.getMessage();
             throw new RedisSessionException(message, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -98,6 +102,32 @@ public class SessionUtil {
     }
 
     /**
+     * Redis 조회 - Redis Hash (String)
+     */
+    public <K, V> Map<K, V> getHashSessionData(String redisKey, Class<K> keyClass, Class<V> valueClass) {
+        if (StringUtils.isBlank(redisKey)) {
+            throw new RedisSessionException("유효하지 않은 요청 입니다.", HttpStatus.BAD_REQUEST);
+        }
+
+        // Redis에서 Hash 데이터를 가져옵니다.
+        Map<Object, Object> rawData = redisTemplate.opsForHash().entries(redisKey);
+        if (rawData == null || rawData.isEmpty()) {
+            throw new RedisSessionException("세션이 존재하지 않습니다.", HttpStatus.BAD_REQUEST);
+        }
+
+        // 데이터 변환
+        try {
+            return rawData.entrySet().stream()
+                    .collect(Collectors.toMap(
+                            entry -> objectMapper.convertValue(entry.getKey(), keyClass),   // Key 변환
+                            entry -> objectMapper.convertValue(entry.getValue(), valueClass) // Value 변환
+                    ));
+        } catch (Exception e) {
+            throw new RedisSessionException("Redis 데이터 변환 중 오류 발생", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
      * Redis 키 존재 여부 확인 후 값 반환
      * @return 키가 존재하면 값 반환, 존재하지 않으면 null 반환
      */
@@ -116,22 +146,29 @@ public class SessionUtil {
     }
 
     /**
-     * Redis 업데이트 (만료시간 갱신 X)
+     * Redis 업데이트
+     *  - updateTtlFlag = true: 만료시간 갱신
+     *  - updateTtlFlag = false: 기존 TTL 유지
      */
-    public <T> void updateSessionData(String redisKey, T data) {
+    public <T> void updateSessionData(String redisKey, T data, long duration, TimeUnit unit, boolean updateTtlFlag, boolean encryptFlag) {
         try {
-            // 현재 TTL 가져오기
-            Long currentTtl = redisTemplate.getExpire(redisKey, TimeUnit.MILLISECONDS);
-            if (currentTtl == null || currentTtl <= 0) {
-                throw new RedisSessionException("Redis 키의 TTL을 가져올 수 없거나 키가 만료되었습니다.", HttpStatus.BAD_REQUEST);
+            String jsonData = objectMapper.writeValueAsString(data);
+            if (encryptFlag) jsonData = encryptionUtil.encrypt(jsonData); // 암호화 여부에 따라 암호화
+
+            if (updateTtlFlag) { // TTL 갱신하는 경우
+                redisTemplate.opsForValue().set(redisKey, jsonData, duration, unit);
+
+            } else {
+                // 현재 TTL 가져오기
+                Long currentTtl = redisTemplate.getExpire(redisKey, TimeUnit.MILLISECONDS);
+                if (currentTtl == null || currentTtl <= 0) {
+                    throw new RedisSessionException("Redis 키의 TTL을 가져올 수 없거나 키가 만료되었습니다.", HttpStatus.BAD_REQUEST);
+                }
+
+                // 키와 데이터를 설정하되 TTL은 유지
+                redisTemplate.opsForValue().set(redisKey, jsonData, currentTtl, TimeUnit.MILLISECONDS);
             }
 
-            // 데이터 직렬화 후 암호화
-            String jsonData = objectMapper.writeValueAsString(data);
-            String encryptedData = encryptionUtil.encrypt(jsonData);
-
-            // 키와 데이터를 설정하되 TTL은 유지
-            redisTemplate.opsForValue().set(redisKey, encryptedData, currentTtl, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             throw new RedisSessionException("Redis 업데이트 중 오류 발생", HttpStatus.INTERNAL_SERVER_ERROR);
         }

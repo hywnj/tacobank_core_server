@@ -7,7 +7,7 @@ import lombok.Data;
 
 @Data
 public class ChangePinRequestDto {
-    @NotNull(message = "회원 정보가 없습니다..")
+    @NotNull(message = "회원 정보가 없습니다.")
     private Long memberId;
 
     @NotBlank(message = "현재 비밀번호를 입력하세요.")

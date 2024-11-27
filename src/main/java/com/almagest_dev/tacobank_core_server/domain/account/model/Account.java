@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.time.LocalDateTime;
 
@@ -35,7 +34,7 @@ public class Account {
     private String bankCode;
 
     @Column(columnDefinition = "VARCHAR(1) COMMENT '본인 인증 여부'")
-    private String verificated;
+    private String verified;
 
     @Column(columnDefinition = "VARCHAR(40) COMMENT '계좌 핀테크 이용번호'")
     private String fintechUseNum;
@@ -69,12 +68,10 @@ public class Account {
     public void saveFintechUseNum(String fintechUseNum) {
         this.fintechUseNum = fintechUseNum;
     }
-    public void saveVerificated() {
-        this.verificated = "Y";
+    public void saveVerified() {
+        this.verified = "Y";
     }
     public void saveMember(Member member) {
         this.member = member;
     }
-
-
 }

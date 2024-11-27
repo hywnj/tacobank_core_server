@@ -9,13 +9,13 @@ import java.util.Optional;
 
 
 public interface AccountRepository extends JpaRepository<Account, Long> {
-    Optional<Account> findByIdAndVerificated(Long id, String verificated);
+    Optional<Account> findByIdAndVerified(Long id, String verified);
     long countByMember(Member member);
     Optional<Account> findByIdAndMember(Long id, Member member);
     Optional<Account> findByAccountNum(String accountNumber);
     List<Account> findByMember_Id(Long memberId);
 
-    List<Account> findByMember_IdAndVerificated(Long memberId, String verificated); // 특정 멤버의 출금 가능한 계좌 조회
+    List<Account> findByMember_IdAndVerified(Long memberId, String verified); // 특정 멤버의 출금 가능한 계좌 조회
 
 
 }

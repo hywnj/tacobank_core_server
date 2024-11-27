@@ -64,7 +64,7 @@ public class TransferService {
         Member withdrawalMember = memberRepository.findByIdAndDeleted(requestDto.getWithdrawalMemberId(), "N")
                 .orElseThrow(() -> new TransferException("TERMINATED", "존재하지 않는 회원입니다.", HttpStatus.BAD_REQUEST));
         // Account(송금 보내는 계좌) 조회
-        Account withdrawalAccount = accountRepository.findByIdAndVerificated(requestDto.getWithdrawalAccountId(), "Y")
+        Account withdrawalAccount = accountRepository.findByIdAndVerified(requestDto.getWithdrawalAccountId(), "Y")
                 .orElseThrow(() -> new TransferException("TERMINATED", "인증되지 않은 계좌입니다.", HttpStatus.BAD_REQUEST));
 
         // 수취인 조회를 위한 Member 데이터 세팅
@@ -206,7 +206,7 @@ public class TransferService {
         log.info("TransferService - [{}] verifyPassword START", sessionId);
 
         // Redis 조회 - 송금 요청건
-        TransferSessionData sessionData = sessionUtil.getDecryptedSessionData(transferSessionRedisKey, TransferSessionData.class);
+        TransferSessionData sessionData = sessionUtil.getSessionData(transferSessionRedisKey, TransferSessionData.class, true);
         if (sessionData == null) {
             throw new TransferException("TERMINATED", "송금 요청건이 존재하지 않습니다.", HttpStatus.BAD_REQUEST);
         }
@@ -259,7 +259,7 @@ public class TransferService {
         // 송금 요청 Redis 업데이트
         sessionData.changePasswordVerified(true);
         sessionData.assignAmount(requestDto.getAmount());
-        sessionUtil.updateSessionData(TRANSFER_SESSION_PREFIX + sessionId, sessionData);
+        sessionUtil.updateSessionData(TRANSFER_SESSION_PREFIX + sessionId, sessionData, 0, null, false, true);
         log.info("TransferService - [{}] verifyPassword sessionData UPDATE - {}", sessionId, sessionData);
         log.info("TransferService- [{}] verifyPassword END", sessionId);
     }
@@ -275,7 +275,7 @@ public class TransferService {
         log.info("TransferService - [{}] transfer requestDto :{} ", sessionId, requestDto);
 
         // Redis에서 송금 세션 확인
-        TransferSessionData sessionData = sessionUtil.getDecryptedSessionData(sessionKey, TransferSessionData.class);
+        TransferSessionData sessionData = sessionUtil.getSessionData(sessionKey, TransferSessionData.class, true);
         if (sessionData == null) {
             throw new TransferException("TERMINATED", "유효하지 않은 송금 요청입니다.", HttpStatus.BAD_REQUEST);
         }

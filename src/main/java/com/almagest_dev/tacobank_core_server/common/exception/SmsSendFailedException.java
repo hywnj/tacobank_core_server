@@ -9,4 +9,12 @@ public class SmsSendFailedException extends BaseCustomException {
     public SmsSendFailedException(String status, String message, HttpStatus httpStatus, Throwable cause) {
         super(status, message, httpStatus, cause);
     }
+
+    public SmsSendFailedException(String message) {
+        super(message);
+    }
+
+    public SmsSendFailedException(String message, HttpStatus httpStatus) {
+        super(message, httpStatus);
+    }
 }
