@@ -18,7 +18,7 @@ import java.io.IOException;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class CustomAccountLockFilter extends OncePerRequestFilter { // 계정 잠김 여부 확인 필터
+public class MemberLockFilter extends OncePerRequestFilter { // 계정 잠김 여부 확인 필터
     private final RedisSessionUtil redisSessionUtil;
 
     @Override

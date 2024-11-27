@@ -1,6 +1,6 @@
 package com.almagest_dev.tacobank_core_server.infrastructure.config;
 
-import com.almagest_dev.tacobank_core_server.infrastructure.security.authentication.CustomAccountLockFilter;
+import com.almagest_dev.tacobank_core_server.infrastructure.security.authentication.MemberLockFilter;
 import com.almagest_dev.tacobank_core_server.infrastructure.security.authentication.JwtAuthenticationFilter;
 import com.almagest_dev.tacobank_core_server.infrastructure.security.authentication.JwtProvider;
 import com.almagest_dev.tacobank_core_server.infrastructure.security.handler.CustomAccessDeniedHandler;
@@ -22,15 +22,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
     private final JwtProvider jwtProvider;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final CustomAccountLockFilter customAccountLockFilter;
+    private final MemberLockFilter memberLockFilter;
 
     private static final String[] PUBLIC_API_URL = { "/taco/auth/**", "/taco/core/auth/**" }; // 인증 없이도 접근 가능한 경로
     private static final String ADMIN_API_URL = "/admin/**"; // 관리자만 접근 가능한 경로
 
-    public SecurityConfig(JwtProvider jwtProvider, JwtAuthenticationFilter jwtAuthenticationFilter, CustomAccountLockFilter customAccountLockFilter) {
+    public SecurityConfig(JwtProvider jwtProvider, JwtAuthenticationFilter jwtAuthenticationFilter, MemberLockFilter memberLockFilter) {
         this.jwtProvider = jwtProvider;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.customAccountLockFilter = customAccountLockFilter;
+        this.memberLockFilter = memberLockFilter;
     }
 
     @Bean
@@ -50,7 +50,7 @@ public class SecurityConfig {
                         .accessDeniedHandler(new CustomAccessDeniedHandler()) // 403 Forbidden
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(customAccountLockFilter, JwtAuthenticationFilter.class) // 계정 잠금 필터
+                .addFilterAfter(memberLockFilter, JwtAuthenticationFilter.class) // 계정 잠금 필터
         ;
 
         return http.build();
