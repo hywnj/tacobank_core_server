@@ -1,5 +1,6 @@
 package com.almagest_dev.tacobank_core_server.common.utils;
 
+import com.almagest_dev.tacobank_core_server.common.constants.RedisKeyConstants;
 import com.almagest_dev.tacobank_core_server.common.exception.RedisSessionException;
 import com.almagest_dev.tacobank_core_server.infrastructure.encryption.EncryptionUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -71,7 +72,8 @@ public class RedisSessionUtil {
         // Redis 세션 조회
         String sessionData = redisTemplate.opsForValue().get(redisKey);
         if (sessionData == null) {
-            throw new RedisSessionException("요청 내역이 존재하지 않습니다.", HttpStatus.BAD_REQUEST);
+            log.info("RedisSessionUtil::getSessionData - 요청 내역이 존재하지 않습니다.");
+            return null;
         }
 
         try {
@@ -181,7 +183,7 @@ public class RedisSessionUtil {
     public void cleanupRedisKeys(String className, String sessionId, String... prefixes) {
         // Redis 키 삭제 로직
         for (String prefix : prefixes) {
-            String key = prefix + ":" + sessionId; // 키 생성
+            String key = prefix + sessionId; // 키 생성
             try {
                 boolean deleted = Boolean.TRUE.equals(redisTemplate.delete(key));
                 log.info("{} - [{}] Redis 키 삭제 - Key: {}, 성공 여부: {}", className, sessionId, key, deleted);
@@ -200,15 +202,16 @@ public class RedisSessionUtil {
      * @param timeUnit TTL의 단위 (ttl이 null이면 무시됨)
      * @return 증가된 값
      */
-    public Long incrementAndSetExpire(String redisKey, long incrementValue, long ttl, TimeUnit timeUnit) {
+    public Long incrementIfExists(String redisKey, long incrementValue, long ttl, TimeUnit timeUnit) {
         try {
-            // 값 증가
-            //  - increment : 값이 없을 경우, 1로 초기화
+            // 값 증가 - 값이 없을 경우, 1로 초기화
             Long newValue = redisTemplate.opsForValue().increment(redisKey, incrementValue);
 
-            // TTL 설정
-            if (ttl > 0 && timeUnit != null) {
-                redisTemplate.expire(redisKey, ttl, timeUnit);
+            // TTL 설정은 키가 처음 생성된 경우에만 수행
+            if (redisTemplate.getExpire(redisKey) == -1) { // -1은 만료시간이 설정되지 않았음을 의미
+                if (ttl > 0 && timeUnit != null) {
+                    redisTemplate.expire(redisKey, ttl, timeUnit);
+                }
             }
 
             return newValue;
@@ -217,4 +220,28 @@ public class RedisSessionUtil {
         }
     }
 
+    /**
+     * 접속(계정, 인증) 잠금
+     */
+    public void lockAccess(String sessionId, long duration, TimeUnit unit) {
+        String lockKey = RedisKeyConstants.LOCK_PREFIX + sessionId;
+        redisTemplate.opsForValue().set(lockKey, "LOCKED", duration, unit);
+
+        log.info("RedisSessionUtil::lockAccount - 접속 잠금 완료 (sessionId: {})", sessionId);
+    }
+
+    /**
+     * 계정 or 인증 잠금 확인
+     * @param sessionId Prefix 뒤에 붙는 세션 고유값
+     * @return boolean 잠긴 경우: true | 잠기지 않은 경우: false
+     */
+    public boolean isLocked(String sessionId) {
+        // 인증 잠금 여부 확인
+        String lockStatus = getValueIfExists(RedisKeyConstants.LOCK_PREFIX + sessionId);
+        if ("LOCKED".equals(lockStatus)) {
+            log.info("RedisSessionUtil::isLocked - 접속 잠금 상태 (sessionId: {})", sessionId);
+            return true;
+        }
+        return false;
+    }
 }

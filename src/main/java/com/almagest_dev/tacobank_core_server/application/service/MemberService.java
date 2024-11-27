@@ -105,7 +105,7 @@ public class MemberService {
         validateAndUpdatePassword(member, requestDto.getNewPassword(), requestDto.getConfirmPassword());
 
         // 관련 세션 모두 삭제
-        smsAuthUtil.cleanupAllSmsSession(requestDto.getVerificationId(), requestDto.getTel());
+        smsAuthUtil.cleanupAllSmsSession(requestDto.getTel());
     }
 
     /**
