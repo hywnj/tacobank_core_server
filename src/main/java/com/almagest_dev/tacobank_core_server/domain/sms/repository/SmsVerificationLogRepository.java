@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface SmsVerificationLogRepository extends JpaRepository<SmsVerificationLog, Long> {
-    Optional<SmsVerificationLog> findByReceiverTelAndVerificationCode(String receiverTel, String verificationCode);
+    Optional<SmsVerificationLog> findByIdAndVerificationStatus(Long id, String verificationCode);
 }

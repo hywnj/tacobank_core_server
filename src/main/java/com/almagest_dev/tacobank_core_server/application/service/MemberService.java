@@ -4,7 +4,7 @@ import com.almagest_dev.tacobank_core_server.common.exception.InvalidVerificatio
 import com.almagest_dev.tacobank_core_server.common.utils.ValidationUtil;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
-import com.almagest_dev.tacobank_core_server.infrastructure.sms.SmsAuthUtil;
+import com.almagest_dev.tacobank_core_server.infrastructure.sms.util.SmsAuthUtil;
 import com.almagest_dev.tacobank_core_server.presentation.dto.member.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -74,23 +74,18 @@ public class MemberService {
         memberRepository.save(member);
     }
 
-
     /**
      * 비밀번호 찾기 1) 본인 인증 & 인증번호 발송
      */
-    public void findPasswordAndSendSmsAuth(FindPasswordRequestDto requestDto) {
+    public FindPasswordResponseDto findPasswordAndSendSmsAuth(FindPasswordRequestDto requestDto) {
         // 1. 멤버 확인
         Member member = memberRepository.findByEmailAndTel(requestDto.getEmail(), requestDto.getTel())
                 .orElseThrow(() -> new IllegalArgumentException("회원 정보를 찾을 수 없습니다."));
 
-        // 요청 member ID랑 조회한 ID랑 다른 경우
-        log.info("GetId: {} , request get ID: {}", member.getId(), requestDto.getMemberId());
-        if (member.getId() != requestDto.getMemberId()) {
-            throw new IllegalArgumentException("회원 정보가 잘못되었습니다.");
-        }
-
         // 2. 문자 인증번호 발송 및 인증 요청
-        smsAuthUtil.sendVerificationCode(member.getId(), member.getTel(), "PW");
+        long logId = smsAuthUtil.sendVerificationCode(member.getTel(), "PW");
+
+        return new FindPasswordResponseDto(member.getId(), logId);
     }
 
     /**
@@ -102,7 +97,7 @@ public class MemberService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
         // 2. 인증 여부 확인 & 인증번호 검증
-        if (!smsAuthUtil.verifyCode(member.getId(), requestDto.getTel(), requestDto.getInputCode())) {
+        if (!smsAuthUtil.verifyCode(requestDto.getVerificationId(), requestDto.getTel(), requestDto.getInputCode())) {
             throw new InvalidVerificationException("인증 번호가 일치하지 않습니다.");
         }
 
@@ -110,7 +105,7 @@ public class MemberService {
         validateAndUpdatePassword(member, requestDto.getNewPassword(), requestDto.getConfirmPassword());
 
         // 관련 세션 모두 삭제
-        smsAuthUtil.cleanupAllSmsSession(requestDto.getTel());
+        smsAuthUtil.cleanupAllSmsSession(requestDto.getVerificationId(), requestDto.getTel());
     }
 
     /**
