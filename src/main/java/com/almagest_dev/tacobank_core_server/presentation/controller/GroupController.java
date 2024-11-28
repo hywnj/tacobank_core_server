@@ -29,16 +29,23 @@ public class GroupController {
         );
     }
 
-    // 그룹 삭제 (그룹장만 가능)
-    @DeleteMapping
-    public ResponseEntity<CoreResponseDto<String>> deleteGroup(@RequestBody Map<String, Long> request) {
+    /**
+     * 그룹 비활성화 (그룹장만 가능)
+     */
+    @PostMapping("/deactivate")
+    public ResponseEntity<CoreResponseDto<String>> deactivateGroup(@RequestBody Map<String, Long> request) {
         Long userId = request.get("memberId");
         Long groupId = request.get("groupId");
-        groupService.deleteGroup(userId, groupId);
+        groupService.deactivateGroup(userId, groupId);
         return ResponseEntity.ok(
-                new CoreResponseDto<>("success", "그룹이 삭제되었습니다.", null)
+                new CoreResponseDto<>(
+                        "success",
+                        "그룹이 비활성화되었습니다.",
+                        null
+                )
         );
     }
+
 
     // 친구 초대 (그룹장만 가능)
     @PostMapping("/invite")

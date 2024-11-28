@@ -86,4 +86,6 @@ public class Group {
     public void preUpdate() {
         this.updatedDate = LocalDateTime.now();
     }
+
+    public void unActivated(String n) {this.activated=n;}
 }

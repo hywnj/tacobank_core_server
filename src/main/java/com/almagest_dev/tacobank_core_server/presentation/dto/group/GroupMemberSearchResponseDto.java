@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class GropuMemberSearchResponseDto {
+public class GroupMemberSearchResponseDto {
     private Long memberId;
     private String memberName;
     private String status;

@@ -16,7 +16,7 @@ public class MyGroupsResponseDto {
 
     @Data
     public static class MemberInfo {
-        private Long id;
+
         private Long groupId;
         private Long memberId;
         private String memberName;

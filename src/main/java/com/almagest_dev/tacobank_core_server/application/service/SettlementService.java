@@ -51,6 +51,7 @@ public class SettlementService {
     private final ReceiptProductRepository receiptProductRepository;
     private final ReceiptMemberRepository receiptMemberRepository;
     private final TestbedApiClient testbedApiClient;
+    private final OrgCodeService orgCodeService;
 
     /**
      * 정산 요청
@@ -244,27 +245,37 @@ public class SettlementService {
                 .collect(Collectors.toList());
 
         // 내가 포함된 정산 리스트
+        // 내가 포함된 정산 리스트
         List<MyIncludedSettlementDto> includedSettlements = settlementDetailsRepository.findByGroupMember_Member_Id(memberId).stream()
-                .map(detail -> new MyIncludedSettlementDto(
-                        detail.getSettlement().getId(),
-                        detail.getSettlement().getCreatedDate(),
-                        detail.getSettlementAmount().longValue(),
-                        detail.getSettlementStatus(),
-                        new AccountDto(
-                                detail.getSettlement().getSettlementAccount().getAccountHolderName(),
-                                detail.getSettlement().getSettlementAccount().getAccountNum(),
-                                detail.getSettlement().getSettlementAccount().getBankCode()
-                        )
-                ))
+                .map(detail -> {
+                    // 은행 이름 조회
+                    String bankName = orgCodeService.getBankNameByCode(detail.getSettlement().getSettlementAccount().getBankCode());
+
+                    return new MyIncludedSettlementDto(
+                            detail.getSettlement().getId(),
+                            detail.getSettlement().getCreatedDate(),
+                            detail.getSettlementAmount().longValue(),
+                            detail.getSettlementStatus(),
+                            new AccountDto(
+                                    detail.getSettlement().getSettlementAccount().getAccountHolderName(),
+                                    detail.getSettlement().getSettlementAccount().getAccountNum(),
+                                    bankName
+                            )
+                    );
+                })
                 .collect(Collectors.toList());
 
         // 송금 가능한 계좌 리스트
         List<AccountDto> availableAccounts = accountRepository.findByMember_Id(memberId).stream()
-                .map(account -> new AccountDto(
-                        account.getAccountHolderName(),
-                        account.getAccountNum(),
-                        account.getBankCode()
-                ))
+                .map(account -> {
+                    // 은행 이름 추가
+                    String bankName = orgCodeService.getBankNameByCode(account.getBankCode());
+                    return new AccountDto(
+                            account.getAccountHolderName(),
+                            account.getAccountNum(),
+                            bankName // 은행 이름 추가
+                    );
+                })
                 .collect(Collectors.toList());
 
         return new SettlementStatusResponseDto(createdSettlements, includedSettlements, availableAccounts);

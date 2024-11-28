@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class GroupMemberResponseDto {
-    private Long id;
     private Long groupId;
     private Long memberId;
     private String status;

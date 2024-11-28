@@ -12,12 +12,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface GroupRepository extends JpaRepository<Group, Long> {
-
-    List<Group> findByLeaderId(Long leaderId);
-    Optional<Group> findByName(String name);
-
-    @Query("SELECT g.leader FROM Group g WHERE g.leader.id = :leaderId")
-    Optional<Member> findLeaderById(@Param("leaderId") Long leaderId);
-
-
+    List<Group> findByLeaderIdAndActivated(Long leaderId, String activated);
+    Optional<Group> findByNameAndActivated(String name, String activated);
 }

@@ -363,6 +363,7 @@ public class FriendService {
                     Long friendId = friend.getReceiverId(); // requester_id가 요청자로 있는 친구의 receiver_id 가져오기
                     String liked = friend.getLiked();
                     String friendName = memberRepository.findById(friendId)
+                            .filter(member -> "N".equals(member.getDeleted())) // deleted가 "N"인 경우만
                             .map(Member::getName)
                             .orElse("Unknown");
                     return new FriendResponseDto(friendId, friendName, liked);
@@ -381,6 +382,7 @@ public class FriendService {
                 .map(friend -> {
                     Long friendId = friend.getReceiverId(); // 차단된 친구의 ID
                     String friendName = memberRepository.findById(friendId)
+                            .filter(member -> "N".equals(member.getDeleted())) // deleted가 "N"인 경우만
                             .map(Member::getName) // 친구의 이름 가져오기
                             .orElse("Unknown");
                     return new FriendResponseDto2(friendId, friendName); // DTO 생성

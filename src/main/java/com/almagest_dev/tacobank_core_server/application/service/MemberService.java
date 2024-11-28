@@ -214,6 +214,7 @@ public class MemberService {
      */
     public MemberSearchResponseDto searchMemberByEmail(String email) {
         Member member = memberRepository.findByEmail(email)
+                .filter(m -> "N".equals(m.getDeleted())) // deleted가 "N"인 경우만
                 .orElseThrow(() -> new IllegalArgumentException("해당 이메일로 회원을 찾을 수 없습니다."));
 
         // Member 데이터를 MemberResponseDto로 변환하여 반환

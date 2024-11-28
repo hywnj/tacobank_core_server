@@ -10,5 +10,5 @@ import java.util.List;
 public class GroupSearchResponseDto {
     private Long groupId;
     private String groupName;
-    private List<GropuMemberSearchResponseDto> members;
+    private List<GroupMemberSearchResponseDto> members;
 }

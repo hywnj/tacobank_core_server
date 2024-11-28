@@ -69,14 +69,15 @@ public class GroupService {
 
 
     /**
-     * 그룹 삭제하기
+     * 그룹 비활성화 (활성화 여부를 'N'으로 변경)
      */
     @Transactional
-    public void deleteGroup(Long userId, Long groupId) {
+    public void deactivateGroup(Long userId, Long groupId) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new IllegalArgumentException("그룹을 찾을 수 없습니다."));
         validateLeader(userId, group);
-        groupRepository.delete(group);
+        group.unActivated("N");
+        groupRepository.save(group);
     }
 
     /**
@@ -133,6 +134,7 @@ public class GroupService {
                             ? friend.getReceiverId()
                             : friend.getRequesterId();
                     String friendName = memberRepository.findById(friendId)
+                            .filter(member -> "N".equals(member.getDeleted())) // deleted 필터링 추가
                             .map(Member::getName)
                             .orElse("Unknown");
                     Map<String, Object> friendInfo = new HashMap<>();
@@ -240,7 +242,8 @@ public class GroupService {
      * 나의 그룹 조회
      */
     public List<MyGroupsResponseDto> getMyGroups(Long memberId) {
-        List<Group> groups = groupRepository.findByLeaderId(memberId);
+        List<Group> groups = groupRepository.findByLeaderIdAndActivated(memberId, "Y");
+
 
         return groups.stream().map(group -> {
             MyGroupsResponseDto response = new MyGroupsResponseDto();
@@ -253,24 +256,27 @@ public class GroupService {
 
             // 리더 이름 조회
             Member leader = memberRepository.findById(group.getLeader().getId())
+                    .filter(member -> "N".equals(member.getDeleted())) // deleted 필터링 추가
                     .orElseThrow(() -> new IllegalArgumentException("리더를 찾을 수 없습니다."));
             response.setLeaderName(leader.getName());
 
-            // 멤버 이름 조회
-            List<MyGroupsResponseDto.MemberInfo> members = group.getPayGroups().stream().map(member -> {
-                MyGroupsResponseDto.MemberInfo memberInfo = new MyGroupsResponseDto.MemberInfo();
-                memberInfo.setId(member.getId());
-                memberInfo.setGroupId(member.getPayGroup().getId());
-                memberInfo.setMemberId(member.getMember().getId());
-                memberInfo.setStatus(member.getStatus());
+            // 멤버 이름 조회 및 status가 ACCEPTED인 멤버 필터링
+            List<MyGroupsResponseDto.MemberInfo> members = group.getPayGroups().stream()
+                    .filter(member -> "ACCEPTED".equals(member.getStatus())) // ACCEPTED 상태 필터링
+                    .map(member -> {
+                        MyGroupsResponseDto.MemberInfo memberInfo = new MyGroupsResponseDto.MemberInfo();
+                        memberInfo.setGroupId(member.getPayGroup().getId());
+                        memberInfo.setMemberId(member.getMember().getId());
+                        memberInfo.setStatus(member.getStatus());
 
-                // 멤버 이름 설정
-                Member memberEntity = memberRepository.findById(member.getMember().getId())
-                        .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
-                memberInfo.setMemberName(memberEntity.getName());
+                        Member memberEntity = memberRepository.findById(member.getMember().getId())
+                                .filter(m -> "N".equals(m.getDeleted())) // deleted 필터링 추가
+                                .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
+                        memberInfo.setMemberName(memberEntity.getName());
+                        return memberInfo;
+                    })
+                    .collect(Collectors.toList());
 
-                return memberInfo;
-            }).collect(Collectors.toList());
 
             response.setMembers(members);
             return response;
@@ -285,7 +291,6 @@ public class GroupService {
 
         return pendingInvitations.stream()
                 .map(member -> new GroupMemberResponseDto(
-                        member.getId(),
                         member.getPayGroup().getId(),
                         member.getMember().getId(),
                         member.getStatus(),
@@ -300,17 +305,26 @@ public class GroupService {
     @Transactional
     public GroupSearchResponseDto searchGroupByName(String groupName) {
         // 그룹 이름으로 그룹을 조회
-        Group group = groupRepository.findByName(groupName)
+        Group group = groupRepository.findByNameAndActivated(groupName, "Y")
                 .orElseThrow(() -> new IllegalArgumentException("해당 이름의 그룹을 찾을 수 없습니다."));
 
-        // 그룹에 속한 멤버 조회
-        List<GropuMemberSearchResponseDto> members = groupMemberRepository.findByPayGroupId(group.getId()).stream()
-                .map(groupMember -> new GropuMemberSearchResponseDto(
-                        groupMember.getMember().getId(),
-                        groupMember.getMember().getName(),
-                        groupMember.getStatus()
-                ))
+        // 그룹에 속한 멤버 조회 (ACCEPTED 상태와 deleted가 "N"인 경우만 필터링)
+        List<GroupMemberSearchResponseDto> members = groupMemberRepository.findByPayGroupId(group.getId()).stream()
+                .filter(groupMember -> "ACCEPTED".equals(groupMember.getStatus())) // ACCEPTED 상태 필터링
+                .map(groupMember -> {
+                    // 멤버 정보 조회 시 deleted 필터링 추가
+                    Member member = memberRepository.findById(groupMember.getMember().getId())
+                            .filter(m -> "N".equals(m.getDeleted())) // deleted 필터링
+                            .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
+
+                    return new GroupMemberSearchResponseDto(
+                            member.getId(),
+                            member.getName(),
+                            groupMember.getStatus()
+                    );
+                })
                 .collect(Collectors.toList());
+
 
         // 그룹 정보와 멤버 정보를 DTO로 반환
         return new GroupSearchResponseDto(
@@ -319,4 +333,6 @@ public class GroupService {
                 members
         );
     }
+
+
 }
