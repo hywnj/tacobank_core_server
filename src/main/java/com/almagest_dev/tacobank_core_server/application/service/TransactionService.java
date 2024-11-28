@@ -91,7 +91,7 @@ public class TransactionService {
         return transactions.stream()
                 .map(transaction -> {
                     TransactionResponseDto responseDto = new TransactionResponseDto();
-                    responseDto.setTranNum(null); // 거래 ID가 없는 경우 null 처리
+                    responseDto.setTranNum(transaction.getTranNum()); // 거래 ID가 없는 경우 null 처리
                     responseDto.setType(transaction.getTranType());
                     responseDto.setPrintContent(transaction.getPrintContent());
                     responseDto.setAmount(Double.valueOf(transaction.getTranAmt()));

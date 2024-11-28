@@ -5,7 +5,7 @@ import java.util.List;
 @Data
 public class TransactionListApiResponseDto {
 
-    private String apiTranId;
+    private String tranNum;
     private String apiTranDtm;
     private String rspCode;
     private String rspMessage;

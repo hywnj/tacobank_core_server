@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class TransactionResponseDto {
-    private Long tranNum; // 거래 고유 시퀀스 번호
+    private String  tranNum; // 거래 고유 시퀀스 번호
     private String type; // 거래 타입
     private String printContent; // 입금출력내용
     private Double amount; // 거래금액

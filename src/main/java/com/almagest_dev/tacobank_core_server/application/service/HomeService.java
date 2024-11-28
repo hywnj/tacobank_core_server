@@ -90,7 +90,7 @@ public class HomeService {
         response.setTel(member.getTel());
 
         boolean isPinSet = member.getTransferPin() != null;
-        response.setPinSet(isPinSet); 
+        response.setPinSet(isPinSet);
 
         List<AccountResponseDto> accountList = accountResponseDto.getResList().stream()
                 .map(accountInfo -> {
@@ -146,8 +146,7 @@ public class HomeService {
         return responseDto.getResList().stream()
                 .map(transaction -> {
                     TransactionResponseDto2 transactionDto = new TransactionResponseDto2();
-                    /// !!!!!!!!!!!!!!!!!!!!!!
-                    transactionDto.setApiTranId(transaction.getApiTranId());
+                    transactionDto.setTranNum(transaction.getTranNum());
                     transactionDto.setPrintContent(transaction.getPrintContent());
 
                     // 출금(송금 포함)의 경우 금액을 음수로 변경

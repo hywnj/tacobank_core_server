@@ -11,7 +11,7 @@ public class TransactionDetailApiDto {
     private String tranType;
     private String printContent;
     private String tranAmt;
-    private String apiTranId;
+    private String tranNum;
     private String afterBalanceAmt;
 
 }
