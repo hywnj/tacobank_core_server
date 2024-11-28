@@ -245,7 +245,6 @@ public class SettlementService {
                 .collect(Collectors.toList());
 
         // 내가 포함된 정산 리스트
-        // 내가 포함된 정산 리스트
         List<MyIncludedSettlementDto> includedSettlements = settlementDetailsRepository.findByGroupMember_Member_Id(memberId).stream()
                 .map(detail -> {
                     // 은행 이름 조회
@@ -273,7 +272,7 @@ public class SettlementService {
                     return new AccountDto(
                             account.getAccountHolderName(),
                             account.getAccountNum(),
-                            bankName // 은행 이름 추가
+                            bankName
                     );
                 })
                 .collect(Collectors.toList());

@@ -14,4 +14,10 @@ import java.util.Optional;
 public interface GroupRepository extends JpaRepository<Group, Long> {
     List<Group> findByLeaderIdAndActivated(Long leaderId, String activated);
     Optional<Group> findByNameAndActivated(String name, String activated);
+
+    @Query("SELECT DISTINCT g FROM Group g " +
+            "JOIN g.payGroups pg " +
+            "WHERE pg.member.id = :memberId AND pg.status = 'ACCEPTED'")
+    List<Group> findGroupsByAcceptedMember(@Param("memberId") Long memberId);
+
 }

@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -238,45 +239,56 @@ public class GroupService {
         groupRepository.save(group);
     }
 
+
     /**
      * 나의 그룹 조회
      */
     public List<MyGroupsResponseDto> getMyGroups(Long memberId) {
-        List<Group> groups = groupRepository.findByLeaderIdAndActivated(memberId, "Y");
+        // 1. 리더로서 속한 그룹 조회
+        List<Group> leaderGroups = groupRepository.findByLeaderIdAndActivated(memberId, "Y");
 
+        // 2. 그룹 멤버로 속한 그룹 조회 (ACCEPTED 상태)
+        List<Group> memberGroups = groupRepository.findGroupsByAcceptedMember(memberId);
 
-        return groups.stream().map(group -> {
+        // 3. 두 그룹 목록 합치기 및 중복 제거
+        List<Group> allGroups = Stream.concat(leaderGroups.stream(), memberGroups.stream())
+                .distinct() // 중복 제거
+                .filter(group -> "Y".equals(group.getActivated())) // activated = "Y" 필터링
+                .filter(group -> !"N".equals(group.getCustomized())) // customized = "N" 제외
+                .collect(Collectors.toList());
+
+        // 4. 그룹 데이터를 Dto로 변환
+        return allGroups.stream().map(group -> {
             MyGroupsResponseDto response = new MyGroupsResponseDto();
             response.setGroupId(group.getId());
             response.setGroupName(group.getName());
             response.setCustomized(group.getCustomized());
             response.setActivated(group.getActivated());
             response.setLeaderId(group.getLeader().getId());
-            response.setLeaderName(group.getLeader().getName());
 
             // 리더 이름 조회
             Member leader = memberRepository.findById(group.getLeader().getId())
-                    .filter(member -> "N".equals(member.getDeleted())) // deleted 필터링 추가
+                    .filter(member -> "N".equals(member.getDeleted())) // 삭제되지 않은 리더만 조회
                     .orElseThrow(() -> new IllegalArgumentException("리더를 찾을 수 없습니다."));
             response.setLeaderName(leader.getName());
 
-            // 멤버 이름 조회 및 status가 ACCEPTED인 멤버 필터링
+            // 그룹 멤버 정보 조회 및 필터링
             List<MyGroupsResponseDto.MemberInfo> members = group.getPayGroups().stream()
-                    .filter(member -> "ACCEPTED".equals(member.getStatus())) // ACCEPTED 상태 필터링
-                    .map(member -> {
+                    .filter(pg -> "ACCEPTED".equals(pg.getStatus())) // ACCEPTED 상태인 멤버만 필터링
+                    .map(pg -> {
                         MyGroupsResponseDto.MemberInfo memberInfo = new MyGroupsResponseDto.MemberInfo();
-                        memberInfo.setGroupId(member.getPayGroup().getId());
-                        memberInfo.setMemberId(member.getMember().getId());
-                        memberInfo.setStatus(member.getStatus());
+                        memberInfo.setGroupId(pg.getPayGroup().getId());
+                        memberInfo.setMemberId(pg.getMember().getId());
+                        memberInfo.setStatus(pg.getStatus());
 
-                        Member memberEntity = memberRepository.findById(member.getMember().getId())
-                                .filter(m -> "N".equals(m.getDeleted())) // deleted 필터링 추가
+                        // 멤버 이름 조회
+                        Member memberEntity = memberRepository.findById(pg.getMember().getId())
+                                .filter(m -> "N".equals(m.getDeleted())) // 삭제되지 않은 멤버만 포함
                                 .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
                         memberInfo.setMemberName(memberEntity.getName());
                         return memberInfo;
                     })
                     .collect(Collectors.toList());
-
 
             response.setMembers(members);
             return response;
