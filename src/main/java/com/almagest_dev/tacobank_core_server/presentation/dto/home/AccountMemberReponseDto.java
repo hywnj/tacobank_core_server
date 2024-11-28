@@ -11,5 +11,6 @@ public class AccountMemberReponseDto {
     private String name;
     private String tel;
     private Long mainAccountId;
+    private boolean pinSet;
     private List<AccountResponseDto> accountList;
 }
