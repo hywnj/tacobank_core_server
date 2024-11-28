@@ -197,12 +197,13 @@ public class MemberService {
         if (!passwordEncoder.matches(requestDto.getCurrentPin(), member.getTransferPin())) {
             throw new InvalidVerificationException("비밀번호가 일치하지 않습니다");
         }
+        // 새로운 비밀번호 유효성 검사
+        ValidationUtil.validateTransferPin(requestDto.getNewPin());
+
         // 새로운 비밀번호와 확인 비밀번호 일치여부
         if (!requestDto.getNewPin().equals(requestDto.getConfirmPin())) {
             throw new InvalidVerificationException("새 비밀번호와 확인 비밀번호가 일치하지 않습니다.");
         }
-        // 새로운 비밀번호 유효성 검사
-        ValidationUtil.validateTransferPin(requestDto.getNewPin());
 
         // 새로운 비밀번호 해싱 및 저장
         String encodedPin = passwordEncoder.encode(requestDto.getNewPin());
