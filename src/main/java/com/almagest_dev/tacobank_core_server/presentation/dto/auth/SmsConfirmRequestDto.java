@@ -7,6 +7,9 @@ import lombok.Getter;
 
 @Getter
 public class SmsConfirmRequestDto {
+    @NotBlank(message = "요청 타입을 보내주세요.")
+    private String type; // 요청 타입 (회원가입: join | 비밀번호: pw | 출금 비밀번호: pin | 통합계좌연결: mydata | 휴대전화번호 수정: tel)
+
     @NotNull(message = "인증 정보가 없습니다.")
     private Long verificationId;
 

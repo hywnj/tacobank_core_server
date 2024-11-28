@@ -83,7 +83,7 @@ public class MemberService {
                 .orElseThrow(() -> new IllegalArgumentException("회원 정보를 찾을 수 없습니다."));
 
         // 2. 문자 인증번호 발송 및 인증 요청
-        long logId = smsAuthUtil.sendVerificationCode(member.getTel(), "PW");
+        long logId = smsAuthUtil.sendVerificationCode(member.getTel(), "pw");
 
         return new FindPasswordResponseDto(member.getId(), logId);
     }
@@ -97,15 +97,15 @@ public class MemberService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
         // 2. 인증 여부 확인 & 인증번호 검증
-        if (!smsAuthUtil.verifyCode(requestDto.getVerificationId(), requestDto.getTel(), requestDto.getInputCode())) {
+        if (!smsAuthUtil.verifyCode(requestDto.getVerificationId(), requestDto.getTel(), requestDto.getInputCode(), "pw")) {
             throw new InvalidVerificationException("인증 번호가 일치하지 않습니다.");
         }
 
         // 비밀번호 규칙 검사 & Member UPDATE
         validateAndUpdatePassword(member, requestDto.getNewPassword(), requestDto.getConfirmPassword());
 
-        // 관련 세션 모두 삭제
-        smsAuthUtil.cleanupAllSmsSession(requestDto.getTel());
+        // 관련 세션 모두 삭제정
+        smsAuthUtil.cleanupAllSmsSession(requestDto.getTel(), "pw");
     }
 
     /**

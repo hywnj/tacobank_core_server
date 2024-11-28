@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 public class SmsVerificationRequestDto {
-    private String type; // 인증 유형 (회원가입: JOIN, 비번관련: PW, 출금비번: PIN, 통합계좌조회: MYDATA)
+    private String type; // 요청 타입 (회원가입: join | 비밀번호: pw | 출금 비밀번호: pin | 통합계좌연결: mydata | 휴대전화번호 수정: tel)
 
     @NotBlank(message = "전화번호를 입력해주세요.")
     private String tel;

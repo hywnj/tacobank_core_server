@@ -17,7 +17,7 @@ public class SmsVerificationLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(columnDefinition = "VARCHAR(10) COMMENT '요청 종류(회원가입 본인인증(JOIN) | 비밀번호 찾기 (PW) | 통합계좌조회 (MYDATA))'")
+    @Column(columnDefinition = "VARCHAR(10) COMMENT '요청 종류(회원가입: join | 비밀번호: pw | 출금 비밀번호: pin | 통합계좌연결: mydata | 휴대전화번호 수정: tel)'")
     private String requestType;
 
     @Column(columnDefinition = "VARCHAR(100) COMMENT '요청 ID (API 응답값)'")
