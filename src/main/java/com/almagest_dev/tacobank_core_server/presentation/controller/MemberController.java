@@ -77,6 +77,15 @@ public class MemberController {
     }
 
     /**
+     * 출금 비밀번호 검증 - 변경전 확인용
+     */
+    @PostMapping("/pin-verify")
+    public ResponseEntity<?> setTransferPin(@RequestBody @Valid ChangePinRequestDto requestDto) {
+        memberService.verifyTransferPin(requestDto);
+        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "출금 비밀번호가 확인되었습니다."));
+    }
+
+    /**
      * 출금 비밀번호 설정
      */
     @PostMapping("/pin")

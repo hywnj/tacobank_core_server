@@ -8,6 +8,7 @@ import com.almagest_dev.tacobank_core_server.presentation.dto.auth.SmsVerificati
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,8 +22,10 @@ public class AuthController {
      */
     @PostMapping("/sms/verification")
     public ResponseEntity<?> sendSmsVerificationCode(@RequestBody @Valid SmsVerificationRequestDto requestDto) {
+
         SmsVerificationResponseDto response = authService.sendSmsVerificationCode(requestDto);
         return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "인증 번호를 발송했습니다.", response));
+
     }
 
     /**
