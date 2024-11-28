@@ -7,7 +7,7 @@ import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.TransactionListApiRequestDto;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.TransactionListApiResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transantion.TransactionListRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransactionResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.transantion.TransactionResponseDto;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -97,6 +97,7 @@ public class TransactionService {
                     responseDto.setAmount(Double.valueOf(transaction.getTranAmt()));
                     responseDto.setAfterBalanceAmount(Double.valueOf(transaction.getAfterBalanceAmt()));
                     responseDto.setTranDateTime(transaction.getTranDate() + " " + transaction.getTranTime());
+                    responseDto.setTranAmt(transaction.getTranAmt());
                     return responseDto;
                 })
                 .collect(Collectors.toList());

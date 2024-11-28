@@ -1,4 +1,4 @@
-package com.almagest_dev.tacobank_core_server.presentation.dto.account;
+package com.almagest_dev.tacobank_core_server.presentation.dto.home;
 
 import lombok.Data;
 

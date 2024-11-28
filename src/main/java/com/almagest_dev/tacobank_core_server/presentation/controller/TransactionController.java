@@ -2,7 +2,7 @@ package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.TransactionService;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transantion.TransactionListRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransactionResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.transantion.TransactionResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/taco/core/transfers")
+@RequestMapping("/taco/core/transactions")
 @RequiredArgsConstructor
 public class TransactionController {
 

@@ -2,9 +2,7 @@ package com.almagest_dev.tacobank_core_server.presentation.controller;
 
 import com.almagest_dev.tacobank_core_server.application.service.TransferService;
 import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.member.MemberRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.ReceiverInquiryRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransactionResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransferRequestDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -49,12 +47,4 @@ public class TransferController {
         return ResponseEntity.ok(transferService.transfer(requestDto));
     }
 
-    /**
-     * 거래내역조회
-     */
-    @PostMapping("/history")
-    public ResponseEntity<List<TransactionResponseDto>> getTransactionHistory(@RequestBody MemberRequestDto request) {
-        List<TransactionResponseDto> response = transferService.getTransactionHistory(request.getMemberId());
-        return ResponseEntity.ok(response);
-    }
 }
