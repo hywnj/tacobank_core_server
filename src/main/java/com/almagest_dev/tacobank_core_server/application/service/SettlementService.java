@@ -213,7 +213,7 @@ public class SettlementService {
 
             // 멤버 ID를 정산 그룹 구성원 ID로 매핑해서 리스트에 저장
             if (productMemberDetail.getProductMembers() == null) {
-                log.warn("SettlementServ청ice::processReceiptSettlement 영수증 품목별 멤버 리스트가 없습니다. - receiptId: {} | productId: {}", requestDto.getReceiptId(), productMemberDetail.getProductId());
+                log.warn("SettlementService::processReceiptSettlement 영수증 품목별 멤버 리스트가 없습니다. - receiptId: {} | productId: {}", requestDto.getReceiptId(), productMemberDetail.getProductId());
                 continue;
             }
             for (Long memberId : productMemberDetail.getProductMembers()) {

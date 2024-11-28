@@ -88,10 +88,10 @@ public class AccountController {
     }
 
     @PostMapping("/list")
-    public ResponseEntity<List<AccountResponseDto>> getUserAccountsOnly(@RequestBody Map<String, Long> request) {
+    public ResponseEntity<?> getUserAccountsOnly(@RequestBody Map<String, Long> request) {
         Long memberId = request.get("memberId");
         List<AccountResponseDto> accounts = accountService.getUserAccountsOnly(memberId);
-        return ResponseEntity.ok(accounts);
+        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "계좌 조회 성공", accounts));
     }
 
 
