@@ -129,6 +129,10 @@ public class MemberService {
      * 비밀번호 규칙 검사 & UPDATE
      */
     private void validateAndUpdatePassword(Member member, String newPassword, String confirmPassword) {
+        // 비밀번호 공백 제거
+        newPassword = newPassword.trim();
+        confirmPassword = confirmPassword.trim();
+
         // 비밀번호 규칙 검사
         ValidationUtil.validatePassword(newPassword, 8, member.getBirth(), member.getTel());
 
