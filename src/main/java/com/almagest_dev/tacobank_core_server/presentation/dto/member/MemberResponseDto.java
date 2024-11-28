@@ -10,5 +10,6 @@ public class MemberResponseDto {
     private String email;
     private String name;
     private String tel;
+    private String birth;
     private String userFinanceId;
 }

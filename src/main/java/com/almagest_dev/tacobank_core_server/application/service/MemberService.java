@@ -34,6 +34,7 @@ public class MemberService {
                 member.getEmail(),
                 member.getName(),
                 member.getTel(),
+                member.getBirth(),
                 member.getUserFinanceId()
         );
     }
@@ -228,5 +229,21 @@ public class MemberService {
                 member.getName(),
                 member.getEmail()
         );
+    }
+
+    public void verifyTransferPin(ChangePinRequestDto requestDto) {
+        log.info("MemberService::verifyTransferPin START");
+
+        // Member 조회
+        Member member = memberRepository.findByIdAndDeleted(requestDto.getMemberId(), "N")
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        // 기존 비밀번호 확인
+        if (!passwordEncoder.matches(requestDto.getCurrentPin(), member.getTransferPin())) {
+            throw new InvalidVerificationException("비밀번호가 일치하지 않습니다");
+        }
+
+        log.info("MemberService::verifyTransferPin END");
+
     }
 }
