@@ -10,6 +10,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
@@ -63,6 +64,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleConstraintViolationException(ConstraintViolationException ex) {
         log.warn("ConstraintViolationException - " + ex.getMessage());
         CoreResponseDto response = new CoreResponseDto("FAILURE", "필수 데이터가 누락되었거나 잘못된 데이터가 입력되었습니다.");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<?> handleNoResourceFoundException(NoResourceFoundException ex) {
+        log.warn("NoResourceFoundException - " + ex.getMessage());
+        CoreResponseDto response = new CoreResponseDto("FAILURE", "잘못된 요청입니다.");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
     @ExceptionHandler(SmsSendFailedException.class) // SMS 전송시 예외처리
