@@ -83,7 +83,20 @@ public class ValidationUtil {
             return true; // 숫자가 전혀 없는 경우 true 반환
         }
 
-        return str.contains(sanitizedBirthDate) || str.contains(sanitizedTel);
+        // 생년월일 매칭 검사
+        if (str.contains(sanitizedBirthDate.substring(0, 2)) // 연도 확인
+                || str.contains(sanitizedBirthDate.substring(2)) // 월일 확인
+                || str.contains(sanitizedBirthDate) // 전체 확인
+        ) {
+            return true;
+        }
+
+        // 전화번호 매칭 검사
+        if (str.contains(sanitizedTel)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
