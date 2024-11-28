@@ -2,6 +2,7 @@ package com.almagest_dev.tacobank_core_server.infrastructure.security.authentica
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         log.info("JwtAuthenticationFilter::doFilterInternal");
 
         // 토큰 추출
-        String token = resolveToken(request);
+        String token = getTokenFromCookies(request.getCookies());
         log.info("JwtAuthenticationFilter::doFilterInternal - token: " + token);
 
 
@@ -53,13 +54,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Header 에서 토큰 추출 ('Bearer' 방식)
+     * Cookie 에서 토큰 추출
      */
-    private String resolveToken(HttpServletRequest request) {
-        log.info("JwtAuthenticationFilter::resolveToken");
-        String bearerToken = request.getHeader("Authorization");
-        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
+    private String getTokenFromCookies(Cookie[] cookies) {
+        if (cookies == null) return null;
+
+        for (Cookie cookie : cookies) {
+            if ("Authorization".equals(cookie.getName())) {
+                return cookie.getValue();
+            }
         }
         return null;
     }
