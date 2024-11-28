@@ -227,6 +227,9 @@ public class TransferService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
         // 비밀번호 검증
+        if (withdrawalMember.getTransferPin() == null) {
+            throw new TransferException("TERMINATED", "출금 비밀번호 설정이 안되어있습니다. 비밀번호 설정 후 다시 송금해주세요.", HttpStatus.BAD_REQUEST);
+        }
         boolean isValid = withdrawalMember.getTransferPin().equals(requestDto.getTransferPin());
         if (!isValid) {
             // 실패 횟수 증가
@@ -244,7 +247,7 @@ public class TransferService {
                 redisTemplate.delete(pinFailureRedisKey);
                 redisTemplate.delete(transferSessionRedisKey);
 
-                throw new TransferPasswordValidationException("비밀번호 입력 횟수가 초과했습니다. 송금을 종료합니다.", HttpStatus.FORBIDDEN);
+                throw new TransferPasswordValidationException("TERMINATED", "비밀번호 입력 횟수가 초과했습니다. 송금을 종료합니다.", HttpStatus.FORBIDDEN);
             }
 
             // 실패 메시지 반환

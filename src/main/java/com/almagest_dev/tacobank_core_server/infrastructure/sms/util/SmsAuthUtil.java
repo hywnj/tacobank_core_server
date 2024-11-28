@@ -155,17 +155,19 @@ public class SmsAuthUtil {
             throw new SmsSendFailedException("FAILURE", "인증이 차단되었습니다. 잠시 후 다시 시도하거나 고객센터로 문의해주세요.", HttpStatus.FORBIDDEN);
         }
 
+        // 이미 성공한 건이 있는지 확인
+        String successKey = buildRedisKey(RedisKeyConstants.SMS_SUCCESS_PREFIX, requestType, tel); // SMS 문자 성공 세션 키
+        if (redisSessionUtil.isKeyExists(successKey)) {
+            log.info("SmsAuthUtil::verifyCode SUCCESS - 인증 성공 내역 존재");
+            return true;
+        }
+
         String smsKey = buildRedisKey(RedisKeyConstants.SMS_KEY_PREFIX, requestType, tel); // SMS 문자 요청 세션 키
         // 세션 데이터 확인
         VerificationDataDto verificationData;
         verificationData = redisSessionUtil.getSessionData(smsKey, VerificationDataDto.class, false);
         if (verificationData == null) {
             throw new SmsSendFailedException("인증 요청 내역이 없습니다.");
-        }
-        // 이미 성공한 건이 있는지 확인
-        String successKey = buildRedisKey(RedisKeyConstants.SMS_SUCCESS_PREFIX, requestType, tel); // SMS 문자 성공 세션 키
-        if (redisSessionUtil.isKeyExists(successKey)) {
-            throw new SmsSendFailedException("FAILURE", "이미 성공한 요청 입니다.", HttpStatus.BAD_REQUEST);
         }
 
         log.info("SmsAuthUtil::storeVerificationData Redis Key - {}, Value - {}", smsKey, verificationData);
@@ -193,8 +195,9 @@ public class SmsAuthUtil {
             // SmsVerificationLog 인증 상태 UPDATE
             updateSmsVerificationStatus("VERIFIED", tel, inputCode, verificationData.getLogId(), verificationData);
 
-            // Redis 세션 삭제 - 실패 횟수 세션
+            // Redis 세션 삭제 - 인증 요청, 실패 횟수 세션
             redisSessionUtil.cleanupRedisKeys("SmsAuthUtil", pinFailureKey);
+            redisSessionUtil.cleanupRedisKeys("SmsAuthUtil", smsKey);
 
             // Redis 성공 세션 생성
             redisSessionUtil.storeSessionData(successKey, verificationData, 3, TimeUnit.MINUTES, false);
