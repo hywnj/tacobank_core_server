@@ -12,6 +12,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -51,6 +53,10 @@ public class TransactionService {
     }
 
     private TransactionListApiResponseDto fetchTransactionListFromApi(String fintechUseNum, TransactionListRequestDto requestDto) {
+
+        LocalDateTime now = LocalDateTime.now();
+        String tranDtime = now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+
         // API 요청 DTO 생성
         TransactionListApiRequestDto apiRequestDto = new TransactionListApiRequestDto();
         apiRequestDto.setFintechUseNum(fintechUseNum); // 금융 ID
@@ -61,7 +67,7 @@ public class TransactionService {
         apiRequestDto.setToDate(requestDto.getToDate()); // 조회 종료 날짜
         apiRequestDto.setToTime("240000"); // 기본값
         apiRequestDto.setSortOrder("D"); // 기본값: 내림차순
-        apiRequestDto.setTranDtime("20241129120000"); // 디폴트 값
+        apiRequestDto.setTranDtime(tranDtime); // 디폴트 값
         apiRequestDto.setDataLength(""); // 기본값
 
         // API 호출

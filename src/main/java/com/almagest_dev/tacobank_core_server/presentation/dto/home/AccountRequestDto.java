@@ -7,6 +7,4 @@ import lombok.Setter;
 @Setter
 public class AccountRequestDto {
     private Long memberId;
-    private String fromDate;
-    private String toDate;
 }

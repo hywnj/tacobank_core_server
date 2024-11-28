@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -55,8 +57,14 @@ public class HomeService {
             saveAccounts(accountResponseDto.getResList(), member);
         }
 
+
+        // 현재 시점 및 포맷팅 설정
+        String fromDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String toDate = LocalDateTime.now().plusMonths(1).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String tranDtime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+
         // 계좌 및 거래 내역 응답 생성
-        return mapToAccountMemberResponseDto(member, accountResponseDto, requestDto.getFromDate(), requestDto.getToDate());
+        return mapToAccountMemberResponseDto(member, accountResponseDto, fromDate, toDate, tranDtime);
     }
 
     private IntegrateAccountApiResponseDto fetchAccountsFromApi(String userFinanceId, String userName) {
@@ -82,7 +90,7 @@ public class HomeService {
         accountRepository.saveAll(accounts);
     }
 
-    private AccountMemberReponseDto mapToAccountMemberResponseDto(Member member, IntegrateAccountApiResponseDto accountResponseDto, String fromDate, String toDate) {
+    private AccountMemberReponseDto mapToAccountMemberResponseDto(Member member, IntegrateAccountApiResponseDto accountResponseDto, String fromDate, String toDate, String tranDtime) {
         AccountMemberReponseDto response = new AccountMemberReponseDto();
         response.setMemberId(member.getId());
         response.setEmail(member.getEmail());
@@ -122,6 +130,18 @@ public class HomeService {
     }
 
     private List<TransactionResponseDto2> fetchTransactionList(TransactionListRequestDto requestDto) {
+        // 현재 시점
+        LocalDateTime now = LocalDateTime.now();
+
+        // fromDate: 현재 시점
+        String fromDate = now.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+
+        // toDate: 한 달 뒤 시점
+        String toDate = now.plusMonths(1).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+
+        // tranDtime: 현재 날짜와 시간
+        String tranDtime = now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+
         // API 요청 DTO 생성
         TransactionListApiRequestDto apiRequestDto = new TransactionListApiRequestDto();
         apiRequestDto.setFintechUseNum(accountRepository.findByAccountNum(requestDto.getAccountNum())
@@ -129,13 +149,14 @@ public class HomeService {
                 .getFintechUseNum());
         apiRequestDto.setInquiryType("A");
         apiRequestDto.setInquiryBase("D");
-        apiRequestDto.setFromDate(requestDto.getFromDate());
+        apiRequestDto.setFromDate(fromDate);
         apiRequestDto.setFromTime("001000");
-        apiRequestDto.setToDate(requestDto.getToDate());
+        apiRequestDto.setToDate(toDate);
         apiRequestDto.setToTime("240000");
         apiRequestDto.setSortOrder("D");
-        apiRequestDto.setTranDtime("20241129120000");
+        apiRequestDto.setTranDtime(tranDtime); // 동적으로 설정된 트랜잭션 시간 추가
         apiRequestDto.setDataLength("5"); // 기본값
+
 
         TransactionListApiResponseDto responseDto = testbedApiClient.requestApi(apiRequestDto, "/openbank/tranlist", TransactionListApiResponseDto.class);
 
