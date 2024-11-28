@@ -178,17 +178,17 @@ public class RedisSessionUtil {
 
     /**
      * Redis 키 삭제
-     * @param sessionId 세션 ID
+     * @param className 메서드 호출 클래스 명
+     * @param keys 삭제할 1개 이상의 키
      */
-    public void cleanupRedisKeys(String className, String sessionId, String... prefixes) {
+    public void cleanupRedisKeys(String className, String... keys) {
         // Redis 키 삭제 로직
-        for (String prefix : prefixes) {
-            String key = prefix + sessionId; // 키 생성
+        for (String key : keys) {
             try {
                 boolean deleted = Boolean.TRUE.equals(redisTemplate.delete(key));
-                log.info("{} - [{}] Redis 키 삭제 - Key: {}, 성공 여부: {}", className, sessionId, key, deleted);
+                log.info("{} - [{}] Redis 키 삭제 - Key: {}, 성공 여부: {}", className, key, deleted);
             } catch (Exception redisEx) {
-                log.warn("{} - [{}] Redis 키 삭제 중 예외 발생 - Key: {}, Error: {}", className, sessionId, key, redisEx.getMessage());
+                log.warn("{} - [{}] Redis 키 삭제 중 예외 발생 - Key: {}, Error: {}", className, key, redisEx.getMessage());
             }
         }
     }
@@ -221,10 +221,18 @@ public class RedisSessionUtil {
     }
 
     /**
+     * Redis Key 존재 여부 확인
+     */
+    public boolean isKeyExists(String redisKey) {
+        return Boolean.TRUE.equals(redisTemplate.hasKey(redisKey));
+    }
+
+    /**
      * 접속(계정, 인증) 잠금
+     * @param sessionId prefix 를 제외한 세션 키
      */
     public void lockAccess(String sessionId, long duration, TimeUnit unit) {
-        String lockKey = RedisKeyConstants.LOCK_PREFIX + sessionId;
+        String lockKey = RedisKeyConstants.SMS_LOCK_PREFIX + sessionId;
         redisTemplate.opsForValue().set(lockKey, "LOCKED", duration, unit);
 
         log.info("RedisSessionUtil::lockAccount - 접속 잠금 완료 (sessionId: {})", sessionId);
@@ -237,7 +245,7 @@ public class RedisSessionUtil {
      */
     public boolean isLocked(String sessionId) {
         // 인증 잠금 여부 확인
-        String lockStatus = getValueIfExists(RedisKeyConstants.LOCK_PREFIX + sessionId);
+        String lockStatus = getValueIfExists(RedisKeyConstants.SMS_LOCK_PREFIX + sessionId);
         if ("LOCKED".equals(lockStatus)) {
             log.info("RedisSessionUtil::isLocked - 접속 잠금 상태 (sessionId: {})", sessionId);
             return true;

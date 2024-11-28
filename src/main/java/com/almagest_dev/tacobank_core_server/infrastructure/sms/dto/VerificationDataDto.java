@@ -10,5 +10,4 @@ public class VerificationDataDto {
     private Long logId;
     private String requestId;
     private String verificationCode;
-    private String verificationStatus;
 }
