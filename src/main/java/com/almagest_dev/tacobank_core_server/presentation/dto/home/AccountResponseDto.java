@@ -1,6 +1,5 @@
-package com.almagest_dev.tacobank_core_server.presentation.dto.account;
+package com.almagest_dev.tacobank_core_server.presentation.dto.home;
 
-import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransactionResponseDto;
 import lombok.Data;
 import lombok.Setter;
 
@@ -13,8 +12,9 @@ public class AccountResponseDto {
     private String accountNum; // 계좌 번호
     private String accountHolder; // 예금주
     private String bankName; // 은행 이름
+    private String bankCode;
     private Double balance; // 잔액
     @Setter
-    private List<TransactionResponseDto> transactionList; // 거래 내역 리스트
+    private List<TransactionResponseDto2> transactionList; // 거래 내역 리스트
 
 }

@@ -3,11 +3,9 @@ package com.almagest_dev.tacobank_core_server.presentation.controller;
 import com.almagest_dev.tacobank_core_server.application.service.AccountService;
 import com.almagest_dev.tacobank_core_server.application.service.FavoriteAccountService;
 import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountMemberReponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.FavoriteAccountRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.FavoriteAccountResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.MainAccountRequestDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.member.MemberRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransferOptionsResponseDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,18 +25,6 @@ public class AccountController {
         this.favoriteAccountService = favoriteAccountService;
     }
 
-    // 통합 계좌 연동 및 조회
-    @PostMapping
-    public ResponseEntity<CoreResponseDto<AccountMemberReponseDto>> getUserAccounts(@RequestBody MemberRequestDto requestDto) {
-        AccountMemberReponseDto response = accountService.getUserAccounts(requestDto);
-        return ResponseEntity.ok(
-                new CoreResponseDto<>(
-                        "success",
-                        "통합 계좌 연동 및 조회 성공",
-                        response
-                )
-        );
-    }
 
     // 메인 계좌 설정
     @PostMapping("/set-main")

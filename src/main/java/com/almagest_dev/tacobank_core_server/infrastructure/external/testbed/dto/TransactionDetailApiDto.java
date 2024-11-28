@@ -13,5 +13,6 @@ public class TransactionDetailApiDto {
     private String tranAmt;
 
     private String afterBalanceAmt;
+
 }
 //거래 내역 상세 정보 DTO

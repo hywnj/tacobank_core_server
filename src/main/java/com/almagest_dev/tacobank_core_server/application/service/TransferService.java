@@ -13,9 +13,6 @@ import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.Settle
 import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementRepository;
 import com.almagest_dev.tacobank_core_server.domain.transfer.model.Transfer;
 import com.almagest_dev.tacobank_core_server.domain.transfer.repository.TransferRepository;
-import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.TransactionDetailApiDto;
-import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.TransactionListApiRequestDto;
-import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.TransactionListApiResponseDto;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.client.TestbedApiClient;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.*;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.*;
@@ -413,56 +410,4 @@ public class TransferService {
         transferRepository.save(transfer);
     }
 
-    /**
-     * 거래 내역 조회
-     */
-    public List<TransactionResponseDto> getTransactionHistory(Long memberId) {
-        // Step 1: Member ID를 통해 userFinanceId 조회
-        String userFinanceId = getUserFinanceIdByMemberId(memberId);
-
-        // Step 2: 거래 목록 조회 요청
-        TransactionListApiRequestDto requestDto = new TransactionListApiRequestDto();
-        requestDto.setFintechUseNum(userFinanceId);
-        requestDto.setInquiryType("A"); // 기본 조회 타입
-        requestDto.setInquiryBase("D"); // 날짜 기준
-        requestDto.setFromDate("20240101"); // 예시값 (시작 날짜)
-        requestDto.setToDate("20241231");   // 예시값 (끝 날짜)
-        requestDto.setFromTime("000000");   // 예시값 (시작 시간)
-        requestDto.setToTime("235959");     // 예시값 (끝 시간)
-        requestDto.setSortOrder("D");       // 내림차순
-        requestDto.setTranDtime("20241118120000"); // 예시값 (거래 시간)
-
-        TransactionListApiResponseDto responseDto = testbedApiClient.requestApi(
-                requestDto,
-                "/fintech/api/openbank/tranlist",
-                TransactionListApiResponseDto.class
-        );
-
-        // Step 3: 응답 데이터 처리 및 변환
-        return responseDto.getResList().stream()
-                .map(this::mapToTransactionResponseDto)
-                .collect(Collectors.toList());
-    }
-
-    private String getUserFinanceIdByMemberId(Long memberId) {
-        // Member 정보를 Repository를 통해 조회
-        return memberRepository.findById(memberId)
-                .map(Member::getUserFinanceId) // Member 객체의 userFinanceId 필드 추출
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
-    }
-
-    private TransactionResponseDto mapToTransactionResponseDto(TransactionDetailApiDto detailDto) {
-        TransactionResponseDto dto = new TransactionResponseDto();
-
-        String tranDate = detailDto.getTranDate(); // 이미 String 타입으로 반환
-        String tranTime = detailDto.getTranTime(); // 이미 String 타입으로 반환
-
-        dto.setTranNum(Long.valueOf(tranDate + tranTime)); // 거래 고유 ID 생성
-        dto.setType(detailDto.getTranType());
-        dto.setPrintContent(detailDto.getPrintContent());
-        dto.setAmount(Double.valueOf(detailDto.getTranAmt())); // String 타입으로 처리
-        dto.setAfterBalanceAmount(Double.valueOf(detailDto.getAfterBalanceAmt())); // String 타입으로 처리
-        dto.setTranDateTime(tranDate + " " + tranTime); // 날짜와 시간을 결합하여 설정
-        return dto;
-    }
 }
