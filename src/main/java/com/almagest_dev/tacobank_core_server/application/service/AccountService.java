@@ -103,6 +103,7 @@ public class AccountService {
             account.saveAccountHolderName(accountInfo.getAccountHolder());
             account.saveBankCode(accountInfo.getBankCodeStd());
             account.saveFintechUseNum(accountInfo.getFintechUseNum());
+            account.saveAccountName(accountInfo.getProductName());
             account.saveVerified();
             return account;
         }).collect(Collectors.toList());

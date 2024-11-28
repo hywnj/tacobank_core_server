@@ -39,6 +39,9 @@ public class Account {
     @Column(columnDefinition = "VARCHAR(40) COMMENT '계좌 핀테크 이용번호'")
     private String fintechUseNum;
 
+    @Column(columnDefinition = "VARCHAR(100) COMMENT '계좌명'")
+    private String accountName;
+
     @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '등록일자'")
     private LocalDateTime createdDate;
 
@@ -74,4 +77,5 @@ public class Account {
     public void saveMember(Member member) {
         this.member = member;
     }
+    public void saveAccountName(String accountName) {this.accountName = accountName;}
 }

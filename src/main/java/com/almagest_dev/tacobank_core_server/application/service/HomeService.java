@@ -85,6 +85,8 @@ public class HomeService {
             account.saveBankCode(accountInfo.getBankCodeStd());
             account.saveFintechUseNum(accountInfo.getFintechUseNum());
             account.saveVerified();
+            account.saveAccountName(accountInfo.getProductName());
+
             return account;
         }).collect(Collectors.toList());
         accountRepository.saveAll(accounts);
