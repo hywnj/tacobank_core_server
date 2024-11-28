@@ -11,8 +11,13 @@ import com.almagest_dev.tacobank_core_server.domain.account.repository.AccountRe
 import com.almagest_dev.tacobank_core_server.domain.transfer.model.Transfer;
 import com.almagest_dev.tacobank_core_server.domain.transfer.repository.TransferRepository;
 
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.client.TestbedApiClient;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.AccountInfoDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.IntegrateAccountApiRequestDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.IntegrateAccountApiResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.MainAccountRequestDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.home.AccountResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransferOptionsResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -21,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +37,79 @@ public class AccountService {
     private final MainAccountRepository mainAccountRepository;
     private final FavoriteAccountRepository favoriteAccountRepository;
     private final TransferRepository transferRepository;
+    private final OrgCodeService orgCodeService;
+    private final TestbedApiClient testbedApiClient;
+
+    /**
+     * 사용자 계좌 조회
+     */
+    @Transactional
+    public List<AccountResponseDto> getUserAccountsOnly(Long memberId) {
+        // 멤버 조회
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
+
+        String userFinanceId = member.getUserFinanceId();
+        String userName = member.getName();
+        IntegrateAccountApiResponseDto accountResponseDto;
+
+        if (userFinanceId == null || userFinanceId.isEmpty()) {
+            // 최초 요청 - memberId 기반으로 계좌 조회
+            accountResponseDto = fetchAccountsFromApi(member.getId().toString(), userName);
+            member.setUserFinanceId(accountResponseDto.getUserFinanceId());
+            memberRepository.save(member);
+        } else {
+            // 이후 요청 - userFinanceId 기반으로 계좌 조회
+            accountResponseDto = fetchAccountsFromApi(userFinanceId, userName);
+        }
+
+        // 계좌 정보 저장 (최초 요청 시)
+        if (accountRepository.countByMember(member) == 0) {
+            saveAccounts(accountResponseDto.getResList(), member);
+        }
+
+        // 계좌 정보 리스트 응답 생성
+        return accountResponseDto.getResList().stream()
+                .map(accountInfo -> {
+                    AccountResponseDto accountDto = new AccountResponseDto();
+                    accountDto.setAccountId(accountRepository.findByAccountNum(accountInfo.getAccountNum())
+                            .map(Account::getId).orElse(null));
+                    accountDto.setAccountName(accountInfo.getProductName());
+                    accountDto.setBalance(Double.parseDouble(accountInfo.getBalanceAmt()));
+                    accountDto.setBankCode(accountInfo.getBankCodeStd());
+                    String bankName = orgCodeService.getBankNameByCode(accountInfo.getBankCodeStd());
+                    accountDto.setBankName(bankName);
+                    accountDto.setAccountNum(accountInfo.getAccountNum());
+                    accountDto.setAccountHolder(accountInfo.getAccountHolder());
+                    return accountDto;
+                })
+                .collect(Collectors.toList());
+    }
+
+    private IntegrateAccountApiResponseDto fetchAccountsFromApi(String userFinanceId, String userName) {
+        IntegrateAccountApiRequestDto requestDto = new IntegrateAccountApiRequestDto();
+        requestDto.setUserFinanceId(userFinanceId);
+        requestDto.setUserName(userName);
+        requestDto.setInquiryBankType("A");
+
+        return testbedApiClient.requestApi(requestDto, "/openbank/accounts", IntegrateAccountApiResponseDto.class);
+    }
+
+    private void saveAccounts(List<AccountInfoDto> accountInfoList, Member member) {
+        List<Account> accounts = accountInfoList.stream().map(accountInfo -> {
+            Account account = new Account();
+            account.saveMember(member);
+            account.saveAccountNum(accountInfo.getAccountNum());
+            account.saveAccountHolderName(accountInfo.getAccountHolder());
+            account.saveBankCode(accountInfo.getBankCodeStd());
+            account.saveFintechUseNum(accountInfo.getFintechUseNum());
+            account.saveVerified();
+            return account;
+        }).collect(Collectors.toList());
+        accountRepository.saveAll(accounts);
+    }
+
+
 
     /**
      * 메인 계좌 설정

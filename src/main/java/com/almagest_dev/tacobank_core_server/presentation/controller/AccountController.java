@@ -6,11 +6,13 @@ import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.FavoriteAccountRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.FavoriteAccountResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.MainAccountRequestDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.home.AccountResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransferOptionsResponseDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 
 @RestController
@@ -83,6 +85,13 @@ public class AccountController {
         return ResponseEntity.ok(
                 new CoreResponseDto<>("success", "계좌 조회 성공", response)
         );
+    }
+
+    @PostMapping("/list")
+    public ResponseEntity<List<AccountResponseDto>> getUserAccountsOnly(@RequestBody Map<String, Long> request) {
+        Long memberId = request.get("memberId");
+        List<AccountResponseDto> accounts = accountService.getUserAccountsOnly(memberId);
+        return ResponseEntity.ok(accounts);
     }
 
 
