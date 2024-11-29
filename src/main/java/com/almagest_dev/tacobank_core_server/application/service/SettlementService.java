@@ -166,6 +166,11 @@ public class SettlementService {
 
         // 친구 목록 추가
         for (Long friendId : request.getFriendIds()) {
+
+            if (friendId.equals(leader.getId())) {
+                throw new IllegalArgumentException("리더는 자신의 ID를 친구로 선택할 수 없습니다.");
+            }
+
             Member friend = memberRepository.findByIdAndDeleted(friendId, "N")
                     .orElseThrow(() -> new IllegalArgumentException("친구를 찾을 수 없습니다."));
 
