@@ -27,6 +27,7 @@ public class CorsConfig {
         allowedMethods.add("POST");
         allowedMethods.add("PUT");
         allowedMethods.add("DELETE");
+        allowedMethods.add("OPTIONS");
         config.setAllowedMethods(allowedMethods);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

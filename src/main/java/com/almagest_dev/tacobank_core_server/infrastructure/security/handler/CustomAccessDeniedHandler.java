@@ -15,6 +15,6 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException, ServletException {
         log.info("CustomAccessDeniedHandler - Exception Message: " + accessDeniedException.getMessage());
-        ExceptionResponseWriter.writeExceptionResponse(response, HttpServletResponse.SC_FORBIDDEN, "Forbidden", "접근 권한이 없습니다.");
+        ExceptionResponseWriter.writeExceptionResponse(response,  HttpServletResponse.SC_FORBIDDEN, "FAILURE","접근 권한이 없습니다.");
     }
 }

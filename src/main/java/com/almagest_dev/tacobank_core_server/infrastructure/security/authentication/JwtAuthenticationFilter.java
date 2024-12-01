@@ -2,6 +2,7 @@ package com.almagest_dev.tacobank_core_server.infrastructure.security.authentica
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -17,6 +19,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtProvider jwtProvider;
@@ -26,8 +29,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         log.info("JwtAuthenticationFilter::doFilterInternal");
 
         // 토큰 추출
-        String token = resolveToken(request);
+        String token = getTokenFromCookies(request.getCookies());
         log.info("JwtAuthenticationFilter::doFilterInternal - token: " + token);
+
 
         // 토큰 유효성 검증
         if (token != null && jwtProvider.validateToken(token)) {
@@ -50,14 +54,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Header 에서 토큰 추출 ('Bearer' 방식)
+     * Cookie 에서 토큰 추출
      */
-    private String resolveToken(HttpServletRequest request) {
-        log.info("JwtAuthenticationFilter::resolveToken");
-        String bearerToken = request.getHeader("Authorization");
-        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
+    private String getTokenFromCookies(Cookie[] cookies) {
+        if (cookies == null) return null;
+
+        for (Cookie cookie : cookies) {
+            if ("Authorization".equals(cookie.getName())) {
+                return cookie.getValue();
+            }
         }
         return null;
     }
+
 }
