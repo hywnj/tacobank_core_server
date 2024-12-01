@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Chart.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}  # 문자열로 처리
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}
+    spec:
+      affinity:
+        {{- if .Values.nodeAffinity.enabled }}
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              {{- range .Values.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution }}
+              - matchExpressions:
+                  - key: "{{ .key }}"
+                    operator: "{{ .operator }}"
+                    values:
+                      {{- toYaml .values | nindent 22 }}
+              {{- end }}
+        {{- end }}
+
+      imagePullSecrets:
+        - name: ecr-secret
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 9002
+          env:  # 환경 변수는 이곳에 정의됩니다.
+            - name: DB_HOST
+              value: "{{ .Values.env.DB_HOST }}"
+            - name: DB_PORT
+              value: "{{ .Values.env.DB_PORT }}"
+            - name: DB_NAME
+              value: "{{ .Values.env.DB_NAME }}"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: my-app-secrets
+                  key: admin
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: my-app-secrets
+                  key: my-password

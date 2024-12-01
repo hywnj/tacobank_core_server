@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  labels:
+    app: {{ .Chart.Name }}
+data:
+  application.properties: |-
+    spring.datasource.url=jdbc:mariadb://{{ .Values.env.DB_HOST | quote }}:{{ .Values.env.DB_PORT | quote }}/{{ .Values.env.DB_NAME | quote }}
+    spring.datasource.username={{ .Values.env.DB_USERNAME | quote }}
+    spring.datasource.password={{ .Values.env.DB_PASSWORD | quote }}
+    spring.datasource.driver-class-name=org.mariadb.jdbc.Driver

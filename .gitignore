@@ -123,8 +123,9 @@ $RECYCLE.BIN/
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,windows,java
 
-# application.yml 파일을 무시하도록 설정
-src/main/resources/application.yml
+#src/main/resources/application-{profile}.yml
+src/main/resources/application-test.yml
+src/main/resources/application-lcoal.yml
 src/main/resources/application-KEY.yml
 
 *.log
