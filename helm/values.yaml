@@ -11,10 +11,10 @@ createNamespace: false
 
 service:
   type: "ClusterIP"
-  port: "9002"  # 숫자를 문자열로 변환
+  port: 9002
 
 ingress:
-  enabled: "true"  # true를 문자열로 변환
+  enabled: true
   className: "nginx"
   annotations:
     kubernetes.io/ingress.class: "nginx"
@@ -34,7 +34,7 @@ resources:
     cpu: "500m"
 
 autoscaling:
-  enabled: "true"
+  enabled: true
   minReplicas: 2
   maxReplicas: 4
   targetCPUUtilizationPercentage: 80

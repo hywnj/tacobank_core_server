@@ -6,9 +6,9 @@ metadata:
   labels:
     app: {{ .Chart.Name }}
 spec:
-  type: {{ .Values.service.type | quote }}
+  type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.port | int  }}
+    - port: {{ .Values.service.port }}
       targetPort: 9002
   selector:
     app: {{ .Chart.Name }}

@@ -6,7 +6,7 @@ metadata:
     app: {{ .Chart.Name }}
 data:
   application.properties: |-
-    spring.datasource.url=jdbc:mariadb://{{ .Values.env.DB_HOST | quote }}:{{ .Values.env.DB_PORT | quote }}/{{ .Values.env.DB_NAME | quote }}
-    spring.datasource.username={{ .Values.env.DB_USERNAME | quote }}
-    spring.datasource.password={{ .Values.env.DB_PASSWORD | quote }}
+    spring.datasource.url=jdbc:mariadb://{{ .Values.env.DB_HOST }}:{{ .Values.env.DB_PORT }}/{{ .Values.env.DB_NAME }}
+    spring.datasource.username={{ .Values.env.DB_USERNAME }}
+    spring.datasource.password={{ .Values.env.DB_PASSWORD }}
     spring.datasource.driver-class-name=org.mariadb.jdbc.Driver

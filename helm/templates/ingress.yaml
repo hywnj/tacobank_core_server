@@ -6,7 +6,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "nginx"
 spec:
-  ingressClassName: {{ .Values.ingress.className | default "nginx" | quote }}
+  ingressClassName: {{ .Values.ingress.className "nginx" }}
   rules:
   {{- range .Values.ingress.hosts }}
     - host: "{{ .host }}"
@@ -14,7 +14,7 @@ spec:
         paths:
         {{- range .paths }}
           - path: "{{ .path }}"
-            pathType: {{ .pathType | default "Prefix" | quote }}
+            pathType: {{ .pathType "Prefix" }}
             backend:
               service:
                 name: {{ $.Release.Name }}
