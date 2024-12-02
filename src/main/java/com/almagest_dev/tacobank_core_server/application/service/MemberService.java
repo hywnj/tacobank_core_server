@@ -94,23 +94,23 @@ public class MemberService {
     }
 
     /**
-     * 비밀번호 찾기 2) 인증번호 검증 & 새로운 비밀번호로 설정
+     * 비밀번호 찾기 : 새로운 비밀번호로 설정(본인 인증 후)
      */
     public void confirmPassword(ConfirmPasswordRequestDto requestDto) {
-        // 1. 멤버 확인
+        // 멤버 확인
         Member member = memberRepository.findByIdAndDeleted(requestDto.getMemberId(), "N")
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
-        // 2. 인증 여부 확인 & 인증번호 검증
-        if (!smsAuthUtil.verifyCode(requestDto.getVerificationId(), requestDto.getTel(), requestDto.getInputCode(), "pw", member.getId())) {
-            throw new InvalidVerificationException("인증 번호가 일치하지 않습니다.");
+        // 문자 인증 성공 세션 확인
+        if (!smsAuthUtil.isVerificationSuccessful(member.getTel(), "pw", member.getId())) {
+            throw new IllegalArgumentException("본인 인증 성공 내역이 없습니다.");
         }
 
         // 비밀번호 규칙 검사 & Member UPDATE
         validateAndUpdatePassword(member, requestDto.getNewPassword(), requestDto.getConfirmPassword());
 
-        // 관련 세션 모두 삭제정
-        smsAuthUtil.cleanupAllSmsSession(requestDto.getTel(), "pw");
+        // 성공시 성공 세션 삭제
+        smsAuthUtil.cleanupSuccessSmsSession(member.getTel(), "pw");
     }
 
     /**
