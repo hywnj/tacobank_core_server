@@ -4,6 +4,6 @@ import lombok.Getter;
 
 @Getter
 public class UpdateMemberRequestDto {
-    private String name;
+    // private String name; // 개명시 관리자 문의
     private String tel;
 }

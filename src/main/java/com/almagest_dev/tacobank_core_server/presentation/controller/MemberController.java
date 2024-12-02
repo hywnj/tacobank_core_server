@@ -59,11 +59,11 @@ public class MemberController {
 
 
     /**
-     * 회원정보 수정
+     * 회원 전화번호 수정
      */
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateMember(@PathVariable Long id, @RequestBody UpdateMemberRequestDto requestDto) {
-        memberService.updateMember(id, requestDto);
+    @PutMapping("/{id}/tel")
+    public ResponseEntity<?> updateMemberTel(@PathVariable Long id, @RequestBody UpdateMemberRequestDto requestDto) {
+        memberService.updateMemberTel(id, requestDto);
         return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "회원 정보가 성공적으로 수정되었습니다."));
     }
 
