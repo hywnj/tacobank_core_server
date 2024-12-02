@@ -22,7 +22,7 @@ public class NotificationController {
     public ResponseEntity<CoreResponseDto<List<NotificationResponseDto>>> getNotifications(@PathVariable Long memberId) {
         List<NotificationResponseDto> notifications = notificationService.getNotificationsForMember(memberId);
         return ResponseEntity.ok(
-                new CoreResponseDto<>("success", "알림 조회 성공", notifications)
+                new CoreResponseDto<>("SUCCESS", "알림 조회 성공", notifications)
         );
     }
 }

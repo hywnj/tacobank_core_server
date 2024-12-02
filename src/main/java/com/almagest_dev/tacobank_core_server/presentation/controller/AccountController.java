@@ -34,7 +34,7 @@ public class AccountController {
         accountService.setMainAccount(requestDto);
         return ResponseEntity.ok(
                 new CoreResponseDto<>(
-                        "success",
+                        "SUCCESS",
                         "메인 계좌가 설정되었습니다.",
                         null
                 )
@@ -46,7 +46,7 @@ public class AccountController {
     public ResponseEntity<CoreResponseDto<String>> updateMainAccount(@RequestBody MainAccountRequestDto requestDto) {
         accountService.updateMainAccount(requestDto);
         return ResponseEntity.ok(
-                new CoreResponseDto<>("success", "메인 계좌가 수정되었습니다.", null)
+                new CoreResponseDto<>("SUCCESS", "메인 계좌가 수정되었습니다.", null)
         );
     }
 
@@ -55,7 +55,7 @@ public class AccountController {
     public ResponseEntity<CoreResponseDto<String>> setAndRetrieveFavoriteAccount(@RequestBody FavoriteAccountRequestDto requestDto) {
         favoriteAccountService.setAndRetrieveFavoriteAccount(requestDto);
         return ResponseEntity.ok(
-                new CoreResponseDto<>("success", "즐겨찾기 계좌가 설정되었습니다.", null)
+                new CoreResponseDto<>("SUCCESS", "즐겨찾기 계좌가 설정되었습니다.", null)
         );
     }
 
@@ -64,7 +64,7 @@ public class AccountController {
     public ResponseEntity<CoreResponseDto<String>> cancelFavoriteAccount(@RequestBody FavoriteAccountRequestDto requestDto) {
         favoriteAccountService.cancelFavoriteAccount(requestDto);
         return ResponseEntity.ok(
-                new CoreResponseDto<>("success", "즐겨찾기 계좌가 성공적으로 취소되었습니다.", null)
+                new CoreResponseDto<>("SUCCESS", "즐겨찾기 계좌가 성공적으로 취소되었습니다.", null)
         );
     }
 
@@ -74,7 +74,7 @@ public class AccountController {
             @PathVariable Long memberId) {
         List<FavoriteAccountResponseDto> responseDtoList = favoriteAccountService.getFavoriteAccounts(memberId);
         return ResponseEntity.ok(
-                new CoreResponseDto<>("success", "즐겨찾기 계좌 목록 조회 성공", responseDtoList)
+                new CoreResponseDto<>("SUCCESS", "즐겨찾기 계좌 목록 조회 성공", responseDtoList)
         );
     }
 
@@ -83,7 +83,7 @@ public class AccountController {
     public ResponseEntity<CoreResponseDto<TransferOptionsResponseDto>> getTransferOptions(@PathVariable Long memberId) {
         TransferOptionsResponseDto response = accountService.getTransferOptions(memberId);
         return ResponseEntity.ok(
-                new CoreResponseDto<>("success", "계좌 조회 성공", response)
+                new CoreResponseDto<>("SUCCESS", "계좌 조회 성공", response)
         );
     }
 
