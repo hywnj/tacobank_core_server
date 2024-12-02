@@ -1,5 +1,6 @@
 package com.almagest_dev.tacobank_core_server.infrastructure.security.authentication;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,18 @@ public class JwtProvider {
         } catch (JwtException | IllegalStateException exception) {
             return false;
         }
+    }
+
+    /**
+     * 토큰에서 사용자 ID(memberId) 추출
+     */
+    public Long getMemberIdFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        return claims.get("memberId", Long.class);
     }
 
     /**

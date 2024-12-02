@@ -38,6 +38,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String username = jwtProvider.getUsernameFromToken(token); // 클레임에서 사용자 정보 추출
             log.info("JwtAuthenticationFilter::doFilterInternal - username from token: " + username);
 
+            Long memberId = jwtProvider.getMemberIdFromToken(token); // 클레임에서 멤버 ID 추출
+            log.info("JwtAuthenticationFilter::doFilterInternal - username from token: " + memberId);
+
             // 권한 추출해서 request에 저장
             List<String> roles = jwtProvider.getRolesFromToken(token);
             request.setAttribute("roles", roles);
@@ -47,6 +50,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.info("JwtAuthenticationFilter::doFilterInternal - roles from token: " + roles);
 
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username, null, authorities);
+
+            // Member ID를 디테일로 설정
+            authentication.setDetails(memberId);
+            // Set Authentication
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
