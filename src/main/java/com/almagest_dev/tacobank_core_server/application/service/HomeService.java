@@ -151,11 +151,11 @@ public class HomeService {
         // 현재 시점
         LocalDateTime now = LocalDateTime.now();
 
-        // fromDate: 현재 시점
-        String fromDate = now.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        // fromDate: 1년 전 시점
+        String fromDate = now.minusYears(1).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
-        // toDate: 한 달 뒤 시점
-        String toDate = now.plusMonths(1).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        // toDate: 현재 시점
+        String toDate = now.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
         // tranDtime: 현재 날짜와 시간
         String tranDtime = now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
