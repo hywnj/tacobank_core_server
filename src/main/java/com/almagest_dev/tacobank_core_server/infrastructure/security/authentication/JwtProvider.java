@@ -4,11 +4,13 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtProvider {
@@ -20,12 +22,23 @@ public class JwtProvider {
      */
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder()
+            // 토큰 파싱
+            Claims claims = Jwts.parserBuilder()
                     .setSigningKey(secretKey)
                     .build()
-                    .parseClaimsJws(token);
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            // Check Member ID
+            Long memberId = claims.get("memberId", Long.class);
+            if (memberId == null) {
+                log.warn("JwtProvider::validateToken member ID is null");
+                return false;
+            }
+
             return true;
         } catch (JwtException | IllegalStateException exception) {
+            log.warn("JwtProvider::validateToken 유효하지 않은 토큰: {}", exception.getMessage());
             return false;
         }
     }
