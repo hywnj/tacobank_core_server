@@ -24,12 +24,12 @@ public class AuthService {
     public SmsVerificationResponseDto sendSmsVerificationCode(SmsVerificationRequestDto requestDto) {
         String type = (StringUtils.isBlank(requestDto.getType())) ? "general" : requestDto.getType();
 
-        // member ID 가 요청에 있는 경우(=로그인 한 사용자)
+        // member ID 가 요청에 있는 경우(= 로그인 한 사용자)
         Long memberId = 0L;
         if (requestDto.getMemberId() != null && requestDto.getMemberId() > 0) {
             memberId = requestDto.getMemberId();
-            // 사용자 정보 확인 (탈퇴하지 않고, 요청 전화번호 정보가 일치하는 경우에만 허용)
-            memberRepository.findByIdAndDeletedAndTel(memberId, "N", requestDto.getTel())
+            // 사용자 정보 확인
+            memberRepository.findByIdAndDeleted(memberId, "N")
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
         }
 
@@ -48,8 +48,8 @@ public class AuthService {
         Long memberId = 0L;
         if (requestDto.getMemberId() != null && requestDto.getMemberId() > 0) {
             memberId = requestDto.getMemberId();
-            // 사용자 정보 확인 (탈퇴하지 않고, 요청 전화번호 정보가 일치하는 경우에만 허용)
-            memberRepository.findByIdAndDeletedAndTel(memberId, "N", requestDto.getTel())
+            // 사용자 정보 확인
+            memberRepository.findByIdAndDeleted(memberId, "N")
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
         }
 

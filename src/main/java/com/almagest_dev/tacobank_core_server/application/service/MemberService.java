@@ -68,8 +68,7 @@ public class MemberService {
         Member member = memberRepository.findByIdAndDeleted(memberId, "N")
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
         // 문자 인증 성공 세션 확인
-        String originTel = member.getTel();
-        if (!smsAuthUtil.isVerificationSuccessful(originTel, "tel", memberId)) {
+        if (!smsAuthUtil.isVerificationSuccessful(requestDto.getTel(), "tel", memberId)) {
             throw new IllegalArgumentException("본인 인증 성공 내역이 없습니다. 본인 인증이 완료되어야 전화번호 수정이 가능합니다.");
         }
 
@@ -77,7 +76,7 @@ public class MemberService {
         memberRepository.save(member);
 
         // 수정 성공시 성공 세션 삭제
-        smsAuthUtil.cleanupSuccessSmsSession(originTel, "tel");
+        smsAuthUtil.cleanupSuccessSmsSession(requestDto.getTel(), "tel");
     }
 
     /**
