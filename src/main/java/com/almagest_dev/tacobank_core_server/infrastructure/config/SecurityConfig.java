@@ -49,6 +49,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(new CustomAuthenticationEntryPoint()) // 인증되지 않은 사용자 접근 혹은 유효한 인증정보 부족한 경우(401 Unauthorized)
                         .accessDeniedHandler(new CustomAccessDeniedHandler()) // 403 Forbidden
                 )
+                .anonymous((anonymous) -> anonymous.disable()) // 익명 인증 비활성화
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(memberLockFilter, JwtAuthenticationFilter.class) // 계정 잠금 필터
         ;
