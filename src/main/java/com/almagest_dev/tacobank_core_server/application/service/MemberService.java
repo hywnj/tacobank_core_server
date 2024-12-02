@@ -1,6 +1,7 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
 import com.almagest_dev.tacobank_core_server.common.exception.InvalidVerificationException;
+import com.almagest_dev.tacobank_core_server.common.utils.MaskingUtil;
 import com.almagest_dev.tacobank_core_server.common.utils.ValidationUtil;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
@@ -43,11 +44,11 @@ public class MemberService {
     /**
      * 전화번호로 멤버 이메일 조회
      */
-    public String findEmailByTel(FindEmailRequestDto requestDto) {
+    public FindEmailResponseDto findEmailByTel(FindEmailRequestDto requestDto) {
         Member member = memberRepository.findByTel(requestDto.getTel())
                 .orElseThrow(() -> new IllegalArgumentException("등록된 이메일을 찾을 수 없습니다."));
 
-        return member.getEmail();
+        return new FindEmailResponseDto(MaskingUtil.maskEmail(member.getEmail()));
     }
 
     /**
