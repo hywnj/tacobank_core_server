@@ -1,0 +1,71 @@
+replicaCount: 2
+
+image:
+  repository: "485298580046.dkr.ecr.ap-northeast-2.amazonaws.com/taco_core"
+  tag: "latest"
+  pullPolicy: "IfNotPresent"
+
+namespace: "taco-core"
+createNamespace: false
+
+
+service:
+  type: "ClusterIP"
+  port: 9002
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+  hosts:
+    - host: "bill-us.com"
+      paths:
+        - path: "/taco/core"
+          pathType: "Prefix"
+  tls: []
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "500m"
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeAffinity:
+  enabled: true
+  requiredDuringSchedulingIgnoredDuringExecution:
+    - key: "kubernetes.io/hostname"
+      operator: "In"
+      values:
+        - "ip-172-31-21-139"
+        - "ip-172-31-22-110"
+
+env:
+  DB_HOST: "db-host"
+  DB_PORT: 3306
+  DB_NAME: "db_name"
+  DB_USERNAME: "username"
+  DB_PASSWORD: "my-password"
+  TACO_CORE_PORT:
+  TESTBED_API_KEY: ""
+  REDIS_HOST: ""
+  REDIS_PORT:
+  REDIS_SECRET: ""
+  TACO_JWT_SECRET: ""
+  TACO_ENC_KEY: ""
+  TACO_NAVER_ACCESS_KEY: ""
+  TACO_NAVER_SECRET_KEY: ""
+  TACO_NAVER_SMS_ID: ""
+  TACO_NAVER_SMS_FROM: ""
+  TACO_NAVER_OCR_URL: ""
+  TACO_NAVER_OCR_SECRET: ""
+
