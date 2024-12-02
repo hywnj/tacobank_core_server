@@ -44,9 +44,10 @@ public class SmsAuthUtil {
 
     /**
      * 인증 번호 문자로 전송
+     * @param memberId 문자 인증 성공시 다른 작업이 필요한 경우
      * @return long logId
      */
-    public long sendVerificationCode(String tel, String requestType) {
+    public long sendVerificationCode(String tel, String requestType, Long memberId) {
         log.info("SmsAuthUtil::sendVerificationCode START");
         // 요청 타입 소문자로
         requestType = requestType.toLowerCase();
@@ -117,7 +118,7 @@ public class SmsAuthUtil {
             }
 
             // Redis에 저장 (유효시간 3분)
-            VerificationDataDto data = new VerificationDataDto(logId, requestId, code);
+            VerificationDataDto data = new VerificationDataDto(logId, requestId, code, memberId);
 
             log.info("SmsAuthUtil::storeVerificationData Redis Key - {}, Value - {}", smsKey, data);
             redisSessionUtil.storeSessionData(smsKey, data, 3, TimeUnit.MINUTES, false);
@@ -145,7 +146,7 @@ public class SmsAuthUtil {
     /**
      * 인증 번호 검증
      */
-    public boolean verifyCode(Long logId, String tel, String inputCode, String requestType) {
+    public boolean verifyCode(Long logId, String tel, String inputCode, String requestType, Long memberId) {
         log.info("SmsAuthUtil::verifyCode START");
         // 요청 타입 소문자로
         requestType = requestType.toLowerCase();
@@ -156,14 +157,13 @@ public class SmsAuthUtil {
         }
 
         // 이미 성공한 건이 있는지 확인
-        String successKey = buildRedisKey(RedisKeyConstants.SMS_SUCCESS_PREFIX, requestType, tel); // SMS 문자 성공 세션 키
-        if (redisSessionUtil.isKeyExists(successKey)) {
+        if (isVerificationSuccessful(tel, requestType, memberId)) {
             log.info("SmsAuthUtil::verifyCode SUCCESS - 인증 성공 내역 존재");
             return true;
         }
 
-        String smsKey = buildRedisKey(RedisKeyConstants.SMS_KEY_PREFIX, requestType, tel); // SMS 문자 요청 세션 키
         // 세션 데이터 확인
+        String smsKey = buildRedisKey(RedisKeyConstants.SMS_KEY_PREFIX, requestType, tel); // SMS 문자 요청 세션 키
         VerificationDataDto verificationData;
         verificationData = redisSessionUtil.getSessionData(smsKey, VerificationDataDto.class, false);
         if (verificationData == null) {
@@ -200,6 +200,7 @@ public class SmsAuthUtil {
             redisSessionUtil.cleanupRedisKeys("SmsAuthUtil", smsKey);
 
             // Redis 성공 세션 생성
+            String successKey = buildRedisKey(RedisKeyConstants.SMS_SUCCESS_PREFIX, requestType, tel); // SMS 문자 성공 세션 키
             redisSessionUtil.storeSessionData(successKey, verificationData, 3, TimeUnit.MINUTES, false);
             return true;
 
@@ -227,14 +228,44 @@ public class SmsAuthUtil {
     }
 
     /**
-     * SMS 관련 세션 모두 삭제
+     * 인증 성공 확인
+     */
+    public boolean isVerificationSuccessful(String tel, String requestType, Long memberId) {
+        log.info("SmsAuthUtil::isVerificationSuccessful - tel: {}, requestType: {}", tel, requestType);
+
+        // 성공한 내역이 있는지 확인
+        String successKey = buildRedisKey(RedisKeyConstants.SMS_SUCCESS_PREFIX, requestType, tel); // SMS 문자 성공 세션 키
+        VerificationDataDto verificationData = redisSessionUtil.getSessionData(successKey, VerificationDataDto.class, false);
+        if (verificationData == null) {
+            log.warn("SmsAuthUtil::isVerificationSuccessful 인증 성공 내역이 없습니다.");
+            return false;
+        }
+
+        // 성공 세션 데이터에 memberId가 있는 경우, 이후 들어온 요청의 MemberID와 같은지 확인
+        if (verificationData.getMemberId() != null && verificationData.getMemberId() > 0) {
+            if (verificationData.getMemberId() != memberId) {
+                log.warn("SmsAuthUtil::isVerificationSuccessful 멤버 정보 불일치 - verificationData memberId: {}, request memberId: {}", verificationData.getMemberId(), memberId);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * SMS 관련 세션 삭제 - 성공 세션 제외
      */
     public void cleanupAllSmsSession(String tel, String requestType) {
         redisSessionUtil.cleanupRedisKeys("SmsAuthUtil", tel,
                 buildRedisKey(RedisKeyConstants.SMS_KEY_PREFIX, requestType, tel)
                 , buildRedisKey(RedisKeyConstants.SMS_FAILURE_PREFIX, requestType, tel)
-                , buildRedisKey(RedisKeyConstants.SMS_SUCCESS_PREFIX, requestType, tel)
         );
+    }
+
+    /**
+     * SMS 성공 세션 삭제
+     */
+    public void cleanupSuccessSmsSession(String tel, String requestType) {
+        redisSessionUtil.cleanupRedisKeys("SmsAuthUtil", buildRedisKey(RedisKeyConstants.SMS_SUCCESS_PREFIX, requestType, tel));
     }
 
     /**

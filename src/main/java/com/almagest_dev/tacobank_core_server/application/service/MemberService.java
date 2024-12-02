@@ -1,6 +1,7 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
 import com.almagest_dev.tacobank_core_server.common.exception.InvalidVerificationException;
+import com.almagest_dev.tacobank_core_server.common.utils.MaskingUtil;
 import com.almagest_dev.tacobank_core_server.common.utils.ValidationUtil;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
@@ -8,6 +9,7 @@ import com.almagest_dev.tacobank_core_server.infrastructure.sms.util.SmsAuthUtil
 import com.almagest_dev.tacobank_core_server.presentation.dto.member.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -42,37 +44,40 @@ public class MemberService {
     /**
      * 전화번호로 멤버 이메일 조회
      */
-    public String findEmailByTel(FindEmailRequestDto requestDto) {
+    public FindEmailResponseDto findEmailByTel(FindEmailRequestDto requestDto) {
         Member member = memberRepository.findByTel(requestDto.getTel())
                 .orElseThrow(() -> new IllegalArgumentException("등록된 이메일을 찾을 수 없습니다."));
 
-        return member.getEmail();
+        return new FindEmailResponseDto(MaskingUtil.maskEmail(member.getEmail()));
     }
 
     /**
      * 회원정보 수정
-     * @TODO 전화번호 수정시 문자 인증 추가
      */
-    public void updateMember(Long id, UpdateMemberRequestDto requestDto) {
-        if (id == null || id < 1) {
+    public void updateMemberTel(Long memberId, UpdateMemberRequestDto requestDto) {
+        if (memberId == null || memberId < 1) {
             throw new IllegalArgumentException("회원 정보가 없습니다.");
         }
-        Member member = memberRepository.findByIdAndDeleted(id, "N")
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+        if (StringUtils.isBlank(requestDto.getTel())) {
+            throw new IllegalArgumentException("변경할 전화번호가 없습니다.");
+        }
+        if (!ValidationUtil.isValidLength(requestDto.getTel(), 10, 15)) {
+            throw new IllegalArgumentException("전화번호는 10자 이상 16자 이하이어야 합니다.");
+        }
 
-        // 요청 DTO에 필드가 있는 경우에만 업데이트
-        boolean hasChanges = false;
-        if (requestDto.getName() != null && !requestDto.getName().isBlank()) {
-            member.changeName(requestDto.getName());
-            hasChanges = true;
+        // 회원 정보 확인
+        Member member = memberRepository.findByIdAndDeleted(memberId, "N")
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+        // 문자 인증 성공 세션 확인
+        if (!smsAuthUtil.isVerificationSuccessful(requestDto.getTel(), "tel", memberId)) {
+            throw new IllegalArgumentException("본인 인증 성공 내역이 없습니다. 본인 인증이 완료되어야 전화번호 수정이 가능합니다.");
         }
-        if (requestDto.getTel() != null && !requestDto.getTel().isBlank()) {
-            member.changeTel(requestDto.getTel());
-            hasChanges = true;
-        }
-        // 수정 값이 있을때만 업데이트
-        if (!hasChanges) throw new IllegalArgumentException("수정 사항이 없습니다.");
+
+        member.changeTel(requestDto.getTel());
         memberRepository.save(member);
+
+        // 수정 성공시 성공 세션 삭제
+        smsAuthUtil.cleanupSuccessSmsSession(requestDto.getTel(), "tel");
     }
 
     /**
@@ -84,29 +89,29 @@ public class MemberService {
                 .orElseThrow(() -> new IllegalArgumentException("회원 정보를 찾을 수 없습니다."));
 
         // 2. 문자 인증번호 발송 및 인증 요청
-        long logId = smsAuthUtil.sendVerificationCode(member.getTel(), "pw");
+        long logId = smsAuthUtil.sendVerificationCode(member.getTel(), "pw", member.getId());
 
         return new FindPasswordResponseDto(member.getId(), logId);
     }
 
     /**
-     * 비밀번호 찾기 2) 인증번호 검증 & 새로운 비밀번호로 설정
+     * 비밀번호 찾기 : 새로운 비밀번호로 설정(본인 인증 후)
      */
     public void confirmPassword(ConfirmPasswordRequestDto requestDto) {
-        // 1. 멤버 확인
+        // 멤버 확인
         Member member = memberRepository.findByIdAndDeleted(requestDto.getMemberId(), "N")
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
-        // 2. 인증 여부 확인 & 인증번호 검증
-        if (!smsAuthUtil.verifyCode(requestDto.getVerificationId(), requestDto.getTel(), requestDto.getInputCode(), "pw")) {
-            throw new InvalidVerificationException("인증 번호가 일치하지 않습니다.");
+        // 문자 인증 성공 세션 확인
+        if (!smsAuthUtil.isVerificationSuccessful(member.getTel(), "pw", member.getId())) {
+            throw new IllegalArgumentException("본인 인증 성공 내역이 없습니다.");
         }
 
         // 비밀번호 규칙 검사 & Member UPDATE
         validateAndUpdatePassword(member, requestDto.getNewPassword(), requestDto.getConfirmPassword());
 
-        // 관련 세션 모두 삭제정
-        smsAuthUtil.cleanupAllSmsSession(requestDto.getTel(), "pw");
+        // 성공시 성공 세션 삭제
+        smsAuthUtil.cleanupSuccessSmsSession(member.getTel(), "pw");
     }
 
     /**

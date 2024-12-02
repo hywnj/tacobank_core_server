@@ -10,8 +10,8 @@ public class ValidationUtil {
      * 비밀번호 규칙 검사
      */
     public static void validatePassword(String password, int minLen, String birthDate, String tel) {
-        if (!isValidLength(password, minLen)) {
-            throw new IllegalArgumentException("비밀번호는 최소 " + minLen + "자 이상이어야 합니다.");
+        if (!isValidLength(password, minLen, 16)) {
+            throw new IllegalArgumentException("비밀번호는 " + minLen + "자 이상 16자 이하이어야 합니다.");
         }
         if (!containsAllowedCharacters(password)) {
             throw new IllegalArgumentException("비밀번호는 허용되지 않은 문자를 포함할 수 없습니다.");
@@ -57,8 +57,8 @@ public class ValidationUtil {
     /**
      * 길이 유효성 검사 (minLen 이상)
      */
-    public static boolean isValidLength(String str, int minLen) {
-        return str != null && str.length() >= minLen;
+    public static boolean isValidLength(String str, int minLen, int maxLen) {
+        return str != null && str.length() >= minLen && str.length() <= maxLen;
     }
 
     /**
