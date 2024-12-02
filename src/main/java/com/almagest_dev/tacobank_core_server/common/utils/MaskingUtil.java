@@ -51,7 +51,8 @@ public class MaskingUtil {
 
         // ID가 3자 미만인 경우 처리
         if (id.length() <= 3) {
-            return id.replaceAll(".", "*") + "@" + domain; // 전체를 마스킹
+            // 맨 뒤 한 글자만 마스킹
+            return id.substring(0, id.length() - 1) + "*" + "@" + domain;
         }
 
         // ID 앞 3글자는 유지, 나머지는 *로 마스킹

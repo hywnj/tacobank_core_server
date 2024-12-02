@@ -8,10 +8,12 @@ import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.cli
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.*;
 import com.almagest_dev.tacobank_core_server.presentation.dto.home.AccountMemberReponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.home.AccountResponseDto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.home.AccountRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.home.TransactionResponseDto2;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transantion.TransactionListRequestDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class HomeService {
@@ -33,10 +36,23 @@ public class HomeService {
      * 사용자 계좌 및 거래 내역 조회
      */
     @Transactional
-    public AccountMemberReponseDto getUserAccounts(AccountRequestDto requestDto) {
+    public AccountMemberReponseDto getMemberHome() {
+        /**
+         * 인증 정보로 멤버 조회
+         */
+        // 인증 정보 가져오기
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalArgumentException("인증되지 않은 사용자입니다.");
+        }
+
+        // 인증 정보에서 멤버 ID 추출
+        Long memberId = (Long) authentication.getDetails();
+        log.info("HomeService::getMemberHome - memberId: {} ", memberId);
+
         // 멤버 조회
-        Member member = memberRepository.findById(requestDto.getMemberId())
-                .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
+        Member member = memberRepository.findByIdAndDeleted(memberId, "N")
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
         String userFinanceId = member.getUserFinanceId();
         String userName = member.getName();
@@ -135,11 +151,11 @@ public class HomeService {
         // 현재 시점
         LocalDateTime now = LocalDateTime.now();
 
-        // fromDate: 현재 시점
-        String fromDate = now.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        // fromDate: 1년 전 시점
+        String fromDate = now.minusYears(1).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
-        // toDate: 한 달 뒤 시점
-        String toDate = now.plusMonths(1).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        // toDate: 현재 시점
+        String toDate = now.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
         // tranDtime: 현재 날짜와 시간
         String tranDtime = now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));

@@ -72,7 +72,7 @@ public class RedisSessionUtil {
         // Redis 세션 조회
         String sessionData = redisTemplate.opsForValue().get(redisKey);
         if (sessionData == null) {
-            log.info("RedisSessionUtil::getSessionData - 요청 내역이 존재하지 않습니다.");
+            log.info("RedisSessionUtil::getSessionData 요청 내역이 존재하지 않습니다 - key: {}", redisKey);
             return null;
         }
 
@@ -186,9 +186,9 @@ public class RedisSessionUtil {
         for (String key : keys) {
             try {
                 boolean deleted = Boolean.TRUE.equals(redisTemplate.delete(key));
-                log.info("{} - [{}] Redis 키 삭제 - Key: {}, 성공 여부: {}", className, key, deleted);
+                log.info("{} - Redis 키 삭제 - Key: {}, 성공 여부: {}", className, key, deleted);
             } catch (Exception redisEx) {
-                log.warn("{} - [{}] Redis 키 삭제 중 예외 발생 - Key: {}, Error: {}", className, key, redisEx.getMessage());
+                log.warn("{} - Redis 키 삭제 중 예외 발생 - Key: {}, Error: {}", className, key, redisEx.getMessage());
             }
         }
     }

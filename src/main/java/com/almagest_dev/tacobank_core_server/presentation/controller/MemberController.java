@@ -31,7 +31,7 @@ public class MemberController {
     }
 
     /**
-     * 비밀번호 찾기 1) 본인 인증 & 인증번호 발송
+     * 비밀번호 찾기 : 본인 인증 & 인증번호 발송
      */
     @PostMapping("/password-recovery/verify")
     public ResponseEntity<?> findMemberPasswordAndSendSmsAuth(@RequestBody @Valid FindPasswordRequestDto requestDto) {
@@ -39,7 +39,7 @@ public class MemberController {
         return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "인증 번호를 발송했습니다.", response));
     }
     /**
-     * 비밀번호 찾기 2) 인증번호 검증 & 새로운 비밀번호로 설정
+     * 비밀번호 찾기 : 새로운 비밀번호로 설정(본인 인증 후)
      */
     @PostMapping("/password-recovery/confirm")
     public ResponseEntity<?> confirmMemberPassword(@RequestBody @Valid ConfirmPasswordRequestDto requestDto) {
@@ -59,11 +59,11 @@ public class MemberController {
 
 
     /**
-     * 회원정보 수정
+     * 회원 전화번호 수정
      */
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateMember(@PathVariable Long id, @RequestBody UpdateMemberRequestDto requestDto) {
-        memberService.updateMember(id, requestDto);
+    @PutMapping("/{id}/tel")
+    public ResponseEntity<?> updateMemberTel(@PathVariable Long id, @RequestBody UpdateMemberRequestDto requestDto) {
+        memberService.updateMemberTel(id, requestDto);
         return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "회원 정보가 성공적으로 수정되었습니다."));
     }
 
