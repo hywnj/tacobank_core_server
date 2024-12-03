@@ -1,7 +1,10 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
+import com.almagest_dev.tacobank_core_server.common.constants.RedisKeyConstants;
 import com.almagest_dev.tacobank_core_server.common.exception.InvalidVerificationException;
+import com.almagest_dev.tacobank_core_server.common.exception.SmsSendFailedException;
 import com.almagest_dev.tacobank_core_server.common.utils.MaskingUtil;
+import com.almagest_dev.tacobank_core_server.common.utils.RedisSessionUtil;
 import com.almagest_dev.tacobank_core_server.common.utils.ValidationUtil;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
@@ -10,8 +13,11 @@ import com.almagest_dev.tacobank_core_server.presentation.dto.member.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -19,6 +25,7 @@ import org.springframework.stereotype.Service;
 public class MemberService {
     private final MemberRepository memberRepository;
     private final SmsAuthUtil smsAuthUtil;
+    private final RedisSessionUtil redisSessionUtil;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -169,40 +176,92 @@ public class MemberService {
     }
 
     /**
-     * 출금 비밀번호 설정
+     * 출금 비밀번호 설정/저장 - 본인 인증 후 설정
      */
-    public void setTransferPin(SetPinRequestDto requestDto) {
+    public void createTransferPin(CreatePinRequestDto requestDto) {
         log.info("MemberService::setTransferPin START");
 
         // Member 조회
         Member member = memberRepository.findByIdAndDeleted(requestDto.getMemberId(), "N")
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
+        // 문자 인증 성공 세션 확인
+        if (!smsAuthUtil.isVerificationSuccessful(member.getTel(), "pin", member.getId())) {
+            throw new IllegalArgumentException("본인 인증 성공 내역이 없습니다.");
+        }
+
         // 출금 비밀번호 유효성 검사
         ValidationUtil.validateTransferPin(requestDto.getTransferPin());
+
+        // 출금 비밀번호, 확인 비밀번호 일치 여부
+        if (!requestDto.getConfirmTransferPin().equals(requestDto.getConfirmTransferPin())) {
+            throw new IllegalArgumentException("새 비밀번호와 확인 비밀번호가 일치하지 않습니다.");
+        }
 
         // 비밀번호 해싱 및 저장
         String encodedPin = passwordEncoder.encode(requestDto.getTransferPin());
         member.changeTransferPin(encodedPin);
         memberRepository.save(member);
 
+        // 성공시 성공 세션 삭제
+        smsAuthUtil.cleanupSuccessSmsSession(member.getTel(), "pin");
+
         log.info("MemberService::setTransferPin END - Transfer PIN 설정 완료");
+    }
+
+    /**
+     * 현재 출금 비밀번호 확인
+     */
+    public void validateTransferPin(ValidatePinRequestDto requestDto) {
+        log.info("MemberService::validateTransferPin START");
+
+        // Member 조회
+        Member member = memberRepository.findByIdAndDeleted(requestDto.getMemberId(), "N")
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        // 기존 비밀번호 설정 여부 확인
+        if (member.getTransferPin() == null) {
+            throw new IllegalArgumentException("출금 비밀번호를 설정하지 않았습니다. 본인 인증 후 출금 비밀번호를 설정해주세요.");
+        }
+
+        // 출금 비밀번호 확인
+        if (!passwordEncoder.matches(requestDto.getTransferPin(), member.getTransferPin())) {
+            // 실패 횟수 증가 및 TTL 설정
+            Long failCnt = redisSessionUtil.incrementIfExists(RedisKeyConstants.PIN_FAILURE_PREFIX + member.getId(), 1L, 5, TimeUnit.MINUTES);
+            log.info("MemberService::validateTransferPin - [{}] 출금 비밀번  불일치 {}번째", RedisKeyConstants.PIN_FAILURE_PREFIX + member.getId(), failCnt);
+            // 5회 이상 실패하면 초기화 & 본인인증 & 재설정 필요
+            if (failCnt >= 5) {
+                member.changeTransferPin(null);
+                memberRepository.save(member);
+                throw new SmsSendFailedException("FAILURE", "인증 번호 입력 횟수가 초과하여 출금 비밀번호가 초기화 됩니다. 다시 설정해주세요.", HttpStatus.FORBIDDEN);
+            }
+
+            throw new InvalidVerificationException("출금 비밀번호가 일치하지 않습니다. 남은 시도 횟수: " + (5 - failCnt));
+        }
+
+        log.info("MemberService::validateTransferPin END");
     }
 
     /**
      * 출금 비밀번호 수정
      *  - 로그인 한 상태에서만 수정이 가능함
      */
-    public void changeTransferPin(ChangePinRequestDto requestDto) {
-        log.info("MemberService::changeTransferPin START");
+    public void resetTransferPin(ChangePinRequestDto requestDto) {
+        log.info("MemberService::resetTransferPin START");
         // Member 조회
         Member member = memberRepository.findByIdAndDeleted(requestDto.getMemberId(), "N")
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
+        // 기존 비밀번호 설정 여부 확인
+        if (member.getTransferPin() == null) {
+            throw new IllegalArgumentException("출금 비밀번호를 설정하지 않았습니다. 본인 인증 후 출금 비밀번호를 설정해주세요.");
+        }
+
         // 기존 비밀번호 확인
         if (!passwordEncoder.matches(requestDto.getCurrentPin(), member.getTransferPin())) {
-            throw new InvalidVerificationException("비밀번호가 일치하지 않습니다");
+            throw new InvalidVerificationException("출금 비밀번호가 일치하지 않습니다.");
         }
+
         // 새로운 비밀번호 유효성 검사
         ValidationUtil.validateTransferPin(requestDto.getNewPin());
 
@@ -216,7 +275,7 @@ public class MemberService {
         member.changeTransferPin(encodedPin);
         memberRepository.save(member);
 
-        log.info("MemberService::changeTransferPin END");
+        log.info("MemberService::resetTransferPin END");
     }
 
 
@@ -234,21 +293,5 @@ public class MemberService {
                 member.getName(),
                 member.getEmail()
         );
-    }
-
-    public void verifyTransferPin(ChangePinRequestDto requestDto) {
-        log.info("MemberService::verifyTransferPin START");
-
-        // Member 조회
-        Member member = memberRepository.findByIdAndDeleted(requestDto.getMemberId(), "N")
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
-
-        // 기존 비밀번호 확인
-        if (!passwordEncoder.matches(requestDto.getCurrentPin(), member.getTransferPin())) {
-            throw new InvalidVerificationException("비밀번호가 일치하지 않습니다");
-        }
-
-        log.info("MemberService::verifyTransferPin END");
-
     }
 }

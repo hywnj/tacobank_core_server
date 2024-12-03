@@ -29,6 +29,8 @@ public class SmsAuthUtil {
 
     @Value("${naver.sms.from}")
     private String NAVER_SMS_FROM_NUM;
+    // 허용된 인증 요청 타입 (회원가입: join | 비밀번호: pw | 출금 비밀번호: pin | 통합계좌연결: mydata | 휴대전화번호 수정: tel)
+    private List<String> allowedRequestTypes = Arrays.asList("join", "pw", "pin", "mydata", "tel");
 
     private final NaverSmsApiClient naverSmsApiClient;
     private final RedisSessionUtil redisSessionUtil;
@@ -49,8 +51,11 @@ public class SmsAuthUtil {
      */
     public long sendVerificationCode(String tel, String requestType, Long memberId) {
         log.info("SmsAuthUtil::sendVerificationCode START");
-        // 요청 타입 소문자로
-        requestType = requestType.toLowerCase();
+        // 허용 가능한 요청 타입 검증
+        if (!allowedRequestTypes.contains(requestType)) {
+            log.warn("SmsAuthUtil::sendVerificationCode 허용되지 않은 요청 - tel: {}, requestType: {}", tel, requestType);
+            throw new SmsSendFailedException("FAILURE", "허용되지 않은 요청입니다.", HttpStatus.BAD_REQUEST);
+        }
 
         // 인증 제한(잠김) 여부 확인
         if (redisSessionUtil.isLocked(requestType + ":" + tel)) {
@@ -60,8 +65,24 @@ public class SmsAuthUtil {
         // 문자 인증 요청 - 지워지지 않은 세션, 성공한 세션이 있는지 확인
         String smsKey = buildRedisKey(RedisKeyConstants.SMS_KEY_PREFIX, requestType, tel); // SMS 문자 요청 세션 키
         String successKey = buildRedisKey(RedisKeyConstants.SMS_SUCCESS_PREFIX, requestType, tel); // SMS 문자 성공 세션 키
+        // 기존 인증 요청 세션이 있는 경우
         if (redisSessionUtil.isKeyExists(smsKey)) {
-            throw new SmsSendFailedException("FAILURE", "기존 인증 요청이 진행 중 입니다.", HttpStatus.BAD_REQUEST);
+            // 반복 요청에 대한 세션 관리
+            String requestKey = buildRedisKey(RedisKeyConstants.SMS_REQUEST_CNT_PREFIX, requestType, tel);
+            long requestCount = redisSessionUtil.incrementIfExists(requestKey, 1, 5, TimeUnit.MINUTES);
+            log.warn("SmsAuthUtil::sendVerificationCode TTL 확인 반복 요청 - Key: {}, 요청 횟수: {}", smsKey, requestCount);
+            if (requestCount > 5) { // 기존 요청이 있는데 5분안에 5회 초과 요청시 제한
+                // 인증 및 계정 잠금 설정
+                redisSessionUtil.lockAccess(requestType + ":" + tel, 10, TimeUnit.MINUTES);
+                throw new SmsSendFailedException("FAILURE", "인증 요청 횟수가 초과하여 10분간 인증이 차단됩니다. 잠시 후 다시 시도하거나 고객센터로 문의해주세요.", HttpStatus.FORBIDDEN);
+            }
+
+            // 기존 세션 TTL이 1분 이상이면 제한
+            long remainSeconds = redisSessionUtil.getTTL(smsKey);
+            log.warn("SmsAuthUtil::sendVerificationCode TTL 확인 반복 요청 - Key: {}, 남은 TTL: {}", smsKey, remainSeconds);
+            if (remainSeconds > 60) { // 1분 이상 남아있으면 제한
+                throw new SmsSendFailedException("FAILURE", "기존 인증 요청이 진행 중 입니다. 1분 후에 다시 시도해주세요.", HttpStatus.BAD_REQUEST); // 보안상의 이유로 구체적인 초는 알려주지 않음
+            } // 1분 이내인 경우 새로운 요청으로 덮어쓰기
         }
         if (redisSessionUtil.isKeyExists(successKey)) {
             throw new SmsSendFailedException("FAILURE", "이미 성공한 요청 입니다.", HttpStatus.BAD_REQUEST);
@@ -148,8 +169,11 @@ public class SmsAuthUtil {
      */
     public boolean verifyCode(Long logId, String tel, String inputCode, String requestType, Long memberId) {
         log.info("SmsAuthUtil::verifyCode START");
-        // 요청 타입 소문자로
-        requestType = requestType.toLowerCase();
+        // 허용 가능한 요청 타입 검증
+        if (!allowedRequestTypes.contains(requestType)) {
+            log.warn("SmsAuthUtil::sendVerificationCode 허용되지 않은 요청 - tel: {}, requestType: {}", tel, requestType);
+            throw new SmsSendFailedException("FAILURE", "허용되지 않은 요청입니다.", HttpStatus.BAD_REQUEST);
+        }
 
         // 인증 제한(잠김) 여부 확인
         if (redisSessionUtil.isLocked(requestType + ":" + tel)) {
@@ -216,9 +240,6 @@ public class SmsAuthUtil {
 
                 // 인증 및 계정 잠금 설정
                 redisSessionUtil.lockAccess(requestType + ":" + tel, 10, TimeUnit.MINUTES);
-
-                // 문자 인증 Redis 모두 삭제
-                redisSessionUtil.cleanupRedisKeys("SmsAuthUtil", smsKey, pinFailureKey);
                 throw new SmsSendFailedException("FAILURE", "인증 번호 입력 횟수가 초과하여 10분간 인증이 차단됩니다. 잠시 후 다시 시도하거나 고객센터로 문의해주세요.", HttpStatus.FORBIDDEN);
             }
 

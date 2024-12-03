@@ -1,6 +1,7 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
 import com.almagest_dev.tacobank_core_server.common.exception.InvalidVerificationException;
+import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
 import com.almagest_dev.tacobank_core_server.infrastructure.sms.util.SmsAuthUtil;
 import com.almagest_dev.tacobank_core_server.presentation.dto.auth.SmsConfirmRequestDto;
@@ -22,19 +23,28 @@ public class AuthService {
      * 문자 인증 요청
      */
     public SmsVerificationResponseDto sendSmsVerificationCode(SmsVerificationRequestDto requestDto) {
-        String type = (StringUtils.isBlank(requestDto.getType())) ? "general" : requestDto.getType();
-
         // member ID 가 요청에 있는 경우(= 로그인 한 사용자)
         Long memberId = 0L;
         if (requestDto.getMemberId() != null && requestDto.getMemberId() > 0) {
             memberId = requestDto.getMemberId();
             // 사용자 정보 확인
-            memberRepository.findByIdAndDeleted(memberId, "N")
+            Member member = memberRepository.findByIdAndDeleted(memberId, "N")
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+            // 사용자 정보 확인된 경우, 기존 번호와 일치여부 확인 (전화번호 재설정인 경우 제외)
+            if (!requestDto.getType().equals("tel")) {
+                if (!member.getTel().equals(requestDto.getTel())) {
+                    throw new IllegalArgumentException("요청한 전화번호가 회원정보에 등록된 전화번호와 일치하지 않습니다.");
+                }
+            } else { // 전화번호 재설정인 경우, 같은 번호라면 거부
+                if (member.getTel().equals(requestDto.getTel())) {
+                    throw new IllegalArgumentException("변경할 전화번호가 회원정보에 등록된 전화번호와 동일합니다.");
+                }
+            }
         }
 
         // 문자 인증번호 발송 및 인증 요청
-        long logId = smsAuthUtil.sendVerificationCode(requestDto.getTel(), type, memberId);
+        long logId = smsAuthUtil.sendVerificationCode(requestDto.getTel(), requestDto.getType(), memberId);
         return new SmsVerificationResponseDto(logId);
     }
 
@@ -42,8 +52,6 @@ public class AuthService {
      * 문자 인증 검증
      */
     public void confirmSmsVerificationCode(SmsConfirmRequestDto requestDto) {
-        String type = (StringUtils.isBlank(requestDto.getType())) ? "general" : requestDto.getType();
-
         // member ID 가 요청에 있는 경우(=로그인 한 사용자)
         Long memberId = 0L;
         if (requestDto.getMemberId() != null && requestDto.getMemberId() > 0) {
@@ -51,10 +59,11 @@ public class AuthService {
             // 사용자 정보 확인
             memberRepository.findByIdAndDeleted(memberId, "N")
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+            // 전화번호 일치여부는 요청시에만 수행
         }
 
         // 인증 여부 확인 & 인증번호 검증
-        if (!smsAuthUtil.verifyCode(requestDto.getVerificationId(), requestDto.getTel(), requestDto.getInputCode(), type, memberId)) {
+        if (!smsAuthUtil.verifyCode(requestDto.getVerificationId(), requestDto.getTel(), requestDto.getInputCode(), requestDto.getType(), memberId)) {
             throw new InvalidVerificationException("인증 번호가 일치하지 않습니다.");
         }
     }

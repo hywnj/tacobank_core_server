@@ -22,7 +22,6 @@ public class AuthController {
      */
     @PostMapping("/sms/verification")
     public ResponseEntity<?> sendSmsVerificationCode(@RequestBody @Valid SmsVerificationRequestDto requestDto) {
-
         SmsVerificationResponseDto response = authService.sendSmsVerificationCode(requestDto);
         return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "인증 번호를 발송했습니다.", response));
 
