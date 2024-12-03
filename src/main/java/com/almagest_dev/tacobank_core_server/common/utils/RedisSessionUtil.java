@@ -209,9 +209,11 @@ public class RedisSessionUtil {
 
             // TTL 설정은 키가 처음 생성된 경우에만 수행
             if (redisTemplate.getExpire(redisKey) == -1) { // -1은 만료시간이 설정되지 않았음을 의미
-                if (ttl > 0 && timeUnit != null) {
-                    redisTemplate.expire(redisKey, ttl, timeUnit);
+                // TTL이 없는 경우 세션 생성 불가 (무기한 세션은 허용 안함)
+                if (ttl <= 0 || timeUnit == null) {
+                    throw new RedisSessionException("Redis TTL 설정 값 오류 - TTL: " + ttl + ", TimeUnit: " + timeUnit, HttpStatus.INTERNAL_SERVER_ERROR);
                 }
+                redisTemplate.expire(redisKey, ttl, timeUnit);
             }
 
             return newValue;
@@ -228,14 +230,34 @@ public class RedisSessionUtil {
     }
 
     /**
+     * Redis TTL 조회
+     * @return 남은 TTL (초 단위), 존재하지 않으면 -1 반환
+     */
+    public long getTTL(String redisKey) {
+        Long ttl = redisTemplate.getExpire(redisKey, TimeUnit.SECONDS);
+        if (ttl == null || ttl == -1) {
+            log.warn("RedisSessionUtil::getTTL Redis TTL 조회 NULL - Key: {}", redisKey);
+            throw new RedisSessionException("요청 내역이 존재하지 않습니다", HttpStatus.BAD_REQUEST);
+        }
+        return ttl;
+    }
+
+    /**
      * 접속(계정, 인증) 잠금
      * @param sessionId prefix 를 제외한 세션 키
      */
     public void lockAccess(String sessionId, long duration, TimeUnit unit) {
         String lockKey = RedisKeyConstants.SMS_LOCK_PREFIX + sessionId;
         redisTemplate.opsForValue().set(lockKey, "LOCKED", duration, unit);
-
         log.info("RedisSessionUtil::lockAccount - 접속 잠금 완료 (sessionId: {})", sessionId);
+
+        // sessionId로 세팅된 이외 세션은 모두 삭제
+        cleanupRedisKeys("RedisSessionUtil::lockAccount"
+                , RedisKeyConstants.SMS_KEY_PREFIX + sessionId
+                , RedisKeyConstants.SMS_FAILURE_PREFIX + sessionId
+                , RedisKeyConstants.SMS_SUCCESS_PREFIX + sessionId
+                , RedisKeyConstants.SMS_REQUEST_CNT_PREFIX + sessionId
+        );
     }
 
     /**

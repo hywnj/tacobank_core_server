@@ -6,11 +6,11 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 @Data
-public class SetPinRequestDto {
-    @NotNull(message = "회원 정보가 없습니다..")
+public class ValidatePinRequestDto {
+    @NotNull(message = "회원 정보가 없습니다.")
     private Long memberId;
 
-    @NotBlank(message = "비밀번호를 입력해주세요.")
-    @Pattern(regexp = "^\\d{6}$", message = "비밀번호는 6자리 숫자여야 합니다.")
+    @NotBlank(message = "출금 비밀번호를 입력해주세요.")
+    @Pattern(regexp = "^\\d{6}$", message = "출금 비밀번호는 6자리 숫자여야 합니다.")
     private String transferPin;
 }

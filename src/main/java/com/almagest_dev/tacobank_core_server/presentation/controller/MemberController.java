@@ -31,6 +31,24 @@ public class MemberController {
     }
 
     /**
+     * 회원 전화번호 수정
+     */
+    @PutMapping("/{id}/tel")
+    public ResponseEntity<?> updateMemberTel(@PathVariable Long id, @RequestBody UpdateMemberRequestDto requestDto) {
+        memberService.updateMemberTel(id, requestDto);
+        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "회원 정보가 성공적으로 수정되었습니다."));
+    }
+
+    /**
+     * 회원 탈퇴
+     */
+    @PutMapping("/{id}/deactivation")
+    public ResponseEntity<?> deleteMember(@PathVariable Long id) {
+        memberService.deactivateMember(id);
+        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "회원 탈퇴가 완료되었습니다."));
+    }
+
+    /**
      * 비밀번호 찾기 : 본인 인증 & 인증번호 발송
      */
     @PostMapping("/password-recovery/verify")
@@ -57,49 +75,30 @@ public class MemberController {
         return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "비밀번호 재설정이 완료되었습니다."));
     }
 
-
-    /**
-     * 회원 전화번호 수정
-     */
-    @PutMapping("/{id}/tel")
-    public ResponseEntity<?> updateMemberTel(@PathVariable Long id, @RequestBody UpdateMemberRequestDto requestDto) {
-        memberService.updateMemberTel(id, requestDto);
-        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "회원 정보가 성공적으로 수정되었습니다."));
-    }
-
-    /**
-     * 회원 탈퇴
-     */
-    @PutMapping("/{id}/deactivation")
-    public ResponseEntity<?> deleteMember(@PathVariable Long id) {
-        memberService.deactivateMember(id);
-        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "회원 탈퇴가 완료되었습니다."));
-    }
-
-    /**
-     * 출금 비밀번호 검증 - 변경전 확인용
-     */
-    @PostMapping("/pin-verify")
-    public ResponseEntity<?> setTransferPin(@RequestBody @Valid ChangePinRequestDto requestDto) {
-        memberService.verifyTransferPin(requestDto);
-        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "출금 비밀번호가 확인되었습니다."));
-    }
-
     /**
      * 출금 비밀번호 설정
      */
     @PostMapping("/pin")
-    public ResponseEntity<?> setTransferPin(@RequestBody @Valid SetPinRequestDto requestDto) {
-        memberService.setTransferPin(requestDto);
+    public ResponseEntity<?> createTransferPin(@RequestBody @Valid CreatePinRequestDto requestDto) {
+        memberService.createTransferPin(requestDto);
         return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "출금 비밀번호가 성공적으로 설정되었습니다."));
+    }
+
+    /**
+     * 현재 출금 비밀번호 확인
+     */
+    @PostMapping("/pin-validate")
+    public ResponseEntity<?> validateTransferPin(@RequestBody @Valid ValidatePinRequestDto requestDto) {
+        memberService.validateTransferPin(requestDto);
+        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "출금 비밀번호 검증이 성공했습니다."));
     }
 
     /**
      * 출금 비밀번호 수정
      */
     @PostMapping("/pin-reset")
-    public ResponseEntity<?> changeTransferPin(@RequestBody @Valid ChangePinRequestDto requestDto) {
-        memberService.changeTransferPin(requestDto);
+    public ResponseEntity<?> resetTransferPin(@RequestBody @Valid ChangePinRequestDto requestDto) {
+        memberService.resetTransferPin(requestDto);
         return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "출금 비밀번호가 성공적으로 변경되었습니다."));
     }
 
