@@ -53,7 +53,7 @@ naver:
 aws:
   s3:
     bucket-name: ${AWS_S3_BUCKET_NAME}
-    folder: ${AWS_S3_FOLDER_PATH}
+    folder: ${AWS_S3_FOLDER_PATH_CORE}
     access-key: ${AWS_S3_IAM_ACCESS_KEY}
     secret-key: ${AWS_S3_IAM_SECRET_KEY}
     region: ${AWS_S3_REGION}
