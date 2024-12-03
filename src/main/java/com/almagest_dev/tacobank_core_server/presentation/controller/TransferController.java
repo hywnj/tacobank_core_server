@@ -26,7 +26,7 @@ public class TransferController {
     @PostMapping("/receiver")
     public ResponseEntity<?> inquireReceiverAccount(@RequestBody @Valid ReceiverInquiryRequestDto requestDto) {
         return ResponseEntity.ok(
-                new CoreResponseDto<>("success", "수취인 조회 성공", transferService.inquireReceiverAccount(requestDto))
+                new CoreResponseDto<>("SUCCESS", "수취인 조회 성공", transferService.inquireReceiverAccount(requestDto))
         );
     }
 
@@ -36,7 +36,7 @@ public class TransferController {
     @PostMapping("/password/verify")
     public ResponseEntity<?> validateTransferPassword(@RequestBody @Valid TransferRequestDto requestDto) {
         transferService.verifyPassword(requestDto);
-        return ResponseEntity.ok(new CoreResponseDto<>("success", "비밀번호 검증 성공", null));
+        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "비밀번호 검증 성공", null));
     }
 
     /**
