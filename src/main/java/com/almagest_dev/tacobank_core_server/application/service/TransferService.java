@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -28,7 +29,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -41,6 +41,7 @@ public class TransferService {
     private final SettlementRepository settlementRepository;
     private final SettlementDetailsRepository settlementDetailsRepository;
 
+    private final PasswordEncoder passwordEncoder;
     private final TestbedApiClient testbedApiClient;
     private final RedisSessionUtil redisSessionUtil;
 
@@ -230,7 +231,7 @@ public class TransferService {
         if (withdrawalMember.getTransferPin() == null) {
             throw new TransferException("TERMINATED", "출금 비밀번호 설정이 안되어있습니다. 비밀번호 설정 후 다시 송금해주세요.", HttpStatus.BAD_REQUEST);
         }
-        boolean isValid = withdrawalMember.getTransferPin().equals(requestDto.getTransferPin());
+        boolean isValid = passwordEncoder.matches(requestDto.getTransferPin(), withdrawalMember.getTransferPin());
         if (!isValid) {
             // 실패 횟수 증가
             failCnt = redisTemplate.opsForValue().increment(pinFailureRedisKey);
@@ -268,6 +269,9 @@ public class TransferService {
      * 송금
      */
     public CoreResponseDto<TransferResponseDto> transfer(TransferRequestDto requestDto) {
+        // 출금 비밀번호 검증
+        verifyPassword(requestDto);
+
         String sessionId = redisSessionUtil.generateSessionId(requestDto.getMemberId(), requestDto.getIdempotencyKey());
         String sessionKey = TRANSFER_SESSION_PREFIX + sessionId;
 
