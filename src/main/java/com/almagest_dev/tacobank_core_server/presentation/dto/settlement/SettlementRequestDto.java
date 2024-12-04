@@ -19,7 +19,7 @@ public class SettlementRequestDto {
 
     @NotNull(message = "정산액 정보가 없습니다.")
     @Min(value = 10, message = "정산액이 유효하지 않습니다.")
-    private int totalAmount;    // 정산 총액
+    private long totalAmount;    // 정산 총액
 
     private List<Long> friendIds;       // 친구 선택 시 친구 ID 목록
 
