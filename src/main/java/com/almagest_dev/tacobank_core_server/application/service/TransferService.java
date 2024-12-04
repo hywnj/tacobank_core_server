@@ -376,14 +376,14 @@ public class TransferService {
                         transfer.getAmount()
                 );
 
-                response = new CoreResponseDto<>("success", "송금이 완료되었습니다.", successResponse);
+                response = new CoreResponseDto<>("SUCCESS", "송금이 완료되었습니다.", successResponse);
 
             } else {
                 // 실패
                 log.info("TransferService - [{}] transfer processTransferTransaction Fail : {}", sessionId, apiResponse.getRspMessage());
                 updateTransferStatus(transfer, apiTranId, "F", apiResponse.getRspCode(), apiResponse.getRspMessage(), apiResponse.getApiTranDtm());
 
-                response = new CoreResponseDto<>("fail", "송금에 실패하였습니다. (" + apiResponse.getRspMessage() + ")", null);
+                response = new CoreResponseDto<>("FAILURE", "송금에 실패하였습니다. (" + apiResponse.getRspMessage() + ")", null);
             }
 
             log.info("TransferService - [{}] transfer processTransferTransaction response - {}", sessionId, response);
