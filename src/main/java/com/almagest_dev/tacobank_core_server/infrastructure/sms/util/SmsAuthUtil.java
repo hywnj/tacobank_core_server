@@ -236,7 +236,7 @@ public class SmsAuthUtil {
             // 실패 횟수 초과 시 인증 실패로 종료 & 10분간 인증 불가 및 계정 잠금
             if (failCnt >= 5) {
                 // SmsVerificationLog 인증 상태 UPDATE
-                updateSmsVerificationStatus("FAIL", tel, inputCode, verificationData.getLogId(), verificationData);
+                updateSmsVerificationStatus("FAILURE", tel, inputCode, verificationData.getLogId(), verificationData);
 
                 // 인증 및 계정 잠금 설정
                 redisSessionUtil.lockAccess(requestType + ":" + tel, 10, TimeUnit.MINUTES);
