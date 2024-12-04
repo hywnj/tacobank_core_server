@@ -5,5 +5,5 @@ import lombok.Data;
 @Data
 public class SettlementMemberDto {
     private long memberId; // 멤버 ID
-    private int amount; // 멤버별 금액
+    private long amount; // 멤버별 금액
 }

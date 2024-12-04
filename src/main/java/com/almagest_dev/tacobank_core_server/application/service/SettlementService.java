@@ -94,8 +94,8 @@ public class SettlementService {
 
 
         // 2. 총 금액과 개별 정산 금액 검증
-        int calculatedTotalAmount = request.getMemberAmounts().stream()
-                .mapToInt(SettlementMemberDto::getAmount)
+        long calculatedTotalAmount = request.getMemberAmounts().stream()
+                .mapToLong(SettlementMemberDto::getAmount)
                 .sum();
 
         if (calculatedTotalAmount != request.getTotalAmount()) {
