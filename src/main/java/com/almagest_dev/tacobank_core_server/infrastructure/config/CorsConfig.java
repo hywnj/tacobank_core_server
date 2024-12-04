@@ -18,7 +18,7 @@ public class CorsConfig {
 
         // 리소스 허용할 URL
         List<String> allowedOriginPatterns = new ArrayList<>();
-        allowedOriginPatterns.add("http://localhost:5173");
+        allowedOriginPatterns.add("https://bill-us.com");
         config.setAllowedOrigins(allowedOriginPatterns);
 
         // 허용 Http Method 지정
