@@ -48,7 +48,7 @@ public class SettlementController {
 
     // 독촉 알림 보내기
     @PostMapping("/{settlementId}/notify/{memberId}")
-    public ResponseEntity<CoreResponseDto<String>> notifyPendingSettlementForMember(
+    public ResponseEntity<?> notifyPendingSettlementForMember(
             @PathVariable Long settlementId,
             @PathVariable Long memberId) {
         settlementService.notifyPendingSettlementForMember(settlementId, memberId);
@@ -57,7 +57,7 @@ public class SettlementController {
 
     // 바로 송금 - 정산 데이터 검증 & 사용자 전 계좌 잔액 조회
     @PostMapping("/transfers")
-    public ResponseEntity<CoreResponseDto<SettlementTransferResponseDto>> validateSettlementsAndGetAvailableBalances(
+    public ResponseEntity<?> validateSettlementsAndGetAvailableBalances(
             @RequestBody @Valid SettlementTransferRequestDto requestDto) {
         SettlementTransferResponseDto response = settlementService.validateSettlementsAndGetAvailableBalances(requestDto);
         return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "사용자 출금 가능 계좌 잔액조회 성공", response));

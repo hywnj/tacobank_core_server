@@ -17,7 +17,7 @@ import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.Settle
 import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementRepository;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.client.TestbedApiClient;
 
-import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountBalance;
+import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountInfoWithBalance;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.receipt.ProductMemberDetails;
 import com.almagest_dev.tacobank_core_server.presentation.dto.settlement.*;
@@ -363,7 +363,7 @@ public class SettlementService {
 
         // TestBed 잔액조회 호출
         log.info("SettlementService::validateSettlementsAndGetAvailableBalances 다건 잔액 조회");
-        List<AccountBalance> accountBalances = new ArrayList<>();
+        List<AccountInfoWithBalance> accountInfoWithBalances = new ArrayList<>();
         for (Account account : availableAccounts) {
             BalanceInquiryApiRequestDto apiRequestDto = new BalanceInquiryApiRequestDto(
                     member.getUserFinanceId(),
@@ -381,19 +381,35 @@ public class SettlementService {
             // 개별 계좌 잔액 조회 실패 - 해당 계좌 잔액 0원으로 Return
             if (apiResponse.getApiTranId() == null || !apiResponse.getRspCode().equals("A0000") || apiResponse.getBalanceAmt() == null) {
                 log.warn("계좌 잔액 조회에 실패했습니다. - " + apiResponse.getRspMessage());
-                accountBalances.add(new AccountBalance(account.getId(), 0));
+                accountInfoWithBalances.add(new AccountInfoWithBalance(
+                        account.getId()
+                        , ""
+                        , ""
+                        , ""
+                        , 0
+                        )
+                );
                 continue;
             }
             // 개별 계좌 잔액 조회 성공 - 계좌별 잔액 객체에 추가
             int balance = (apiResponse.getBalanceAmt() == null) ? 0 : Integer.parseInt(apiResponse.getBalanceAmt());
-            accountBalances.add(new AccountBalance(account.getId(), balance));
+            String bankName = orgCodeService.getBankNameByCode(account.getBankCode());
+
+            accountInfoWithBalances.add(new AccountInfoWithBalance(
+                    account.getId()
+                    , account.getAccountNum()
+                    , account.getBankCode()
+                    , bankName
+                    , balance
+                    )
+            );
         }
-        if (accountBalances == null || accountBalances.size() == 0) {
+        if (accountInfoWithBalances == null || accountInfoWithBalances.size() == 0) {
             throw new IllegalArgumentException("출금 가능한 계좌의 잔액 조회 결과가 없습니다.");
         }
 
         // 응답 반환
         log.info("SettlementService::validateSettlementsAndGetAvailableBalances END");
-        return new SettlementTransferResponseDto(requestDto.getIdempotencyKey(), accountBalances);
+        return new SettlementTransferResponseDto(requestDto.getIdempotencyKey(), accountInfoWithBalances);
     }
 }
