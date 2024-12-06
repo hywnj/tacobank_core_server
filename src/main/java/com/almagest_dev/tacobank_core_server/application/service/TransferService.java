@@ -14,6 +14,8 @@ import com.almagest_dev.tacobank_core_server.domain.settlememt.model.SettlementD
 import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementDetailsRepository;
 import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementRepository;
 import com.almagest_dev.tacobank_core_server.domain.transfer.model.Transfer;
+import com.almagest_dev.tacobank_core_server.domain.transfer.model.TransferDuplicateLog;
+import com.almagest_dev.tacobank_core_server.domain.transfer.repository.TransferDuplicateLogRepository;
 import com.almagest_dev.tacobank_core_server.domain.transfer.repository.TransferRepository;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.client.TestbedApiClient;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.*;
@@ -28,6 +30,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 
@@ -42,6 +45,7 @@ public class TransferService {
     private final SettlementRepository settlementRepository;
     private final SettlementDetailsRepository settlementDetailsRepository;
     private final GroupMemberRepository groupMemberRepository;
+    private final TransferDuplicateLogRepository transferDuplicateLogRepository;
 
     private final PasswordEncoder passwordEncoder;
     private final TestbedApiClient testbedApiClient;
@@ -174,7 +178,8 @@ public class TransferService {
             }
 
             // 송금 요청 데이터 Validation 확인
-            validateTransferData(sessionId, requestDto, sessionData);
+            String transactionID = UUID.randomUUID().toString(); // 고유 거래 ID (Backend 생성)
+            validateTransferData(sessionId, requestDto, sessionData, transactionID);
 
             // 출금 비밀번호 검증
             verifyPassword(requestDto, sessionId, sessionData);
@@ -205,7 +210,7 @@ public class TransferService {
 
             // 송금 요청 INSERT
             Transfer transferData = new Transfer().createTransfer(
-                    sessionData.getIdempotencyKey(),
+                    sessionData.getIdempotencyKey(), transactionID,
                     sessionData.getMemberId(), sessionData.getWithdrawalDetails().getAccountId(),
                     sessionData.getWithdrawalDetails().getBankCode(), sessionData.getWithdrawalDetails().getAccountNum(), sessionData.getWithdrawalDetails().getAccountHolder(),
                     wdPrintContent, rcvPrintContent,
@@ -279,7 +284,7 @@ public class TransferService {
      * 송금 Validation Check
      *   - 송금액, 중복 송금 요청 확인 등
      */
-    private void validateTransferData(String sessionId, TransferRequestDto requestDto, TransferSessionData sessionData) {
+    private void validateTransferData(String sessionId, TransferRequestDto requestDto, TransferSessionData sessionData, String transactionId) {
         log.info("TransferService - [{}] validateTransferData START", sessionId);
 
         String status = "TERMINATED";
@@ -295,6 +300,22 @@ public class TransferService {
 
         // 송금 요청 중복 체크 - 중복 요청이면 송금 종료 @TODO 송금 중복요청 로그 테이블 INSERT
         if (transferRepository.existsByIdempotencyKeyAndStatusIn(requestDto.getIdempotencyKey(), List.of("S", "R"))) {
+            // 중복 로그 테이블 INSERT
+            transferDuplicateLogRepository.save(TransferDuplicateLog.createTransferDuplicateLog(
+                    transactionId,
+                    sessionData.getIdempotencyKey(),
+                    sessionData.getSettlementId(),
+                    sessionData.getMemberId(),
+                    sessionData.getWithdrawalDetails().getAccountId(),
+                    sessionData.getWithdrawalDetails().getBankCode(),
+                    sessionData.getWithdrawalDetails().getAccountNum(),
+                    sessionData.getWithdrawalDetails().getAccountHolder(),
+                    sessionData.getReceiverDetails().getBankCode(),
+                    sessionData.getReceiverDetails().getAccountNum(),
+                    sessionData.getReceiverDetails().getAccountHolder(),
+                    sessionData.getAmount()
+            ));
+
             message = "중복된 송금 요청입니다.";
             httpStatus = HttpStatus.CONFLICT;
             throw new TransferException(status, message, httpStatus);
