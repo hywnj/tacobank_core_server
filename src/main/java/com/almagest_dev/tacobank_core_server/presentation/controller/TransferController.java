@@ -33,14 +33,14 @@ public class TransferController {
     /**
      * 출금(이체)시 비밀번호 검증
      */
-    @PostMapping("/password/verify")
-    public ResponseEntity<?> validateTransferPassword(@RequestBody @Valid TransferRequestDto requestDto) {
-        transferService.verifyPassword(requestDto);
-        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "비밀번호 검증 성공", null));
-    }
+//    @PostMapping("/password/verify")
+//    public ResponseEntity<?> validateTransferPassword(@RequestBody @Valid TransferRequestDto requestDto) {
+//        transferService.verifyPassword(requestDto);
+//        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "비밀번호 검증 성공", null));
+//    }
 
     /**
-     * 송금
+     * 송금: 출금 비밀번호 검증 + 송금
      */
     @PostMapping
     public ResponseEntity<?> transfer(@RequestBody @Valid TransferRequestDto requestDto) {

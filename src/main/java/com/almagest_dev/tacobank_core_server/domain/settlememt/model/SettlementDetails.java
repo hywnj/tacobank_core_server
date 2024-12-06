@@ -51,8 +51,13 @@ public class SettlementDetails {
         this.updatedDate = LocalDateTime.now();
     }
 
+    public void updateSettlementDetails(String settlementStatus) {
+        this.settlementStatus = settlementStatus;
+        this.updatedDate = LocalDateTime.now();
+    }
+
     public void saveSettlement(Settlement settlement) {this.settlement = settlement;}
     public void saveGroupMember(GroupMember groupMember) {this.groupMember = groupMember;}
     public void saveSettlementAmount(long amount) {this.settlementAmount = amount;}
-    public void saveSettlementStatus(String n) {this.settlementStatus = n;}
+    public void saveSettlementStatus(String status) {this.settlementStatus = status;}
 }

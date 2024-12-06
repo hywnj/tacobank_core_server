@@ -24,11 +24,11 @@ public class RedisSessionUtil {
     private final ObjectMapper objectMapper;
 
     /**
-     * 세션 ID 생성 메서드
+     * 세션 ID 생성 메서드 (암호화)
      */
-    public String generateSessionId(Long memberId, String uniqueKey) {
+    public String generateEncryptSessionId(Long memberId, String uniqueKey) {
         if (memberId == null || uniqueKey == null || uniqueKey.isEmpty()) {
-            throw new RedisSessionException("계정정보 또는 송금 요청정보가 유효하지 않습니다.", HttpStatus.BAD_REQUEST);
+            throw new RedisSessionException("요청정보가 유효하지 않습니다.", HttpStatus.BAD_REQUEST);
         }
         String input = memberId + ":" + uniqueKey;
         try {
@@ -208,13 +208,7 @@ public class RedisSessionUtil {
             Long newValue = redisTemplate.opsForValue().increment(redisKey, incrementValue);
 
             // TTL 설정은 키가 처음 생성된 경우에만 수행
-            if (redisTemplate.getExpire(redisKey) == -1) { // -1은 만료시간이 설정되지 않았음을 의미
-                // TTL이 없는 경우 세션 생성 불가 (무기한 세션은 허용 안함)
-                if (ttl <= 0 || timeUnit == null) {
-                    throw new RedisSessionException("Redis TTL 설정 값 오류 - TTL: " + ttl + ", TimeUnit: " + timeUnit, HttpStatus.INTERNAL_SERVER_ERROR);
-                }
-                redisTemplate.expire(redisKey, ttl, timeUnit);
-            }
+            setTTLIfAbsent(redisKey, ttl, timeUnit);
 
             return newValue;
         } catch (Exception e) {
@@ -233,7 +227,7 @@ public class RedisSessionUtil {
      * Redis TTL 조회
      * @return 남은 TTL (초 단위), 존재하지 않으면 -1 반환
      */
-    public long getTTL(String redisKey) {
+    public long getTTLSeconds(String redisKey) {
         Long ttl = redisTemplate.getExpire(redisKey, TimeUnit.SECONDS);
         if (ttl == null || ttl == -1) {
             log.warn("RedisSessionUtil::getTTL Redis TTL 조회 NULL - Key: {}", redisKey);
@@ -273,5 +267,19 @@ public class RedisSessionUtil {
             return true;
         }
         return false;
+    }
+
+
+    /**
+     * TTL, TimeUnit 있는 경우, TTL 설정
+     */
+    private void setTTLIfAbsent(String redisKey, long ttl, TimeUnit timeUnit) {
+        if (redisTemplate.getExpire(redisKey) == -1) { // -1은 만료시간이 설정되지 않았음을 의미
+            // TTL이 없는 경우 세션 생성 불가 (무기한 세션은 허용 안함)
+            if (ttl <= 0 || timeUnit == null) {
+                throw new RedisSessionException("Redis TTL 설정 값 오류 - TTL: " + ttl + ", TimeUnit: " + timeUnit, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            redisTemplate.expire(redisKey, ttl, timeUnit);
+        }
     }
 }

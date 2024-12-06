@@ -1,15 +1,21 @@
 package com.almagest_dev.tacobank_core_server.presentation.dto.transantion;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class TransactionResponseDto {
-    private String  tranNum; // 거래 고유 시퀀스 번호
-    private String type; // 거래 타입
-    private String printContent; // 입금출력내용
-    private Double amount; // 거래금액
-    private Double afterBalanceAmount; // 거래 후 잔액
-    private String tranDateTime; // 거래 일시 (YYYY.MM.DD HH:mm:ss)
-    private String tranAmt;
-
+    private Long accountId;         // 계좌 식별자
+    private String accountName;     // 계좌명
+    private String accountNum;      // 계좌 번호
+    private String accountHolder;   // 예금주
+    private String bankName;        // 은행 이름
+    private String bankCode;        // 은행 코드
+    private String balance;         // 잔액
+    private List<TransactionDetails> transactionList;
 }

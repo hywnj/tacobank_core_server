@@ -78,7 +78,7 @@ public class SmsAuthUtil {
             }
 
             // 기존 세션 TTL이 1분 이상이면 제한
-            long remainSeconds = redisSessionUtil.getTTL(smsKey);
+            long remainSeconds = redisSessionUtil.getTTLSeconds(smsKey);
             log.warn("SmsAuthUtil::sendVerificationCode TTL 확인 반복 요청 - Key: {}, 남은 TTL: {}", smsKey, remainSeconds);
             if (remainSeconds > 60) { // 1분 이상 남아있으면 제한
                 throw new SmsSendFailedException("FAILURE", "기존 인증 요청이 진행 중 입니다. 1분 후에 다시 시도해주세요.", HttpStatus.BAD_REQUEST); // 보안상의 이유로 구체적인 초는 알려주지 않음
