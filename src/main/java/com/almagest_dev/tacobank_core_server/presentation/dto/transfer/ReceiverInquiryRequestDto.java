@@ -13,6 +13,8 @@ public class ReceiverInquiryRequestDto {
     @NotBlank(message = "송금 정보를 보내주세요.")
     private String idempotencyKey; // 중복 방지 키
 
+    private Long settlementId; // 정산(바로 송금)인 경우 필수
+
     @NotNull(message = "회원 정보를 보내주세요.")
     private Long withdrawalMemberId;      // 출금 멤버 아이디
 

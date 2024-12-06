@@ -2,13 +2,15 @@ package com.almagest_dev.tacobank_core_server.application.service;
 
 import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
 import com.almagest_dev.tacobank_core_server.common.exception.TransferException;
-import com.almagest_dev.tacobank_core_server.common.exception.TransferPasswordValidationException;
 import com.almagest_dev.tacobank_core_server.common.utils.RedisSessionUtil;
 import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.AccountRepository;
+import com.almagest_dev.tacobank_core_server.domain.group.model.GroupMember;
+import com.almagest_dev.tacobank_core_server.domain.group.repository.GroupMemberRepository;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
 import com.almagest_dev.tacobank_core_server.domain.settlememt.model.Settlement;
+import com.almagest_dev.tacobank_core_server.domain.settlememt.model.SettlementDetails;
 import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementDetailsRepository;
 import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementRepository;
 import com.almagest_dev.tacobank_core_server.domain.transfer.model.Transfer;
@@ -19,7 +21,6 @@ import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,7 @@ public class TransferService {
     private final AccountRepository accountRepository;
     private final SettlementRepository settlementRepository;
     private final SettlementDetailsRepository settlementDetailsRepository;
+    private final GroupMemberRepository groupMemberRepository;
 
     private final PasswordEncoder passwordEncoder;
     private final TestbedApiClient testbedApiClient;
@@ -62,6 +64,12 @@ public class TransferService {
         // Account(송금 보내는 계좌) 조회
         Account withdrawalAccount = accountRepository.findByIdAndVerified(requestDto.getWithdrawalAccountId(), "Y")
                 .orElseThrow(() -> new TransferException("TERMINATED", "인증되지 않은 계좌입니다.", HttpStatus.BAD_REQUEST));
+
+        // 정산 정보 검증
+        Long settlementId = requestDto.getSettlementId() != null ? requestDto.getSettlementId() : 0L;
+        if (settlementId > 0) {
+            validateSettlementInfo(sessionId, requestDto.getSettlementId(), withdrawalMember.getId());
+        }
 
         // 수취인 조회를 위한 Member 데이터 세팅
         ReceiverInquiryApiRequestDto receiverInquiryApiRequest = new ReceiverInquiryApiRequestDto(
@@ -106,6 +114,7 @@ public class TransferService {
         TransferSessionData data = new TransferSessionData(
                 requestDto.getIdempotencyKey(),             // 중복 방지 키(클라이언트에서 생성)
                 requestDto.getWithdrawalMemberId(),         // 출금 사용자 ID
+                settlementId,                               // 정산 ID
                 withdrawalMember.getUserFinanceId(),        // 출금 사용자 금융 식별번호
                 withdrawalAccount.getFintechUseNum(),       // 출금 계좌 핀테크 이용번호
                 new WithdrawalDetails(
@@ -157,6 +166,13 @@ public class TransferService {
         log.info("TransferService - [{}] transfer requestDto :{} ", sessionId, requestDto);
 
         try {
+            // 정산 정보 체크
+            SettlementDetails settlementDetails = new SettlementDetails();
+            if (requestDto.getSettlementId() != null && requestDto.getSettlementId() > 0
+                    && sessionData.getSettlementId() != null && sessionData.getSettlementId() > 0) {
+                settlementDetails = validateSettlementInfo(sessionId, sessionData.getSettlementId(), sessionData.getMemberId());
+            }
+
             // 송금 요청 데이터 Validation 확인
             validateTransferData(sessionId, requestDto, sessionData);
 
@@ -203,6 +219,15 @@ public class TransferService {
             // 송금 로직 처리
             log.info("TransferService - [{}] transfer CALL processTransferTransaction", sessionId);
             CoreResponseDto<TransferResponseDto> response = processTransferTransaction(transferData, sessionData, sessionId);
+
+            // 송금 성공시 정산 테이블에 업데이트
+            if ("SUCCESS".equals(response.getStatus())) {
+                if (settlementDetails != null && settlementDetails.getId() > 0L) { // 정산 정보가 있을때만, 개별 정산정보 업데이트
+                    settlementDetails.updateSettlementDetails("Y");
+                    settlementDetailsRepository.save(settlementDetails);
+                }
+            }
+
             // 응답 반환
             return response;
 
@@ -214,6 +239,40 @@ public class TransferService {
         } finally {
             log.info("TransferService - [{}] transfer END", sessionId);
         }
+    }
+
+    /**
+     * 송금 - 정산 정보 검증
+     * @param sessionId
+     * @param settlementId
+     * @param memberId 송금 주체의 memberId
+     * @return
+     */
+    private SettlementDetails validateSettlementInfo(String sessionId, Long settlementId, Long memberId) {
+        // 정산 정보 체크
+        SettlementDetails settlementDetails = new SettlementDetails();
+        Settlement settlement = settlementRepository.findById(settlementId)
+                .orElseThrow(() -> {
+                    log.warn("TransferService - [{}] validateSettlementInfo 정산 정보 없음 - settlement ID: {}", sessionId, settlementId);
+                    return new TransferException("TERMINATED", "잘못된 송금 요청입니다.", HttpStatus.BAD_REQUEST);
+                });
+
+        // 정산 그룹 포함 멤버 여부 확인
+        GroupMember groupMember = groupMemberRepository.findByPayGroupIdAndMemberId(settlement.getPayGroup().getId(), memberId)
+                .orElseThrow(() -> {
+                    log.warn("TransferService - [{}] validateSettlementInfo 정산 그룹 멤버 없음 - settlement ID: {}", sessionId, settlementId);
+                    return new TransferException("TERMINATED", "잘못된 송금 요청입니다.", HttpStatus.BAD_REQUEST);
+                });
+
+        // 개별 정산 상세 정보 검증
+        log.info("정산: 아이디: {} , 그룹멤버 아이디: {}, 멤버 아이디: {}", settlementId, groupMember.getId(), memberId);
+        settlementDetails = settlementDetailsRepository.findBySettlement_IdAndGroupMember_Id(settlement.getId(), groupMember.getId())
+                .orElseThrow(() -> {
+                    log.warn("TransferService - [{}] validateSettlementInfo 개별 정산 상세 정보 조회 실패 - settlement ID: {}", sessionId, settlementId);
+                    return new TransferException("TERMINATED", "잘못된 송금 요청입니다.", HttpStatus.BAD_REQUEST);
+                });
+
+        return settlementDetails;
     }
 
     /**
@@ -232,15 +291,6 @@ public class TransferService {
             // 송금액 에러 발생시, 다시 입력 가능 = 세션 유지
             message = "송금액은 0원 이상이어야 합니다.";
             throw new TransferException(message, httpStatus);
-        }
-
-        // 정산 ID 체크 - 송금 종료
-        if (requestDto.getSettlementId() != null && requestDto.getSettlementId() > 0) {
-            Settlement settlement = settlementRepository.findById(requestDto.getSettlementId()).orElse(null);
-            if (settlement == null) {
-                log.warn("TransferService - [{}] validateTransferData 정산 정보가 없습니다. - settlement ID: {}", sessionId, requestDto.getSettlementId());
-                throw new TransferException(status, message, httpStatus);
-            }
         }
 
         // 송금 요청 중복 체크 - 중복 요청이면 송금 종료 @TODO 송금 중복요청 로그 테이블 INSERT
@@ -382,7 +432,7 @@ public class TransferService {
                 log.info("TransferService - [{}] transfer processTransferTransaction Fail : {}", sessionId, apiResponse.getRspMessage());
                 updateTransferStatus(transfer, apiTranId, "F", apiResponse.getRspCode(), apiResponse.getRspMessage(), apiResponse.getApiTranDtm());
 
-                response = new CoreResponseDto<>("FAILURE", "송금에 실패하였습니다. (" + apiResponse.getRspMessage() + ")", null);
+                response = new CoreResponseDto<>("TERMINATED", "송금에 실패하였습니다. (" + apiResponse.getRspMessage() + ")", null);
             }
 
             log.info("TransferService - [{}] transfer processTransferTransaction response - {}", sessionId, response);
@@ -395,6 +445,9 @@ public class TransferService {
 
             ex.printStackTrace();
             throw ex; // 예외 재발생
+        } finally {
+            // 송금 세션 모두 삭제
+            redisSessionUtil.cleanupRedisKeys("TransferService", TRANSFER_SESSION_PREFIX + sessionId, PIN_FAILURE_PREFIX + sessionId);
         }
     }
 

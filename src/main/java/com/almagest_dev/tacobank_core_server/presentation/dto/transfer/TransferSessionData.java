@@ -10,6 +10,8 @@ import lombok.NoArgsConstructor;
 public class TransferSessionData {
     private String idempotencyKey;              // 중복 방지 키(클라이언트에서 생성)
     private Long memberId;                    // 사용자 ID
+    private Long settlementId; // 정산(바로 송금)인 경우 필수
+
     private String withdrawalUserFinanceId;     // 사용자 금융 식별번호
     private String withdrawalFintechUseNum;     // 출금 계좌 핀테크 이용번호
 
