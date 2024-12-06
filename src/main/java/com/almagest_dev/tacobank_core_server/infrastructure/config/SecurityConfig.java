@@ -25,7 +25,8 @@ public class SecurityConfig {
     private final MemberLockFilter memberLockFilter;
 
     private static final String[] PUBLIC_API_URL = { "/taco/auth/**", "/taco/core/auth/**", "/taco/core/**" }; // 인증 없이도 접근 가능한 경로
-    private static final String ADMIN_API_URL = "/admin/**"; // 관리자만 접근 가능한 경로
+    private static final String ADMIN_API_URL = "/taco/core/admin/**"; // 관리자만 접근 가능한 경로
+    private static final String MANAGE_API_URL = "/taco/core/manage/**"; // 관리자 + 매니저만 접근 가능한 경로
 
     public SecurityConfig(JwtProvider jwtProvider, JwtAuthenticationFilter jwtAuthenticationFilter, MemberLockFilter memberLockFilter) {
         this.jwtProvider = jwtProvider;
@@ -44,6 +45,7 @@ public class SecurityConfig {
                         .requestMatchers(PUBLIC_API_URL).permitAll() // 인증 없이 접근 가능한 경로
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // OPTIONS 요청 허용
                         .requestMatchers(ADMIN_API_URL).hasRole("ADMIN") // Admin 페이지 권한 제한
+                        .requestMatchers(MANAGE_API_URL).hasAnyRole("ADMIN", "MANAGER") // Admin, Manage 페이지 권한 제한
                         .anyRequest().authenticated()) // 이외 요청은 모두 인증 확인
                 .exceptionHandling((e) -> e
                         .authenticationEntryPoint(new CustomAuthenticationEntryPoint()) // 인증되지 않은 사용자 접근 혹은 유효한 인증정보 부족한 경우(401 Unauthorized)
