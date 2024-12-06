@@ -171,7 +171,7 @@ public class TransferService {
 
         try {
             // 정산 정보 체크
-            SettlementDetails settlementDetails = new SettlementDetails();
+            SettlementDetails settlementDetails = null;
             if (requestDto.getSettlementId() != null && requestDto.getSettlementId() > 0
                     && sessionData.getSettlementId() != null && sessionData.getSettlementId() > 0) {
                 settlementDetails = validateSettlementInfo(sessionId, sessionData.getSettlementId(), sessionData.getMemberId());
@@ -261,6 +261,9 @@ public class TransferService {
                     log.warn("TransferService - [{}] validateSettlementInfo 정산 정보 없음 - settlement ID: {}", sessionId, settlementId);
                     return new TransferException("TERMINATED", "잘못된 송금 요청입니다.", HttpStatus.BAD_REQUEST);
                 });
+        if ("Y".equals(settlement.getSettlementStatus())) {
+            throw new  TransferException("TERMINATED", "이미 완료된 정산입니다.", HttpStatus.BAD_REQUEST);
+        }
 
         // 정산 그룹 포함 멤버 여부 확인
         GroupMember groupMember = groupMemberRepository.findByPayGroupIdAndMemberId(settlement.getPayGroup().getId(), memberId)

@@ -12,6 +12,7 @@
     <!-- 로그 출력 패턴 -->
     <property name="LOG_PATTERN" value="%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd'T'HH:mm:ss.SSSXXX}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr([%15.15t]){faint} %clr(---){faint} %clr(%-40.40logger{39}){cyan}  %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}"/>
     <property name="TACO_PATTERN" value="%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd'T'HH:mm:ss.SSSXXX}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr([%15.15t]){faint} %clr(---){faint} %clr(%-40.40logger{39}){cyan}  %clr(:){faint} %clr(%m%n){magenta}${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}})"/>
+    <property name="FILE_PATTERN" value="%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p [%15.15t] --- %-40.40logger{39} : %m%n%wEx"/>
     <!-- 로그 레벨 -->
     <!--
     	1) ERROR : 오류 메시지 표시
@@ -38,9 +39,31 @@
         </encoder>
     </appender>
 
-    <!-- 타코 서비스 패키지에만 TACO_CONSOLE 연결 -->
+    <!-- Transfer 로그 파일 -->
+    <appender name="TRANSFER_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <charset>UTF-8</charset>
+            <pattern>${FILE_PATTERN}</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/%d{yyyy-MM, aux}/transfer/transfer.%d{yyyy-MM-dd}.%i.log</fileNamePattern>-->
+            <maxFileSize>10MB</maxFileSize>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <!-- 필터 설정 -->
+        <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+            <evaluator>
+                <!-- 특정 URI가 포함된 경우 로그 저장 -->
+                <expression>
+                    return mdc.containsKey("TRANSFER_REQUEST");
+                </expression>
+            </evaluator>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
     <logger name="com.almagest_dev.tacobank_core_server" level="DEBUG" additivity="false">
-        <appender-ref ref="TACO_CONSOLE"/>
+        <appender-ref ref="TRANSFER_FILE"/>
     </logger>
 
     <!-- File에 로그 출력 세팅 -->
@@ -49,12 +72,13 @@
 <!--        <file>${LOG_PATH}/${LOG_FILE_NAME}.log</file>-->
         <!-- 출력패턴 설정-->
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+            <pattern>${FILE_PATTERN}</pattern>
         </encoder>
         <!-- Rolling 정책 -->
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <!-- .gz,.zip 등을 넣으면 자동 일자별 로그파일 압축 -->
-            <fileNamePattern>${LOG_PATH}/%d{yyyy-MM, aux}/${LOG_FILE_NAME}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <fileNamePattern>${LOG_PATH}/%d{yyyy-MM, aux}/core/${LOG_FILE_NAME}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
             <!-- 단일 파일 크기 제한 -->
             <maxFileSize>10MB</maxFileSize>
             <!-- 일자별 로그파일 최대 보관주기(~일), 해당 설정일 이상된 파일은 자동으로 제거-->
@@ -64,11 +88,18 @@
         </rollingPolicy>
     </appender>
 
+    <!-- 타코 서비스 패키지에만 TACO_CONSOLE 연결 -->
+    <logger name="com.almagest_dev.tacobank_core_server" level="DEBUG" additivity="false">
+        <appender-ref ref="TACO_CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
     <!-- 로그 전역 세팅 -->
     <root level="${LOG_LEVEL}">
         <!-- 위에 설정한 콘솔 설정 추가 -->
         <appender-ref ref="CONSOLE"/>
         <!-- 위에 설정한 파일 설정 추가 -->
         <appender-ref ref="FILE"/>
+        <appender-ref ref="TRANSFER_FILE"/>
     </root>
 </configuration>
