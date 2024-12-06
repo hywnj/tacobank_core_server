@@ -276,6 +276,10 @@ public class TransferService {
                     log.warn("TransferService - [{}] validateSettlementInfo 개별 정산 상세 정보 조회 실패 - settlement ID: {}", sessionId, settlementId);
                     return new TransferException("TERMINATED", "잘못된 송금 요청입니다.", HttpStatus.BAD_REQUEST);
                 });
+        // 개별 정산 상태 확인
+        if ("Y".equals(settlementDetails.getSettlementStatus())) {
+            throw new  TransferException("TERMINATED", "이미 완료된 정산입니다.", HttpStatus.BAD_REQUEST);
+        }
 
         return settlementDetails;
     }
