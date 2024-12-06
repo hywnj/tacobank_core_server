@@ -20,7 +20,8 @@ public class TransferRequestDto {
     @NotNull(message = "입금 정보가 없습니다.")
     private ReceiverDetails receiverDetails;
 
-    private String transferPin; // 해시화 한 출금 비밀번호
+    @NotBlank(message = "출금 비밀번호를 입력해주세요.")
+    private String transferPin;
 
     @NotNull(message = "송금액을 보내주세요.")
     private int amount;                 // 송금액
