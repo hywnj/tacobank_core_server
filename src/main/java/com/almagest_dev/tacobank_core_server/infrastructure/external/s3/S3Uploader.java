@@ -8,8 +8,6 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.File;
 import java.nio.file.Files;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
 @Component
@@ -50,10 +48,10 @@ public class S3Uploader {
                             // transfer 폴더 처리
                             if (subDirOrFile.getName().equals("transfer")) {
                                 // transfer 폴더 내부 파일을 S3에 업로드
-                                uploadFilesInDirectory(subDirOrFile, s3Folder + "/transfer/" + dateFolder);
+                                uploadFilesInDirectory(subDirOrFile, s3Folder + "/transfer");
                             } else if (subDirOrFile.getName().equals("core")) {
                                 // core 폴더 내부 파일을 S3에 업로드
-                                uploadFilesInDirectory(subDirOrFile, s3Folder + "/"+ dateFolder);
+                                uploadFilesInDirectory(subDirOrFile, s3Folder);
                                 log.info(s3Folder + "/"+ dateFolder);
                             }
                         } else if (subDirOrFile.isFile()) { // 일반 파일일 경우
