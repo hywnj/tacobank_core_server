@@ -142,8 +142,10 @@ public class HomeService {
         for (AccountInfoDto accountInfo : accountResponseDto.getResList()) {
             // AccountResponseDto 객체 생성
             AccountResponseDto accountDto = new AccountResponseDto();
-            accountDto.setAccountId(accountRepository.findByAccountNum(accountInfo.getAccountNum())
-                    .map(Account::getId).orElse(null));
+            Long accountId = accountRepository.findByAccountNum(accountInfo.getAccountNum())
+                    .map(Account::getId)
+                    .orElse(null);
+            accountDto.setAccountId(accountId);
             accountDto.setAccountName(accountInfo.getProductName());
             accountDto.setBankCode(accountInfo.getBankCodeStd());
 
@@ -164,12 +166,14 @@ public class HomeService {
             }
 
             // 거래 내역 추가
-            TransactionListRequestDto transactionRequest = new TransactionListRequestDto();
-            transactionRequest.setAccountNum(accountInfo.getAccountNum());
-            transactionRequest.setFromDate(fromDate);
-            transactionRequest.setToDate(toDate);
-            List<TransactionResponseDto2> transactions = fetchTransactionList(transactionRequest);
-            accountDto.setTransactionList(transactions);
+            if (accountId != null) {
+                TransactionListRequestDto transactionRequest = new TransactionListRequestDto();
+                transactionRequest.setAccountId(accountDto.getAccountId());
+                transactionRequest.setFromDate(fromDate);
+                transactionRequest.setToDate(toDate);
+                List<TransactionResponseDto2> transactions = fetchTransactionList(transactionRequest);
+                accountDto.setTransactionList(transactions);
+            }
 
             // 계좌 리스트에 추가
             accountList.add(accountDto);
@@ -202,7 +206,7 @@ public class HomeService {
 
         // API 요청 DTO 생성
         TransactionListApiRequestDto apiRequestDto = new TransactionListApiRequestDto();
-        apiRequestDto.setFintechUseNum(accountRepository.findByAccountNum(requestDto.getAccountNum())
+        apiRequestDto.setFintechUseNum(accountRepository.findById(requestDto.getAccountId())
                 .orElseThrow(() -> new IllegalArgumentException("계좌가 존재하지 않습니다."))
                 .getFintechUseNum());
         apiRequestDto.setInquiryType("A");
