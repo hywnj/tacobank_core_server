@@ -4,6 +4,8 @@ import com.almagest_dev.tacobank_core_server.domain.account.model.FavoriteAccoun
 import com.almagest_dev.tacobank_core_server.domain.account.model.MainAccount;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.FavoriteAccountRepository;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.MainAccountRepository;
+import com.almagest_dev.tacobank_core_server.domain.friend.model.Friend;
+import com.almagest_dev.tacobank_core_server.domain.friend.repository.FriendRepository;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
 import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
@@ -20,15 +22,18 @@ import com.almagest_dev.tacobank_core_server.presentation.dto.account.MainAccoun
 import com.almagest_dev.tacobank_core_server.presentation.dto.home.AccountResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransferOptionsResponseDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class AccountService {
 
@@ -37,6 +42,8 @@ public class AccountService {
     private final MainAccountRepository mainAccountRepository;
     private final FavoriteAccountRepository favoriteAccountRepository;
     private final TransferRepository transferRepository;
+    private final FriendRepository friendRepository;
+
     private final OrgCodeService orgCodeService;
     private final TestbedApiClient testbedApiClient;
 
@@ -152,7 +159,7 @@ public class AccountService {
 
 
     /**
-     * 즐겨찾기, 최근 이체 계좌 조회
+     * 즐겨찾기, 최근 이체, 친구 메인 계좌 조회
      */
     public TransferOptionsResponseDto getTransferOptions(Long memberId) {
         Member member = memberRepository.findByIdAndDeleted(memberId, "N")
@@ -179,6 +186,27 @@ public class AccountService {
                 ))
                 .toList();
 
-        return new TransferOptionsResponseDto(favoriteAccountDtos, recentAccountDtos);
+        // 친구 메인 계좌 (모두 조회)
+        List<Friend> friends = friendRepository.findByRequesterIdAndStatus(memberId, "ACC");
+        List<AccountDto> friendsAccountDtos = new ArrayList<>();
+        for (Friend friend : friends) {
+            Long friendId = friend.getReceiverId();
+            // Get Main Account
+            mainAccountRepository.findByMemberId(friendId) // 친구의 메인 계좌 조회
+                    .ifPresent(mainAccount -> {
+                        Long accountId = mainAccount.getAccount().getId();
+                        accountRepository.findById(accountId) // 계좌 정보 조회
+                                .ifPresent(account -> {
+                                    friendsAccountDtos.add(new AccountDto( // DTO에 매핑
+                                            account.getAccountHolderName(),
+                                            account.getAccountNum(),
+                                            account.getBankCode()
+                                    ));
+                                });
+                    });
+
+        }
+
+        return new TransferOptionsResponseDto(favoriteAccountDtos, recentAccountDtos, friendsAccountDtos);
     }
 }
