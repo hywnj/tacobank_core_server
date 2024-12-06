@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -130,36 +131,54 @@ public class HomeService {
         boolean isPinSet = member.getTransferPin() != null;
         response.setPinSet(isPinSet);
 
-        List<AccountResponseDto> accountList = accountResponseDto.getResList().stream()
-                .map(accountInfo -> {
-                    AccountResponseDto accountDto = new AccountResponseDto();
-                    accountDto.setAccountId(accountRepository.findByAccountNum(accountInfo.getAccountNum())
-                            .map(Account::getId).orElse(null));
-                    accountDto.setAccountName(accountInfo.getProductName());
-                    accountDto.setBalance(Double.parseDouble(accountInfo.getBalanceAmt()));
-                    accountDto.setBankCode(accountInfo.getBankCodeStd());
-                    String bankName = orgCodeService.getBankNameByCode(accountInfo.getBankCodeStd());
-                    accountDto.setBankName(bankName);
-                    accountDto.setAccountNum(accountInfo.getAccountNum());
-                    accountDto.setAccountHolder(accountInfo.getAccountHolder());
+        // 잔액이 가장 많은 계좌 정보를 위한 변수
+        long highestBalanceAccountId = 0L;
+        double maxBalance = 0.0;
 
-                    // 거래 내역 추가
-                    TransactionListRequestDto transactionRequest = new TransactionListRequestDto();
-                    transactionRequest.setAccountNum(accountInfo.getAccountNum());
-                    transactionRequest.setFromDate(fromDate);
-                    transactionRequest.setToDate(toDate);
-                    List<TransactionResponseDto2> transactions = fetchTransactionList(transactionRequest);
-                    accountDto.setTransactionList(transactions);
+        // 계좌 리스트 생성
+        List<AccountResponseDto> accountList = new ArrayList<>();
 
-                    return accountDto;
-                })
-                .collect(Collectors.toList());
+        // 계좌 정보 반복 처리
+        for (AccountInfoDto accountInfo : accountResponseDto.getResList()) {
+            // AccountResponseDto 객체 생성
+            AccountResponseDto accountDto = new AccountResponseDto();
+            accountDto.setAccountId(accountRepository.findByAccountNum(accountInfo.getAccountNum())
+                    .map(Account::getId).orElse(null));
+            accountDto.setAccountName(accountInfo.getProductName());
+            accountDto.setBankCode(accountInfo.getBankCodeStd());
 
+            // 은행 이름 설정
+            String bankName = orgCodeService.getBankNameByCode(accountInfo.getBankCodeStd());
+            accountDto.setBankName(bankName);
+            accountDto.setAccountNum(accountInfo.getAccountNum());
+            accountDto.setAccountHolder(accountInfo.getAccountHolder());
+
+            // 잔액 설정
+            double balance = Double.parseDouble(accountInfo.getBalanceAmt());
+            accountDto.setBalance(balance);
+
+            // 가장 잔액이 많은 계좌 확인
+            if (balance > maxBalance) {
+                maxBalance = balance;
+                highestBalanceAccountId = accountDto.getAccountId();
+            }
+
+            // 거래 내역 추가
+            TransactionListRequestDto transactionRequest = new TransactionListRequestDto();
+            transactionRequest.setAccountNum(accountInfo.getAccountNum());
+            transactionRequest.setFromDate(fromDate);
+            transactionRequest.setToDate(toDate);
+            List<TransactionResponseDto2> transactions = fetchTransactionList(transactionRequest);
+            accountDto.setTransactionList(transactions);
+
+            // 계좌 리스트에 추가
+            accountList.add(accountDto);
+        }
         response.setAccountList(accountList);
 
-        // 메인 계좌 추가
+        // 메인 계좌 추가 - 최초엔 잔액이 가장 많은 계좌로
         MainAccount mainAccount = mainAccountRepository.findByMemberId(member.getId()).orElse(null);
-        Long mainAccountId = (mainAccount != null) ? mainAccount.getAccount().getId() : accountList.get(0).getAccountId(); // 없는 경우, 가장 상위 계좌로 세팅
+        Long mainAccountId = (mainAccount != null) ? mainAccount.getAccount().getId() : highestBalanceAccountId;
         response.setMainAccountId(mainAccountId);
 
         return response;
