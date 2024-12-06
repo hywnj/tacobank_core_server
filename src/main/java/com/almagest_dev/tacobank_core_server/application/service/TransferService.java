@@ -140,6 +140,83 @@ public class TransferService {
     }
 
     /**
+     * 송금
+     */
+    public CoreResponseDto<TransferResponseDto> transfer(TransferRequestDto requestDto) {
+        String sessionId = redisSessionUtil.generateEncryptSessionId(requestDto.getMemberId(), requestDto.getIdempotencyKey());
+        String transferSessionKey = TRANSFER_SESSION_PREFIX + sessionId;
+        String pinFailureKey = PIN_FAILURE_PREFIX + sessionId;
+
+        // Redis에서 송금 세션 확인
+        TransferSessionData sessionData = redisSessionUtil.getSessionData(transferSessionKey, TransferSessionData.class, true);
+        if (sessionData == null) {
+            throw new TransferException("TERMINATED", "유효하지 않은 송금 요청입니다.", HttpStatus.BAD_REQUEST);
+        }
+
+        log.info("TransferService - [{}] transfer START", sessionId);
+        log.info("TransferService - [{}] transfer requestDto :{} ", sessionId, requestDto);
+
+        try {
+            // 송금 요청 데이터 Validation 확인
+            validateTransferData(sessionId, requestDto, sessionData);
+
+            // 출금 비밀번호 검증
+            verifyPassword(requestDto, sessionId, sessionData);
+
+            // 출금 비밀번호 검증 여부 확인
+            if (!sessionData.isPasswordVerified()) {
+                throw new TransferException("FAILURE", "비밀번호 검증이 완료되지 않았습니다.", HttpStatus.BAD_REQUEST);
+            }
+            log.info("TransferService - [{}] transfer sessionData after verifyPassword: {} ", sessionId, sessionData);
+
+            // 송금액 위변조 체크
+            if (requestDto.getAmount() != sessionData.getAmount()) {
+                log.warn("TransferService- [{}] transfer 송금액 위변조 - request amount: {}, session amount: {}", sessionId, requestDto.getAmount(), sessionData.getAmount());
+
+                // 위변조인 경우 송금 종료 (세션 삭제)
+                redisSessionUtil.cleanupRedisKeys("TransferSevice", transferSessionKey);
+                throw new TransferException("TERMINATED", "잘못된 송금 요청입니다.", HttpStatus.BAD_REQUEST);
+            }
+
+            /**
+             * 송금 요청 데이터, 출금 비밀번호 검증 완료
+             */
+            // 입금 인자 내역, 출금 인자 내역 (Default: 보내는 사람 이름)
+            String wdPrintContent = (!StringUtils.isBlank(requestDto.getWdPrintContent())) ?
+                    requestDto.getWdPrintContent() : sessionData.getWithdrawalDetails().getAccountHolder();
+            String rcvPrintContent = (!StringUtils.isBlank(requestDto.getRcvPrintContent())) ?
+                    requestDto.getRcvPrintContent() : sessionData.getWithdrawalDetails().getAccountHolder();
+
+            // 송금 요청 INSERT
+            Transfer transferData = new Transfer().createTransfer(
+                    sessionData.getIdempotencyKey(),
+                    sessionData.getMemberId(), sessionData.getWithdrawalDetails().getAccountId(),
+                    sessionData.getWithdrawalDetails().getBankCode(), sessionData.getWithdrawalDetails().getAccountNum(), sessionData.getWithdrawalDetails().getAccountHolder(),
+                    wdPrintContent, rcvPrintContent,
+                    sessionData.getReceiverDetails().getBankCode(), sessionData.getReceiverDetails().getAccountNum(), sessionData.getReceiverDetails().getAccountHolder(),
+                    sessionData.getAmount()
+            );
+            log.info("TransferService - [{}] transfer INSERT Start...", sessionId);
+            transferRepository.save(transferData);
+            log.info("TransferService - [{}] transfer INSERT End...", sessionId);
+
+            // 송금 로직 처리
+            log.info("TransferService - [{}] transfer CALL processTransferTransaction", sessionId);
+            CoreResponseDto<TransferResponseDto> response = processTransferTransaction(transferData, sessionData, sessionId);
+            // 응답 반환
+            return response;
+
+        } catch (TransferException ex) { // TransferException Catch
+            if (ex.getStatus().equals("TERMINATED")) { // 완전 종료인 경우, 세션 삭제
+                redisSessionUtil.cleanupRedisKeys("TransferService", transferSessionKey, pinFailureKey);
+            }
+            throw ex;
+        } finally {
+            log.info("TransferService - [{}] transfer END", sessionId);
+        }
+    }
+
+    /**
      * 송금 Validation Check
      *   - 송금액, 중복 송금 요청 확인 등
      */
@@ -241,83 +318,6 @@ public class TransferService {
 
         log.info("TransferService - [{}] verifyPassword sessionData UPDATE - {}", sessionId, sessionData);
         log.info("TransferService- [{}] verifyPassword END", sessionId);
-    }
-
-    /**
-     * 송금
-     */
-    public CoreResponseDto<TransferResponseDto> transfer(TransferRequestDto requestDto) {
-        String sessionId = redisSessionUtil.generateEncryptSessionId(requestDto.getMemberId(), requestDto.getIdempotencyKey());
-        String transferSessionKey = TRANSFER_SESSION_PREFIX + sessionId;
-        String pinFailureKey = PIN_FAILURE_PREFIX + sessionId;
-
-        // Redis에서 송금 세션 확인
-        TransferSessionData sessionData = redisSessionUtil.getSessionData(transferSessionKey, TransferSessionData.class, true);
-        if (sessionData == null) {
-            throw new TransferException("TERMINATED", "유효하지 않은 송금 요청입니다.", HttpStatus.BAD_REQUEST);
-        }
-
-        log.info("TransferService - [{}] transfer START", sessionId);
-        log.info("TransferService - [{}] transfer requestDto :{} ", sessionId, requestDto);
-
-        try {
-            // 송금 요청 데이터 Validation 확인
-            validateTransferData(sessionId, requestDto, sessionData);
-
-            // 출금 비밀번호 검증
-            verifyPassword(requestDto, sessionId, sessionData);
-
-            // 출금 비밀번호 검증 여부 확인
-            if (!sessionData.isPasswordVerified()) {
-                throw new TransferException("FAILURE", "비밀번호 검증이 완료되지 않았습니다.", HttpStatus.BAD_REQUEST);
-            }
-            log.info("TransferService - [{}] transfer sessionData after verifyPassword: {} ", sessionId, sessionData);
-
-            // 송금액 위변조 체크
-            if (requestDto.getAmount() != sessionData.getAmount()) {
-                log.warn("TransferService- [{}] transfer 송금액 위변조 - request amount: {}, session amount: {}", sessionId, requestDto.getAmount(), sessionData.getAmount());
-
-                // 위변조인 경우 송금 종료 (세션 삭제)
-                redisSessionUtil.cleanupRedisKeys("TransferSevice", transferSessionKey);
-                throw new TransferException("TERMINATED", "잘못된 송금 요청입니다.", HttpStatus.BAD_REQUEST);
-            }
-
-            /**
-             * 송금 요청 데이터, 출금 비밀번호 검증 완료
-             */
-            // 입금 인자 내역, 출금 인자 내역 (Default: 보내는 사람 이름)
-            String wdPrintContent = (!StringUtils.isBlank(requestDto.getWdPrintContent())) ?
-                    requestDto.getWdPrintContent() : sessionData.getWithdrawalDetails().getAccountHolder();
-            String rcvPrintContent = (!StringUtils.isBlank(requestDto.getRcvPrintContent())) ?
-                    requestDto.getRcvPrintContent() : sessionData.getWithdrawalDetails().getAccountHolder();
-
-            // 송금 요청 INSERT
-            Transfer transferData = new Transfer().createTransfer(
-                    sessionData.getIdempotencyKey(),
-                    sessionData.getMemberId(), sessionData.getWithdrawalDetails().getAccountId(),
-                    sessionData.getWithdrawalDetails().getBankCode(), sessionData.getWithdrawalDetails().getAccountNum(), sessionData.getWithdrawalDetails().getAccountHolder(),
-                    wdPrintContent, rcvPrintContent,
-                    sessionData.getReceiverDetails().getBankCode(), sessionData.getReceiverDetails().getAccountNum(), sessionData.getReceiverDetails().getAccountHolder(),
-                    sessionData.getAmount()
-            );
-            log.info("TransferService - [{}] transfer INSERT Start...", sessionId);
-            transferRepository.save(transferData);
-            log.info("TransferService - [{}] transfer INSERT End...", sessionId);
-
-            // 송금 로직 처리
-            log.info("TransferService - [{}] transfer CALL processTransferTransaction", sessionId);
-            CoreResponseDto<TransferResponseDto> response = processTransferTransaction(transferData, sessionData, sessionId);
-            // 응답 반환
-            return response;
-
-        } catch (TransferException ex) { // TransferException Catch
-            if (ex.getStatus().equals("TERMINATED")) { // 완전 종료인 경우, 세션 삭제
-                redisSessionUtil.cleanupRedisKeys("TransferService", transferSessionKey, pinFailureKey);
-            }
-            throw ex;
-        } finally {
-            log.info("TransferService - [{}] transfer END", sessionId);
-        }
     }
 
     /**
