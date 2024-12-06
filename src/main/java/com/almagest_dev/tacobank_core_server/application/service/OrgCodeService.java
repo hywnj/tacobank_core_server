@@ -12,7 +12,7 @@ public class OrgCodeService {
     private final OrgCodeRepository orgCodeRepository;
 
     public String getBankNameByCode(String code) {
-        OrgCode orgCode = orgCodeRepository.findByCode(code);
+        OrgCode orgCode = orgCodeRepository.findByCode(code).orElse(null);
         if (orgCode != null) {
             return orgCode.getName();
         }
