@@ -7,7 +7,7 @@ public class TransferException extends BaseCustomException {
         super(status, message, httpStatus);
     }
 
-    public TransferException(String status, String message, HttpStatus httpStatus, Throwable cause) {
-        super(status, message, httpStatus, cause);
+    public TransferException(String message, HttpStatus httpStatus) {
+        super(message, httpStatus);
     }
 }
