@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 60초마다 설정 파일의 변경을 확인 하여 변경시 갱신 -->
 <configuration scan="true" scanPeriod="60 seconds">
+    <conversionRule conversionWord="applicationName" class="org.springframework.boot.logging.logback.ApplicationNameConverter" />
+    <conversionRule conversionWord="clr" class="org.springframework.boot.logging.logback.ColorConverter" />
+    <conversionRule conversionWord="wex" class="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter" />
+    <conversionRule conversionWord="wEx" class="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter" />
     <!-- 로그 파일이 저장될 경로 -->
     <property name="LOG_PATH" value="log"/>
     <!-- 로그 파일 이름 -->
     <property name="LOG_FILE_NAME" value="taco_core"/>
     <!-- 로그 출력 패턴 -->
-    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%logger{40}] - %msg%n"/>
+    <property name="LOG_PATTERN" value="%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd'T'HH:mm:ss.SSSXXX}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr([%15.15t]){faint} %clr(---){faint} %clr(%-40.40logger{39}){cyan}  %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}"/>
+    <property name="TACO_PATTERN" value="%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd'T'HH:mm:ss.SSSXXX}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr([%15.15t]){faint} %clr(---){faint} %clr(%-40.40logger{39}){cyan}  %clr(:){faint} %clr(%m%n){magenta}${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}})"/>
     <!-- 로그 레벨 -->
     <!--
     	1) ERROR : 오류 메시지 표시
@@ -16,14 +21,27 @@
         5) TRACE : Debug보다 훨씬 상세한 메시지 표시
         아래에서는 info로 설정하였는데, 이 경우엔 INFO보다 위에 있는 DEBUG와 TRACE는 표시하지 않는다.
     -->
-    <property name="LOG_LEVEL" value="info"/>
+    <!-- 기본 로그 레벨 -->
+    <property name="LOG_LEVEL" value="INFO"/>
 
-    <!-- CONSOLE에 로그 출력 세팅 -->
+    <!-- 기본 콘솔 로그 -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <Pattern>${LOG_PATTERN}</Pattern>
         </encoder>
     </appender>
+
+    <!-- 타코 서비스 전용 콘솔 로그 -->
+    <appender name="TACO_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>${TACO_PATTERN}</Pattern>
+        </encoder>
+    </appender>
+
+    <!-- 타코 서비스 패키지에만 TACO_CONSOLE 연결 -->
+    <logger name="com.almagest_dev.tacobank_core_server" level="DEBUG" additivity="false">
+        <appender-ref ref="TACO_CONSOLE"/>
+    </logger>
 
     <!-- File에 로그 출력 세팅 -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
