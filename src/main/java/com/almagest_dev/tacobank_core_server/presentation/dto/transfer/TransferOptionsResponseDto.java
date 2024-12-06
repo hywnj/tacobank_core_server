@@ -9,6 +9,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 public class TransferOptionsResponseDto {
-    private List<AccountDto> favoriteAccounts;
-    private List<AccountDto> recentAccounts;
+    private List<AccountDto> favoriteAccounts;  // 즐겨찾는 계좌 리스트
+    private List<AccountDto> recentAccounts;    // 최근 이체 계좌 리스트
+    private List<AccountDto> friendsAccounts;   // 친구 메인 계좌 리스트
 }
