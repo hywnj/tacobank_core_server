@@ -42,6 +42,7 @@
     <!-- Transfer 로그 파일 -->
     <appender name="TRANSFER_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <charset>UTF-8</charset>
             <pattern>${FILE_PATTERN}</pattern>
         </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
@@ -71,6 +72,7 @@
 <!--        <file>${LOG_PATH}/${LOG_FILE_NAME}.log</file>-->
         <!-- 출력패턴 설정-->
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <charset>UTF-8</charset>
             <pattern>${FILE_PATTERN}</pattern>
         </encoder>
         <!-- Rolling 정책 -->
