@@ -1,7 +1,9 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
 import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
+import com.almagest_dev.tacobank_core_server.domain.account.model.MainAccount;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.AccountRepository;
+import com.almagest_dev.tacobank_core_server.domain.account.repository.MainAccountRepository;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.client.TestbedApiClient;
@@ -29,6 +31,8 @@ public class HomeService {
 
     private final MemberRepository memberRepository;
     private final AccountRepository accountRepository;
+    private final MainAccountRepository mainAccountRepository;
+
     private final TestbedApiClient testbedApiClient;
     private final OrgCodeService orgCodeService;
 
@@ -73,7 +77,6 @@ public class HomeService {
             saveAccounts(accountResponseDto.getResList(), member);
         }
 
-
         // 현재 시점 및 포맷팅 설정
         String fromDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String toDate = LocalDateTime.now().plusMonths(1).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
@@ -83,6 +86,9 @@ public class HomeService {
         return mapToAccountMemberResponseDto(member, accountResponseDto, fromDate, toDate, tranDtime);
     }
 
+    /**
+     * 테스트베드 요청: 오픈뱅킹 계좌 연동(조회)
+     */
     private IntegrateAccountApiResponseDto fetchAccountsFromApi(String userFinanceId, String userName) {
         IntegrateAccountApiRequestDto requestDto = new IntegrateAccountApiRequestDto();
         requestDto.setUserFinanceId(userFinanceId);
@@ -92,6 +98,9 @@ public class HomeService {
         return testbedApiClient.requestApi(requestDto, "/openbank/accounts", IntegrateAccountApiResponseDto.class);
     }
 
+    /**
+     * 사용자 Account 조회 결과 저장
+     */
     private void saveAccounts(List<AccountInfoDto> accountInfoList, Member member) {
         List<Account> accounts = accountInfoList.stream().map(accountInfo -> {
             Account account = new Account();
@@ -108,6 +117,9 @@ public class HomeService {
         accountRepository.saveAll(accounts);
     }
 
+    /**
+     * 홈 화면 응답 데이터로 변환/매핑
+     */
     private AccountMemberReponseDto mapToAccountMemberResponseDto(Member member, IntegrateAccountApiResponseDto accountResponseDto, String fromDate, String toDate, String tranDtime) {
         AccountMemberReponseDto response = new AccountMemberReponseDto();
         response.setMemberId(member.getId());
@@ -144,9 +156,18 @@ public class HomeService {
                 .collect(Collectors.toList());
 
         response.setAccountList(accountList);
+
+        // 메인 계좌 추가
+        MainAccount mainAccount = mainAccountRepository.findByMemberId(member.getId()).orElse(null);
+        Long mainAccountId = (mainAccount != null) ? mainAccount.getAccount().getId() : accountList.get(0).getAccountId(); // 없는 경우, 가장 상위 계좌로 세팅
+        response.setMainAccountId(mainAccountId);
+
         return response;
     }
 
+    /**
+     * 테스트베드 요청: 거래내역 조회
+     */
     private List<TransactionResponseDto2> fetchTransactionList(TransactionListRequestDto requestDto) {
         // 현재 시점
         LocalDateTime now = LocalDateTime.now();
