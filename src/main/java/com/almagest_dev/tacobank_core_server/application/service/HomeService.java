@@ -182,8 +182,18 @@ public class HomeService {
 
         // 메인 계좌 추가 - 최초엔 잔액이 가장 많은 계좌로
         MainAccount mainAccount = mainAccountRepository.findByMemberId(member.getId()).orElse(null);
-        Long mainAccountId = (mainAccount != null) ? mainAccount.getAccount().getId() : highestBalanceAccountId;
-        response.setMainAccountId(mainAccountId);
+        if (mainAccount == null) {
+            // 메인 계좌 DB INSERT
+            Account highestAccount = accountRepository.findById(highestBalanceAccountId).orElse(null);
+            if (highestAccount != null) {
+                mainAccount = MainAccount.createMainAccount(member, highestAccount);
+                mainAccountRepository.save(mainAccount);
+
+                log.info("HomeService::mapToAccountMemberResponseDto 메인계좌 INSERT - 메인계좌 ID: {}", highestAccount.getId());
+            }
+        }
+        response.setMainAccountId(mainAccount.getAccount().getId());
+
 
         return response;
     }
