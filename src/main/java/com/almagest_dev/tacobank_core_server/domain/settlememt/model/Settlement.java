@@ -76,4 +76,9 @@ public class Settlement {
     public void saveSettlementStatus(String n) {
         this.settlementStatus = n;
     }
+
+    public void updateSettlementStatus(String settlementStatus) {
+        this.settlementStatus = settlementStatus;
+        this.updatedDate = LocalDateTime.now();
+    }
 }
