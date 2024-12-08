@@ -170,11 +170,21 @@ public class TransferService {
         log.info("TransferService - [{}] transfer requestDto :{} ", sessionId, requestDto);
 
         try {
+            // 정산 유효성 검증
+            if (sessionData.getSettlementId() != null && sessionData.getSettlementId() > 0 // 세션 데이터에는 정산 정보가 있는데
+                    && (requestDto.getSettlementId() == null || requestDto.getSettlementId() <= 0)) { // 요청시에는 없는 경우
+                throw new TransferException("TERMINATED", "유효하지 않은 요청입니다.", HttpStatus.BAD_REQUEST);
+            }
             // 정산 정보 체크
+            Settlement settlement = null;
             SettlementDetails settlementDetails = null;
-            if (requestDto.getSettlementId() != null && requestDto.getSettlementId() > 0
-                    && sessionData.getSettlementId() != null && sessionData.getSettlementId() > 0) {
+            if (sessionData.getSettlementId() != null && sessionData.getSettlementId() > 0) {
+                log.info("TransferService - [{}] transfer UPDATE Settlement Status", sessionId);
                 settlementDetails = validateSettlementInfo(sessionId, sessionData.getSettlementId(), sessionData.getMemberId());
+
+                // 정산 정보
+                settlement = settlementRepository.findById(sessionData.getSettlementId())
+                        .orElseThrow(() -> new TransferException("TERMINATED", "잘못된 송금 요청입니다.", HttpStatus.BAD_REQUEST));
             }
 
             // 송금 요청 데이터 Validation 확인
@@ -225,11 +235,16 @@ public class TransferService {
             log.info("TransferService - [{}] transfer CALL processTransferTransaction", sessionId);
             CoreResponseDto<TransferResponseDto> response = processTransferTransaction(transferData, sessionData, sessionId);
 
-            // 송금 성공시 정산 테이블에 업데이트
+            // 송금 성공시 정산 및 개별 정산 테이블에 업데이트
             if ("SUCCESS".equals(response.getStatus())) {
                 if (settlementDetails != null && settlementDetails.getId() > 0L) { // 정산 정보가 있을때만, 개별 정산정보 업데이트
-                    settlementDetails.updateSettlementDetails("Y");
+                    settlement.updateSettlementStatus("Y");
+                    settlementRepository.save(settlement);
+                    log.info("TransferService - [{}] transfer UPDATE Settlement Status", sessionId);
+
+                    settlementDetails.updateSettlementDetailsStatus("Y");
                     settlementDetailsRepository.save(settlementDetails);
+                    log.info("TransferService - [{}] transfer UPDATE SettlementDetails Status", sessionId);
                 }
             }
 
@@ -255,7 +270,6 @@ public class TransferService {
      */
     private SettlementDetails validateSettlementInfo(String sessionId, Long settlementId, Long memberId) {
         // 정산 정보 체크
-        SettlementDetails settlementDetails = new SettlementDetails();
         Settlement settlement = settlementRepository.findById(settlementId)
                 .orElseThrow(() -> {
                     log.warn("TransferService - [{}] validateSettlementInfo 정산 정보 없음 - settlement ID: {}", sessionId, settlementId);
@@ -274,7 +288,7 @@ public class TransferService {
 
         // 개별 정산 상세 정보 검증
         log.info("정산: 아이디: {} , 그룹멤버 아이디: {}, 멤버 아이디: {}", settlementId, groupMember.getId(), memberId);
-        settlementDetails = settlementDetailsRepository.findBySettlement_IdAndGroupMember_Id(settlement.getId(), groupMember.getId())
+        SettlementDetails settlementDetails = settlementDetailsRepository.findBySettlement_IdAndGroupMember_Id(settlement.getId(), groupMember.getId())
                 .orElseThrow(() -> {
                     log.warn("TransferService - [{}] validateSettlementInfo 개별 정산 상세 정보 조회 실패 - settlement ID: {}", sessionId, settlementId);
                     return new TransferException("TERMINATED", "잘못된 송금 요청입니다.", HttpStatus.BAD_REQUEST);

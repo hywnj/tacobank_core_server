@@ -51,7 +51,7 @@ public class SettlementDetails {
         this.updatedDate = LocalDateTime.now();
     }
 
-    public void updateSettlementDetails(String settlementStatus) {
+    public void updateSettlementDetailsStatus(String settlementStatus) {
         this.settlementStatus = settlementStatus;
         this.updatedDate = LocalDateTime.now();
     }
