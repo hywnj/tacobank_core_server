@@ -15,21 +15,6 @@ service:
   targetPort: 9002
   nodePort: 32000
 
-ingress:
-  enabled: true
-  className: "alb"
-  annotations:
-    kubernetes.io/ingress.class: "alb"
-    alb.ingress.kubernetes.io/scheme: "internet-facing"
-    alb.ingress.kubernetes.io/target-type: "ip"
-    alb.ingress.kubernetes.io/actions.taco-core: '{"type":"forward","targetGroupArn":"arn:aws:elasticloadbalancing:ap-northeast-2:485298580046:targetgroup/taco-core-helm/38f37b96d7e184f8"}'
-  hosts:
-    - host: "almagest.io"
-      paths:
-        - path: "/"
-          pathType: "Prefix"
-
-
 resources:
   requests:
     memory: "512Mi"
