@@ -151,6 +151,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(ex.getHttpStatus()).body(response);
     }
 
+    // 멤버 인증 예외
+    @ExceptionHandler(MemberAuthException.class)
+    public ResponseEntity<?> handleMemberAuthException(MemberAuthException ex) {
+        log.warn("MemberAuthException - " + ex.getMessage());
+        CoreResponseDto response = new CoreResponseDto(ex.getStatus(), ex.getMessage());
+        return ResponseEntity.status(ex.getHttpStatus()).body(response);
+    }
+
     // 포괄적인 서버 오류 처리
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleServerError(Exception ex) {

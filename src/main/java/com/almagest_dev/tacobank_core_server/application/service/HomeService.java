@@ -1,5 +1,6 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
+import com.almagest_dev.tacobank_core_server.common.exception.MemberAuthException;
 import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
 import com.almagest_dev.tacobank_core_server.domain.account.model.MainAccount;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.AccountRepository;
@@ -14,6 +15,7 @@ import com.almagest_dev.tacobank_core_server.presentation.dto.home.TransactionRe
 import com.almagest_dev.tacobank_core_server.presentation.dto.transantion.TransactionListRequestDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -48,7 +50,7 @@ public class HomeService {
         // 인증 정보 가져오기
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new IllegalArgumentException("인증되지 않은 사용자입니다.");
+            throw new MemberAuthException("인증되지 않은 사용자입니다.", HttpStatus.UNAUTHORIZED);
         }
 
         // 인증 정보에서 멤버 ID 추출
