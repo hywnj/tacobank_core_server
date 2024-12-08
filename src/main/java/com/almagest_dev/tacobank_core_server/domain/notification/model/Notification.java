@@ -28,11 +28,23 @@ public class Notification {
     @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '등록일자'")
     private LocalDateTime createdDate;
 
+    @Column(columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL COMMENT '수정일자'")
+    private LocalDateTime updatedDate;
+
     @PrePersist
     public void prePersist() {
         this.createdDate = LocalDateTime.now();
+        this.updatedDate = LocalDateTime.now();
+    }
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedDate = LocalDateTime.now();
     }
 
     public void saveMember(Member member) {this.member = member;}
     public void saveMessage(String message) {this.message = message;}
+    public void updateIsRead(String isRead) {
+        this.isRead = isRead;
+        this.updatedDate = LocalDateTime.now();
+    }
 }
