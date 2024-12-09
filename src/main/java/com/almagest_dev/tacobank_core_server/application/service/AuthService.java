@@ -9,7 +9,8 @@ import com.almagest_dev.tacobank_core_server.presentation.dto.auth.SmsVerificati
 import com.almagest_dev.tacobank_core_server.presentation.dto.auth.SmsVerificationResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -23,10 +24,19 @@ public class AuthService {
      * 문자 인증 요청
      */
     public SmsVerificationResponseDto sendSmsVerificationCode(SmsVerificationRequestDto requestDto) {
+        // member ID 가 요청에 있는 경우
+        Long memberId = (requestDto.getMemberId() != null && requestDto.getMemberId() > 0) ? requestDto.getMemberId() : 0L;
+
+        // Authentication이 있는 경우(= 인증 한 사용자)
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            // 인증 정보에서 멤버 ID 추출
+            memberId = (Long) authentication.getDetails();
+        }
+
+        log.info("memberId: {} ", memberId);
         // member ID 가 요청에 있는 경우(= 로그인 한 사용자)
-        Long memberId = 0L;
-        if (requestDto.getMemberId() != null && requestDto.getMemberId() > 0) {
-            memberId = requestDto.getMemberId();
+        if (memberId > 0) {
             // 사용자 정보 확인
             Member member = memberRepository.findByIdAndDeleted(memberId, "N")
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
@@ -52,10 +62,18 @@ public class AuthService {
      * 문자 인증 검증
      */
     public void confirmSmsVerificationCode(SmsConfirmRequestDto requestDto) {
+        // member ID 가 요청에 있는 경우
+        Long memberId = (requestDto.getMemberId() != null && requestDto.getMemberId() > 0) ? requestDto.getMemberId() : 0L;
+
+        // Authentication이 있는 경우(= 인증 한 사용자)
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            // 인증 정보에서 멤버 ID 추출
+            memberId = (Long) authentication.getDetails();
+        }
+
         // member ID 가 요청에 있는 경우(=로그인 한 사용자)
-        Long memberId = 0L;
-        if (requestDto.getMemberId() != null && requestDto.getMemberId() > 0) {
-            memberId = requestDto.getMemberId();
+        if (memberId > 0) {
             // 사용자 정보 확인
             memberRepository.findByIdAndDeleted(memberId, "N")
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));

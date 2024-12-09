@@ -45,6 +45,11 @@ public abstract class BaseCustomException extends RuntimeException {
         this.httpStatus = httpStatus;
     }
 
+    public BaseCustomException(Throwable cause) {
+        super(cause);
+        this.status = "FAILURE";
+        this.httpStatus = HttpStatus.BAD_REQUEST;
+    }
 
     public HttpStatus getHttpStatus() {
         return httpStatus;

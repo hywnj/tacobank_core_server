@@ -1,5 +1,6 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
+import com.almagest_dev.tacobank_core_server.common.exception.MemberAuthException;
 import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
 import com.almagest_dev.tacobank_core_server.domain.account.model.MainAccount;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.AccountRepository;
@@ -14,6 +15,7 @@ import com.almagest_dev.tacobank_core_server.presentation.dto.home.TransactionRe
 import com.almagest_dev.tacobank_core_server.presentation.dto.transantion.TransactionListRequestDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -48,7 +50,7 @@ public class HomeService {
         // 인증 정보 가져오기
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new IllegalArgumentException("인증되지 않은 사용자입니다.");
+            throw new MemberAuthException("인증되지 않은 사용자입니다.", HttpStatus.UNAUTHORIZED);
         }
 
         // 인증 정보에서 멤버 ID 추출
@@ -182,8 +184,18 @@ public class HomeService {
 
         // 메인 계좌 추가 - 최초엔 잔액이 가장 많은 계좌로
         MainAccount mainAccount = mainAccountRepository.findByMemberId(member.getId()).orElse(null);
-        Long mainAccountId = (mainAccount != null) ? mainAccount.getAccount().getId() : highestBalanceAccountId;
-        response.setMainAccountId(mainAccountId);
+        if (mainAccount == null) {
+            // 메인 계좌 DB INSERT
+            Account highestAccount = accountRepository.findById(highestBalanceAccountId).orElse(null);
+            if (highestAccount != null) {
+                mainAccount = MainAccount.createMainAccount(member, highestAccount);
+                mainAccountRepository.save(mainAccount);
+
+                log.info("HomeService::mapToAccountMemberResponseDto 메인계좌 INSERT - 메인계좌 ID: {}", highestAccount.getId());
+            }
+        }
+        response.setMainAccountId(mainAccount.getAccount().getId());
+
 
         return response;
     }

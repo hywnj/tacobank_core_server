@@ -1,6 +1,7 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
 import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
+import com.almagest_dev.tacobank_core_server.common.exception.TestbedApiException;
 import com.almagest_dev.tacobank_core_server.common.exception.TransferException;
 import com.almagest_dev.tacobank_core_server.common.utils.RedisSessionUtil;
 import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
@@ -20,6 +21,8 @@ import com.almagest_dev.tacobank_core_server.domain.transfer.repository.Transfer
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.client.TestbedApiClient;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.*;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -170,11 +173,21 @@ public class TransferService {
         log.info("TransferService - [{}] transfer requestDto :{} ", sessionId, requestDto);
 
         try {
+            // 정산 유효성 검증
+            if (sessionData.getSettlementId() != null && sessionData.getSettlementId() > 0 // 세션 데이터에는 정산 정보가 있는데
+                    && (requestDto.getSettlementId() == null || requestDto.getSettlementId() <= 0)) { // 요청시에는 없는 경우
+                throw new TransferException("TERMINATED", "유효하지 않은 요청입니다.", HttpStatus.BAD_REQUEST);
+            }
             // 정산 정보 체크
+            Settlement settlement = null;
             SettlementDetails settlementDetails = null;
-            if (requestDto.getSettlementId() != null && requestDto.getSettlementId() > 0
-                    && sessionData.getSettlementId() != null && sessionData.getSettlementId() > 0) {
+            if (sessionData.getSettlementId() != null && sessionData.getSettlementId() > 0) {
+                log.info("TransferService - [{}] transfer UPDATE Settlement Status", sessionId);
                 settlementDetails = validateSettlementInfo(sessionId, sessionData.getSettlementId(), sessionData.getMemberId());
+
+                // 정산 정보
+                settlement = settlementRepository.findById(sessionData.getSettlementId())
+                        .orElseThrow(() -> new TransferException("TERMINATED", "잘못된 송금 요청입니다.", HttpStatus.BAD_REQUEST));
             }
 
             // 송금 요청 데이터 Validation 확인
@@ -225,11 +238,16 @@ public class TransferService {
             log.info("TransferService - [{}] transfer CALL processTransferTransaction", sessionId);
             CoreResponseDto<TransferResponseDto> response = processTransferTransaction(transferData, sessionData, sessionId);
 
-            // 송금 성공시 정산 테이블에 업데이트
+            // 송금 성공시 정산 및 개별 정산 테이블에 업데이트
             if ("SUCCESS".equals(response.getStatus())) {
                 if (settlementDetails != null && settlementDetails.getId() > 0L) { // 정산 정보가 있을때만, 개별 정산정보 업데이트
-                    settlementDetails.updateSettlementDetails("Y");
+                    settlement.updateSettlementStatus("Y");
+                    settlementRepository.save(settlement);
+                    log.info("TransferService - [{}] transfer UPDATE Settlement Status", sessionId);
+
+                    settlementDetails.updateSettlementDetailsStatus("Y");
                     settlementDetailsRepository.save(settlementDetails);
+                    log.info("TransferService - [{}] transfer UPDATE SettlementDetails Status", sessionId);
                 }
             }
 
@@ -255,7 +273,6 @@ public class TransferService {
      */
     private SettlementDetails validateSettlementInfo(String sessionId, Long settlementId, Long memberId) {
         // 정산 정보 체크
-        SettlementDetails settlementDetails = new SettlementDetails();
         Settlement settlement = settlementRepository.findById(settlementId)
                 .orElseThrow(() -> {
                     log.warn("TransferService - [{}] validateSettlementInfo 정산 정보 없음 - settlement ID: {}", sessionId, settlementId);
@@ -274,7 +291,7 @@ public class TransferService {
 
         // 개별 정산 상세 정보 검증
         log.info("정산: 아이디: {} , 그룹멤버 아이디: {}, 멤버 아이디: {}", settlementId, groupMember.getId(), memberId);
-        settlementDetails = settlementDetailsRepository.findBySettlement_IdAndGroupMember_Id(settlement.getId(), groupMember.getId())
+        SettlementDetails settlementDetails = settlementDetailsRepository.findBySettlement_IdAndGroupMember_Id(settlement.getId(), groupMember.getId())
                 .orElseThrow(() -> {
                     log.warn("TransferService - [{}] validateSettlementInfo 개별 정산 상세 정보 조회 실패 - settlement ID: {}", sessionId, settlementId);
                     return new TransferException("TERMINATED", "잘못된 송금 요청입니다.", HttpStatus.BAD_REQUEST);
@@ -467,12 +484,29 @@ public class TransferService {
             log.info("TransferService - [{}] transfer processTransferTransaction END", sessionId);
             return response;
 
-        } catch (Exception ex) {
+        } catch (TestbedApiException ex) {
             log.error("TransferService - [{}] transfer processTransferTransaction Exception : {}", sessionId, ex.getMessage());
-            updateTransferStatus(transfer, "", "F", "ERR001", "송금 처리 중 오류 발생", null);
+            try {
+                // JSON 파싱
+                String responseBody = ex.getResponseBody(); // TestbedApiException에 responseBody 저장
+                ObjectMapper objectMapper = new ObjectMapper();
+                JsonNode rootNode = objectMapper.readTree(responseBody);
 
-            ex.printStackTrace();
-            throw ex; // 예외 재발생
+                String apiTranId = rootNode.has("apiTranId") ? rootNode.get("apiTranId").asText("") : "";
+                String rspMessage = rootNode.has("rspMessage") ? rootNode.get("rspMessage").asText("") : "송금 처리 중 오류 발생";
+                String rspCode = rootNode.has("rspCode") ? rootNode.get("rspCode").asText("") : "ERR001";
+
+                log.error("Error Response Parsed - rspMessage: {}, rspCode: {}", rspMessage, rspCode);
+
+                // 필요한 로직 처리
+                updateTransferStatus(transfer, apiTranId, "F", rspCode, rspMessage, null);
+
+                return new CoreResponseDto<>("TERMINATED", rspMessage);
+
+            } catch (Exception parseException) {
+                log.error("TransferService - [{}] JSON Parsing Error: {}", sessionId, parseException.getMessage());
+                return new CoreResponseDto<>("TERMINATED", "서버 에러가 발생했습니다.");
+            }
         } finally {
             // 송금 세션 모두 삭제
             redisSessionUtil.cleanupRedisKeys("TransferService", TRANSFER_SESSION_PREFIX + sessionId, PIN_FAILURE_PREFIX + sessionId);

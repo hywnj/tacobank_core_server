@@ -124,12 +124,20 @@ public class SettlementService {
             settlementDetails.saveSettlement(settlement);
             settlementDetails.saveGroupMember(groupMember);
             settlementDetails.saveSettlementAmount(memberDto.getAmount());
-            settlementDetails.saveSettlementStatus("N");
+
+            if (groupMember.getMember().getId().equals(request.getLeaderId())) {
+                settlementDetails.saveSettlementStatus("Y");
+            } else {
+                settlementDetails.saveSettlementStatus("N");
+            }
+
             settlementDetailsRepository.save(settlementDetails);
 
             // 알림 전송 (비즈니스 로직에서 제거)
-            notificationService.sendNotification(groupMember.getMember(),
-                    String.format("정산 요청이 도착했습니다. 요청 금액: %d원", memberDto.getAmount()));
+            if (!groupMember.getMember().getId().equals(request.getLeaderId())) {
+                notificationService.sendNotification(groupMember.getMember(),
+                        String.format("정산 요청이 도착했습니다. 요청 금액: %d원", memberDto.getAmount()));
+            }
 
             // 영수증 정산인 경우, MemberId - GroupMemberId 매핑
             if (receiptFlag) {
@@ -166,10 +174,6 @@ public class SettlementService {
 
         // 친구 목록 추가
         for (Long friendId : request.getFriendIds()) {
-
-            if (friendId.equals(leader.getId())) {
-                throw new IllegalArgumentException("리더는 자신의 ID를 친구로 선택할 수 없습니다.");
-            }
 
             Member friend = memberRepository.findByIdAndDeleted(friendId, "N")
                     .orElseThrow(() -> new IllegalArgumentException("친구를 찾을 수 없습니다."));
@@ -264,7 +268,8 @@ public class SettlementService {
                                     detail.getSettlement().getSettlementAccount().getAccountHolderName(),
                                     detail.getSettlement().getSettlementAccount().getAccountNum(),
                                     bankName
-                            )
+                            ),
+                            detail.getSettlement().getPayGroup().getLeader().getId()
                     );
                 })
                 .collect(Collectors.toList());
@@ -303,7 +308,8 @@ public class SettlementService {
                         detail.getGroupMember().getMember().getName(),
                         detail.getSettlementAmount().longValue(),
                         detail.getSettlementStatus(),
-                        detail.getUpdatedDate()
+                        detail.getUpdatedDate(),
+                        detail.getSettlement().getPayGroup().getLeader().getId()
                 ))
                 .collect(Collectors.toList());
 

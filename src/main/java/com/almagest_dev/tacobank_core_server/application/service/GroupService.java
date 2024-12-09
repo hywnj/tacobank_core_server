@@ -59,6 +59,13 @@ public class GroupService {
 
         final Group savedGroup = groupRepository.save(group);
 
+        // 그룹 멤버로 리더 추가
+        GroupMember groupMember = new GroupMember();
+        groupMember.savePayGroup(savedGroup);
+        groupMember.saveMember(leader);
+        groupMember.saveStatus("ACCEPTED"); // 리더는 자동으로 ACCEPTED 상태
+        groupMemberRepository.save(groupMember);
+
         return new GroupResponseDto(
                 savedGroup.getId(),
                 savedGroup.getName(),

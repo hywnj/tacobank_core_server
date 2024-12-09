@@ -105,17 +105,21 @@ public class MemberController {
     /**
      * 이메일로 친구 검색
      */
-//    @GetMapping("/search")
-//    public ResponseEntity<MemberSearchResponseDto> searchMemberByEmailUsingRequestBody(
-//            @RequestBody MemberSearchRequestDto requestDto) {
-//        MemberSearchResponseDto memberInfo = memberService.searchMemberByEmail(requestDto.getEmail());
-//        return ResponseEntity.ok(memberInfo);
-//    }
     @GetMapping("/search/{email}")
-    public ResponseEntity<CoreResponseDto<MemberSearchResponseDto>> searchMemberByEmail(@PathVariable String email) {
-        MemberSearchResponseDto memberInfo = memberService.searchMemberByEmail(email);
+    public ResponseEntity<CoreResponseDto<MemberSearchResponseDto>> searchMemberByEmail(
+            @PathVariable String email,
+            @RequestParam Long memberId // 현재 사용자의 ID를 요청 파라미터로 받음
+    ) {
+        // 서비스 호출
+        MemberSearchResponseDto memberInfo = memberService.searchMemberByEmail(email, memberId);
+
+        // CoreResponseDto를 반환
         return ResponseEntity.ok(
-                new CoreResponseDto<>("SUCCESS", "회원 검색 성공", memberInfo)
+                new CoreResponseDto<>(
+                        "SUCCESS",
+                        "회원 검색 성공",
+                        memberInfo
+                )
         );
     }
 }
