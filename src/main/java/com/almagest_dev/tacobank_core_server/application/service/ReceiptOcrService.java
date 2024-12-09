@@ -122,11 +122,14 @@ public class ReceiptOcrService {
                 productDetails.add(product);
             }
             // Receipt, ReceiptProduct INSERT
-            saveReceiptAndProduct(receipt, productDetails);
+            List<ReceiptProduct> savedReceiptProducts = saveReceiptAndProduct(receipt, productDetails);
             log.info("ReceiptOcrService::processReceiptOcr Receipt, ReceiptProduct INSERT");
+            // 영수증 총액 세팅
+            int receiptTotalPrice = (image.getReceipt().getResult().getTotalPrice() != null && image.getReceipt().getResult().getTotalPrice().getPrice() != null)
+                        ? parsePrice(image.getReceipt().getResult().getTotalPrice().getPrice()) : 0;
 
             // ReceiptOcrResponse로 변환
-            ReceiptOcrResponseDto response = convertToReceiptResponseDto(image.getReceipt().getResult());
+            ReceiptOcrResponseDto response = convertToReceiptResponseDto(savedReceiptProducts, receiptTotalPrice);
             log.info("ReceiptOcrService::processReceiptOcr ReceiptOcrResponse 변환 - {}", response);
 
             log.info("ReceiptOcrService::processReceiptOcr END");
@@ -140,21 +143,20 @@ public class ReceiptOcrService {
     /**
      * Naver OCR Response를 반환할 응답(ReceiptOcrResponseDto)로 변환
      */
-    private ReceiptOcrResponseDto convertToReceiptResponseDto(ReceiptResult receiptResult) {
-        // Items 매핑
+    private ReceiptOcrResponseDto convertToReceiptResponseDto(List<ReceiptProduct> receiptProducts, int receiptTotalPrice) {
         List<ReceiptOcrResponseDto.Item> dtoItems = new ArrayList<>();
-        List<ReceiptResult.SubResult.Item> items = receiptResult.getSubResults().get(0).getItems();
 
         int number = 1; // 품목 번호는 순서대로 매김
         int sumPrice = 0; // 품목별 가격 합계
-        for (ReceiptResult.SubResult.Item item : items) {
+        for (ReceiptProduct product : receiptProducts) {
             // 품목 총액
-            int totalPrice = (item.getPrice() != null && item.getPrice().getPrice() != null) ? parsePrice(item.getPrice().getPrice()) : 0;
+            int totalPrice = (product.getTotalPrice() != null) ? product.getTotalPrice() : 0;
             sumPrice += totalPrice;
 
             ReceiptOcrResponseDto.Item dtoItem = ReceiptOcrResponseDto.Item.builder()
+                    .productId(product.getId())
                     .number(number++) // 품목 번호
-                    .name(item.getName() != null ? item.getName().getText() : "Unknown") // 이름이 없으면 "Unknown"으로
+                    .name(product.getName() != null ? product.getName() : "") // 이름이 없으면 ""으로
                     .totalPrice(totalPrice)
                     .build();
 
@@ -162,10 +164,10 @@ public class ReceiptOcrService {
         }
 
         // 영수증 총액 (영수증 총액이 인식되지 않는 경우, 품목별 합계로 할당)
-        int totalAmount = (receiptResult.getTotalPrice() != null && receiptResult.getTotalPrice().getPrice() != null)
-                ? parsePrice(receiptResult.getTotalPrice().getPrice()) : ((sumPrice > 0) ? sumPrice : 0);
+        int totalAmount = receiptTotalPrice > 0 ? receiptTotalPrice : sumPrice > 0 ? sumPrice : 0;
 
         return ReceiptOcrResponseDto.builder()
+                .receiptId(receiptProducts.get(0).getReceipt().getId())
                 .totalAmount(totalAmount) // 총합계 금액
                 .items(dtoItems) // 변환된 품목 리스트
                 .build();
@@ -185,15 +187,17 @@ public class ReceiptOcrService {
 
 
     /**
-     * Receipt, ReceiptProduct INSERT
+     * Receipt, ReceiptProduct INSERT & Return ReceiptProduct List
      */
     @Transactional
-    public void saveReceiptAndProduct(Receipt receipt, List<ReceiptProduct> productDetails) {
+    public List<ReceiptProduct> saveReceiptAndProduct(Receipt receipt, List<ReceiptProduct> productDetails) {
         // 1. Receipt 저장
         receiptRepository.save(receipt); // Receipt 저장
 
         // 2. ReceiptProduct 저장
-        receiptProductRepository.saveAll(productDetails); // ReceiptProduct List 저장
+        List<ReceiptProduct> savedProducts = receiptProductRepository.saveAll(productDetails);
+
+        return savedProducts;
     }
 
 

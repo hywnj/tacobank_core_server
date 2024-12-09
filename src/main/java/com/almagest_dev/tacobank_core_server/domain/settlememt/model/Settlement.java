@@ -77,6 +77,10 @@ public class Settlement {
         this.settlementStatus = n;
     }
 
+    public void saveReceiptId(Long receiptId) {
+        this.receiptId = receiptId;
+    }
+
     public void updateSettlementStatus(String settlementStatus) {
         this.settlementStatus = settlementStatus;
         this.updatedDate = LocalDateTime.now();

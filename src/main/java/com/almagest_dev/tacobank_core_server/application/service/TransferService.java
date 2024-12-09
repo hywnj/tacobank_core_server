@@ -1,6 +1,7 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
 import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
+import com.almagest_dev.tacobank_core_server.common.exception.TestbedApiException;
 import com.almagest_dev.tacobank_core_server.common.exception.TransferException;
 import com.almagest_dev.tacobank_core_server.common.utils.RedisSessionUtil;
 import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
@@ -20,6 +21,8 @@ import com.almagest_dev.tacobank_core_server.domain.transfer.repository.Transfer
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.client.TestbedApiClient;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.*;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -481,12 +484,29 @@ public class TransferService {
             log.info("TransferService - [{}] transfer processTransferTransaction END", sessionId);
             return response;
 
-        } catch (Exception ex) {
+        } catch (TestbedApiException ex) {
             log.error("TransferService - [{}] transfer processTransferTransaction Exception : {}", sessionId, ex.getMessage());
-            updateTransferStatus(transfer, "", "F", "ERR001", "송금 처리 중 오류 발생", null);
+            try {
+                // JSON 파싱
+                String responseBody = ex.getResponseBody(); // TestbedApiException에 responseBody 저장
+                ObjectMapper objectMapper = new ObjectMapper();
+                JsonNode rootNode = objectMapper.readTree(responseBody);
 
-            ex.printStackTrace();
-            throw ex; // 예외 재발생
+                String apiTranId = rootNode.has("apiTranId") ? rootNode.get("apiTranId").asText("") : "";
+                String rspMessage = rootNode.has("rspMessage") ? rootNode.get("rspMessage").asText("") : "송금 처리 중 오류 발생";
+                String rspCode = rootNode.has("rspCode") ? rootNode.get("rspCode").asText("") : "ERR001";
+
+                log.error("Error Response Parsed - rspMessage: {}, rspCode: {}", rspMessage, rspCode);
+
+                // 필요한 로직 처리
+                updateTransferStatus(transfer, apiTranId, "F", rspCode, rspMessage, null);
+
+                return new CoreResponseDto<>("TERMINATED", rspMessage);
+
+            } catch (Exception parseException) {
+                log.error("TransferService - [{}] JSON Parsing Error: {}", sessionId, parseException.getMessage());
+                return new CoreResponseDto<>("TERMINATED", "서버 에러가 발생했습니다.");
+            }
         } finally {
             // 송금 세션 모두 삭제
             redisSessionUtil.cleanupRedisKeys("TransferService", TRANSFER_SESSION_PREFIX + sessionId, PIN_FAILURE_PREFIX + sessionId);

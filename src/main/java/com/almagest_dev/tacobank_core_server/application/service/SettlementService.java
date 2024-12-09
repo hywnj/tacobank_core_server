@@ -62,6 +62,7 @@ public class SettlementService {
     public void processSettlementRequest(SettlementRequestDto request) {
         // 영수증 정산인 경우 Null Check
         boolean receiptFlag = false;
+        Long receiptId = null;
         if (request.getType().equals("receipt")) {
             receiptFlag = true;
             if (request.getReceiptId() == null) {
@@ -70,6 +71,7 @@ public class SettlementService {
             if (request.getProductMemberDetails() == null) {
                 throw new IllegalArgumentException("영수증 품목별 멤버 정보를 보내주세요.");
             }
+            receiptId = request.getReceiptId();
         }
 
         Group group;
@@ -108,6 +110,7 @@ public class SettlementService {
         // 3. 정산 데이터 생성 및 저장
         Settlement settlement = new Settlement();
         settlement.savePayGroup(group);
+        settlement.saveReceiptId(receiptId);
         settlement.saveSettlementAccount(selectedAccount);
         settlement.saveSettlementTotalAmount(request.getTotalAmount());
         settlement.saveSettlementStatus("N");
