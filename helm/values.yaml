@@ -17,11 +17,11 @@ service:
 
 resources:
   requests:
+    memory: "256Mi"
+    cpu: "100m"
+  limits:
     memory: "512Mi"
     cpu: "250m"
-  limits:
-    memory: "1Gi"
-    cpu: "500m"
 
 autoscaling:
   enabled: true
@@ -40,7 +40,7 @@ nodeAffinity:
         - "ip-172-31-22-110"
 
 env:
-  DDL_TYPE: ""
+  DDL_TYPE: "update"
   PROFILE: ""
   DB_HOST: ""
   DB_PORT: ""
