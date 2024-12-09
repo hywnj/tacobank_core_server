@@ -15,4 +15,5 @@ public class MyIncludedSettlementDto {
     private Long memberAmount;
     private String memberStatus;
     private AccountDto account;
+    private Long leaderId;
 }

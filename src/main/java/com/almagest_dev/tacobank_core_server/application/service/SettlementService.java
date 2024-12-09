@@ -266,7 +266,8 @@ public class SettlementService {
                                     detail.getSettlement().getSettlementAccount().getAccountHolderName(),
                                     detail.getSettlement().getSettlementAccount().getAccountNum(),
                                     bankName
-                            )
+                            ),
+                            detail.getSettlement().getPayGroup().getLeader().getId()
                     );
                 })
                 .collect(Collectors.toList());
@@ -305,7 +306,8 @@ public class SettlementService {
                         detail.getGroupMember().getMember().getName(),
                         detail.getSettlementAmount().longValue(),
                         detail.getSettlementStatus(),
-                        detail.getUpdatedDate()
+                        detail.getUpdatedDate(),
+                        detail.getSettlement().getPayGroup().getLeader().getId()
                 ))
                 .collect(Collectors.toList());
 
