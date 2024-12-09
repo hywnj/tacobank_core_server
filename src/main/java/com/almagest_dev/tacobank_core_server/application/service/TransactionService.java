@@ -31,8 +31,8 @@ public class TransactionService {
     @Transactional
     public TransactionResponseDto getTransactionList(TransactionListRequestDto requestDto) {
         // 계좌 조회
-        Account account = accountRepository.findById(requestDto.getAccountId())
-                .orElseThrow(() -> new IllegalArgumentException("해당 계좌가 존재하지 않습니다."));
+        Account account = accountRepository.findByIdAndVerified(requestDto.getAccountId(), "Y")
+                .orElseThrow(() -> new IllegalArgumentException("본인 인증된 해당 계좌가 존재하지 않습니다."));
 
         // @TODO 해당 부분 필요한지 확인
         //if (accounts.size() > 1) {

@@ -6,6 +6,7 @@ import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.FavoriteAccountRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.FavoriteAccountResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.MainAccountRequestDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.home.AccountMemberReponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.home.AccountResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransferOptionsResponseDto;
 import org.springframework.http.ResponseEntity;
@@ -85,11 +86,20 @@ public class AccountController {
         return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "계좌 조회 성공", response));
     }
 
-    @PostMapping("/list")
-    public ResponseEntity<?> getUserAccountsOnly(@RequestBody Map<String, Long> request) {
-        Long memberId = request.get("memberId");
+//    @PostMapping("/list")
+//    public ResponseEntity<?> getUserAccountsOnly(@RequestBody Map<String, Long> request) {
+//        Long memberId = request.get("memberId");
+//        List<AccountResponseDto> accounts = accountService.getUserAccountsOnly(memberId);
+//        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "계좌 조회 성공", accounts));
+//    }
+    @GetMapping("/list/{memberId}")
+    public ResponseEntity<?> getUserAccountsOnly(@PathVariable Long memberId) {
         List<AccountResponseDto> accounts = accountService.getUserAccountsOnly(memberId);
-        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "계좌 조회 성공", accounts));
+        return ResponseEntity.ok(new CoreResponseDto<>(
+                "SUCCESS",
+                "계좌 조회 성공",
+                accounts
+        ));
     }
 
 
