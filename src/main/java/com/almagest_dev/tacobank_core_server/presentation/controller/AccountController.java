@@ -78,13 +78,11 @@ public class AccountController {
         );
     }
 
-    // 즐겨찾기, 최근 이체 계좌 조회
+    // 즐겨찾기, 최근 이체, 친구 메인 계좌 조회
     @GetMapping("/transfer-options/{memberId}")
-    public ResponseEntity<CoreResponseDto<TransferOptionsResponseDto>> getTransferOptions(@PathVariable Long memberId) {
+    public ResponseEntity<?> getTransferOptions(@PathVariable Long memberId) {
         TransferOptionsResponseDto response = accountService.getTransferOptions(memberId);
-        return ResponseEntity.ok(
-                new CoreResponseDto<>("SUCCESS", "계좌 조회 성공", response)
-        );
+        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "계좌 조회 성공", response));
     }
 
     @PostMapping("/list")

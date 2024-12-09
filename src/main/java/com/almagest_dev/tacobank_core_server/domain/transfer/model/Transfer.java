@@ -83,7 +83,7 @@ public class Transfer {
      * Transfer 관련 메서드
      */
     // Transfer 첫 생성 메서드
-    public static Transfer createTransfer(String idempotencyKey,
+    public static Transfer createTransfer(String idempotencyKey, String transactionId,
                                           Long memberId, Long accountId,
                                           String withdrawalBankCode, String withdrawalAccountNum, String withdrawalAccountHolder,
                                           String wdPrintContent, String rcvPrintContent,
@@ -91,7 +91,7 @@ public class Transfer {
                                           Integer amount) {
         return new Transfer(
                 null, // id는 자동 생성
-                UUID.randomUUID().toString(), // 고유 거래 ID
+                transactionId,                 // 고유 거래 ID
                 idempotencyKey,               // 중복 방지 키
                 null,                         // apiTranId 초기값 null
                 null,                         // settlementId 초기값 null

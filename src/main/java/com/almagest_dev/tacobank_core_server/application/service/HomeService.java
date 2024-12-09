@@ -1,7 +1,10 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
+import com.almagest_dev.tacobank_core_server.common.exception.MemberAuthException;
 import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
+import com.almagest_dev.tacobank_core_server.domain.account.model.MainAccount;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.AccountRepository;
+import com.almagest_dev.tacobank_core_server.domain.account.repository.MainAccountRepository;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.client.TestbedApiClient;
@@ -12,6 +15,7 @@ import com.almagest_dev.tacobank_core_server.presentation.dto.home.TransactionRe
 import com.almagest_dev.tacobank_core_server.presentation.dto.transantion.TransactionListRequestDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -19,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,6 +34,8 @@ public class HomeService {
 
     private final MemberRepository memberRepository;
     private final AccountRepository accountRepository;
+    private final MainAccountRepository mainAccountRepository;
+
     private final TestbedApiClient testbedApiClient;
     private final OrgCodeService orgCodeService;
 
@@ -43,7 +50,7 @@ public class HomeService {
         // 인증 정보 가져오기
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new IllegalArgumentException("인증되지 않은 사용자입니다.");
+            throw new MemberAuthException("인증되지 않은 사용자입니다.", HttpStatus.UNAUTHORIZED);
         }
 
         // 인증 정보에서 멤버 ID 추출
@@ -73,7 +80,6 @@ public class HomeService {
             saveAccounts(accountResponseDto.getResList(), member);
         }
 
-
         // 현재 시점 및 포맷팅 설정
         String fromDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String toDate = LocalDateTime.now().plusMonths(1).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
@@ -83,6 +89,9 @@ public class HomeService {
         return mapToAccountMemberResponseDto(member, accountResponseDto, fromDate, toDate, tranDtime);
     }
 
+    /**
+     * 테스트베드 요청: 오픈뱅킹 계좌 연동(조회)
+     */
     private IntegrateAccountApiResponseDto fetchAccountsFromApi(String userFinanceId, String userName) {
         IntegrateAccountApiRequestDto requestDto = new IntegrateAccountApiRequestDto();
         requestDto.setUserFinanceId(userFinanceId);
@@ -92,6 +101,9 @@ public class HomeService {
         return testbedApiClient.requestApi(requestDto, "/openbank/accounts", IntegrateAccountApiResponseDto.class);
     }
 
+    /**
+     * 사용자 Account 조회 결과 저장
+     */
     private void saveAccounts(List<AccountInfoDto> accountInfoList, Member member) {
         List<Account> accounts = accountInfoList.stream().map(accountInfo -> {
             Account account = new Account();
@@ -108,6 +120,9 @@ public class HomeService {
         accountRepository.saveAll(accounts);
     }
 
+    /**
+     * 홈 화면 응답 데이터로 변환/매핑
+     */
     private AccountMemberReponseDto mapToAccountMemberResponseDto(Member member, IntegrateAccountApiResponseDto accountResponseDto, String fromDate, String toDate, String tranDtime) {
         AccountMemberReponseDto response = new AccountMemberReponseDto();
         response.setMemberId(member.getId());
@@ -118,35 +133,76 @@ public class HomeService {
         boolean isPinSet = member.getTransferPin() != null;
         response.setPinSet(isPinSet);
 
-        List<AccountResponseDto> accountList = accountResponseDto.getResList().stream()
-                .map(accountInfo -> {
-                    AccountResponseDto accountDto = new AccountResponseDto();
-                    accountDto.setAccountId(accountRepository.findByAccountNum(accountInfo.getAccountNum())
-                            .map(Account::getId).orElse(null));
-                    accountDto.setAccountName(accountInfo.getProductName());
-                    accountDto.setBalance(Double.parseDouble(accountInfo.getBalanceAmt()));
-                    accountDto.setBankCode(accountInfo.getBankCodeStd());
-                    String bankName = orgCodeService.getBankNameByCode(accountInfo.getBankCodeStd());
-                    accountDto.setBankName(bankName);
-                    accountDto.setAccountNum(accountInfo.getAccountNum());
-                    accountDto.setAccountHolder(accountInfo.getAccountHolder());
+        // 잔액이 가장 많은 계좌 정보를 위한 변수
+        long highestBalanceAccountId = 0L;
+        double maxBalance = 0.0;
 
-                    // 거래 내역 추가
-                    TransactionListRequestDto transactionRequest = new TransactionListRequestDto();
-                    transactionRequest.setAccountNum(accountInfo.getAccountNum());
-                    transactionRequest.setFromDate(fromDate);
-                    transactionRequest.setToDate(toDate);
-                    List<TransactionResponseDto2> transactions = fetchTransactionList(transactionRequest);
-                    accountDto.setTransactionList(transactions);
+        // 계좌 리스트 생성
+        List<AccountResponseDto> accountList = new ArrayList<>();
 
-                    return accountDto;
-                })
-                .collect(Collectors.toList());
+        // 계좌 정보 반복 처리
+        for (AccountInfoDto accountInfo : accountResponseDto.getResList()) {
+            // AccountResponseDto 객체 생성
+            AccountResponseDto accountDto = new AccountResponseDto();
+            Long accountId = accountRepository.findByAccountNum(accountInfo.getAccountNum())
+                    .map(Account::getId)
+                    .orElse(null);
+            accountDto.setAccountId(accountId);
+            accountDto.setAccountName(accountInfo.getProductName());
+            accountDto.setBankCode(accountInfo.getBankCodeStd());
 
+            // 은행 이름 설정
+            String bankName = orgCodeService.getBankNameByCode(accountInfo.getBankCodeStd());
+            accountDto.setBankName(bankName);
+            accountDto.setAccountNum(accountInfo.getAccountNum());
+            accountDto.setAccountHolder(accountInfo.getAccountHolder());
+
+            // 잔액 설정
+            double balance = Double.parseDouble(accountInfo.getBalanceAmt());
+            accountDto.setBalance(balance);
+
+            // 가장 잔액이 많은 계좌 확인
+            if (balance > maxBalance) {
+                maxBalance = balance;
+                highestBalanceAccountId = accountDto.getAccountId();
+            }
+
+            // 거래 내역 추가
+            if (accountId != null) {
+                TransactionListRequestDto transactionRequest = new TransactionListRequestDto();
+                transactionRequest.setAccountId(accountDto.getAccountId());
+                transactionRequest.setFromDate(fromDate);
+                transactionRequest.setToDate(toDate);
+                List<TransactionResponseDto2> transactions = fetchTransactionList(transactionRequest);
+                accountDto.setTransactionList(transactions);
+            }
+
+            // 계좌 리스트에 추가
+            accountList.add(accountDto);
+        }
         response.setAccountList(accountList);
+
+        // 메인 계좌 추가 - 최초엔 잔액이 가장 많은 계좌로
+        MainAccount mainAccount = mainAccountRepository.findByMemberId(member.getId()).orElse(null);
+        if (mainAccount == null) {
+            // 메인 계좌 DB INSERT
+            Account highestAccount = accountRepository.findById(highestBalanceAccountId).orElse(null);
+            if (highestAccount != null) {
+                mainAccount = MainAccount.createMainAccount(member, highestAccount);
+                mainAccountRepository.save(mainAccount);
+
+                log.info("HomeService::mapToAccountMemberResponseDto 메인계좌 INSERT - 메인계좌 ID: {}", highestAccount.getId());
+            }
+        }
+        response.setMainAccountId(mainAccount.getAccount().getId());
+
+
         return response;
     }
 
+    /**
+     * 테스트베드 요청: 거래내역 조회
+     */
     private List<TransactionResponseDto2> fetchTransactionList(TransactionListRequestDto requestDto) {
         // 현재 시점
         LocalDateTime now = LocalDateTime.now();
@@ -162,7 +218,7 @@ public class HomeService {
 
         // API 요청 DTO 생성
         TransactionListApiRequestDto apiRequestDto = new TransactionListApiRequestDto();
-        apiRequestDto.setFintechUseNum(accountRepository.findByAccountNum(requestDto.getAccountNum())
+        apiRequestDto.setFintechUseNum(accountRepository.findById(requestDto.getAccountId())
                 .orElseThrow(() -> new IllegalArgumentException("계좌가 존재하지 않습니다."))
                 .getFintechUseNum());
         apiRequestDto.setInquiryType("A");

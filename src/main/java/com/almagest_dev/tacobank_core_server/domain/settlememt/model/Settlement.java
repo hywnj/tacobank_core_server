@@ -37,8 +37,8 @@ public class Settlement {
     @JoinColumn(name = "settlement_account_id", columnDefinition = "BIGINT COMMENT '정산 받을 계좌 ID'")
     private Account settlementAccount;
 
-    @Column(name = "settlement_total_amount", columnDefinition = "INT COMMENT '정산총액'")
-    private Integer settlementTotalAmount;
+    @Column(name = "settlement_total_amount", columnDefinition = "BIGINT UNSIGNED COMMENT '정산총액'")
+    private Long settlementTotalAmount;
 
     @Column(name = "settlement_status", columnDefinition = "VARCHAR(1) COMMENT '정산상태'")
     private String settlementStatus;
@@ -70,10 +70,15 @@ public class Settlement {
     public void saveSettlementAccount(Account selectedAccount) {
         this.settlementAccount = selectedAccount;
     }
-    public void saveSettlementTotalAmount(int totalAmount) {
+    public void saveSettlementTotalAmount(long totalAmount) {
         this.settlementTotalAmount = totalAmount;
     }
     public void saveSettlementStatus(String n) {
         this.settlementStatus = n;
+    }
+
+    public void updateSettlementStatus(String settlementStatus) {
+        this.settlementStatus = settlementStatus;
+        this.updatedDate = LocalDateTime.now();
     }
 }

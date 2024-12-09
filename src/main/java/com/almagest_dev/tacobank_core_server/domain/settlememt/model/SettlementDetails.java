@@ -28,8 +28,8 @@ public class SettlementDetails {
     @JoinColumn(name = "group_member_id", columnDefinition = "BIGINT NOT NULL COMMENT '구성원 ID'")
     private GroupMember groupMember;
 
-    @Column(name = "settlement_amount", columnDefinition = "INT NOT NULL COMMENT '개별 정산금액'")
-    private Integer settlementAmount;
+    @Column(name = "settlement_amount", columnDefinition = "BIGINT UNSIGNED NOT NULL COMMENT '개별 정산금액'")
+    private Long settlementAmount;
 
     @Column(name = "settlement_status", columnDefinition = "VARCHAR(1) COMMENT '개별 정산상태'")
     private String settlementStatus;
@@ -51,8 +51,13 @@ public class SettlementDetails {
         this.updatedDate = LocalDateTime.now();
     }
 
+    public void updateSettlementDetailsStatus(String settlementStatus) {
+        this.settlementStatus = settlementStatus;
+        this.updatedDate = LocalDateTime.now();
+    }
+
     public void saveSettlement(Settlement settlement) {this.settlement = settlement;}
     public void saveGroupMember(GroupMember groupMember) {this.groupMember = groupMember;}
-    public void saveSettlementAmount(int amount) {this.settlementAmount = amount;}
-    public void saveSettlementStatus(String n) {this.settlementStatus = n;}
+    public void saveSettlementAmount(long amount) {this.settlementAmount = amount;}
+    public void saveSettlementStatus(String status) {this.settlementStatus = status;}
 }

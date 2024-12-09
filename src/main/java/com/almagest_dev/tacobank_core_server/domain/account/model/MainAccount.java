@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Getter
@@ -27,4 +26,12 @@ public class MainAccount {
 
     public void saveMember(Member member) {this.member = member;}
     public void saveAccount(Account account) {this.account = account;}
+
+    public static MainAccount createMainAccount(Member member, Account account) {
+        return new MainAccount(
+                null,
+                member,
+                account
+        );
+    }
 }

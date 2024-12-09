@@ -7,6 +7,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -72,6 +73,13 @@ public class GlobalExceptionHandler {
         CoreResponseDto response = new CoreResponseDto("FAILURE", "잘못된 요청입니다.");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<?> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex) {
+        log.warn("HttpRequestMethodNotSupportedException - " + ex.getMessage());
+        CoreResponseDto response = new CoreResponseDto("FAILURE", "지원하지 않는 요청입니다.");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
     @ExceptionHandler(SmsSendFailedException.class) // SMS 전송시 예외처리
     public ResponseEntity<?> handleSmsSendFailedException(SmsSendFailedException ex) {
         log.warn("SmsSendFailedException - " + ex.getMessage());
@@ -139,6 +147,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TransferException.class)
     public ResponseEntity<?> handleTransferException(TransferException ex) {
         log.warn("TransferException - " + ex.getMessage());
+        CoreResponseDto response = new CoreResponseDto(ex.getStatus(), ex.getMessage());
+        return ResponseEntity.status(ex.getHttpStatus()).body(response);
+    }
+
+    // 멤버 인증 예외
+    @ExceptionHandler(MemberAuthException.class)
+    public ResponseEntity<?> handleMemberAuthException(MemberAuthException ex) {
+        log.warn("MemberAuthException - " + ex.getMessage());
         CoreResponseDto response = new CoreResponseDto(ex.getStatus(), ex.getMessage());
         return ResponseEntity.status(ex.getHttpStatus()).body(response);
     }

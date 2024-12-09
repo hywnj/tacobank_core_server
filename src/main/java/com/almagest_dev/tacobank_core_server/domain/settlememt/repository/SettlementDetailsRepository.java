@@ -20,6 +20,6 @@ public interface SettlementDetailsRepository extends JpaRepository<SettlementDet
     Optional<SettlementDetails> findBySettlement_IdAndGroupMember_Member_IdAndSettlementStatus(
             Long settlementId, Long memberId, String settlementStatus);
     // 특정 정산의 특정 그룹 구성원 개별 정산 상세 정보
-    Optional<SettlementDetails> findBySettlement_IdAndGroupMember_Id(Long settlementId, Long memberId);
+    Optional<SettlementDetails> findBySettlement_IdAndGroupMember_Id(Long settlementId, Long groupMemberId);
 
 }
