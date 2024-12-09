@@ -43,7 +43,8 @@ public class TestbedApiClient {
             return response;
 
         } catch (HttpClientErrorException | HttpServerErrorException ex) {
-            throw new TestbedApiException(ex.getMessage(), ex);
+            log.warn("TestbedApiClient::requestApi Testbed Server Error - {}", ex.getMessage());
+            throw new TestbedApiException(ex.getResponseBodyAsString(), ex);
         }
     }
 
