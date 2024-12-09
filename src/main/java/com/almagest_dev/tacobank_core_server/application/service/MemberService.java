@@ -6,6 +6,8 @@ import com.almagest_dev.tacobank_core_server.common.exception.SmsSendFailedExcep
 import com.almagest_dev.tacobank_core_server.common.utils.MaskingUtil;
 import com.almagest_dev.tacobank_core_server.common.utils.RedisSessionUtil;
 import com.almagest_dev.tacobank_core_server.common.utils.ValidationUtil;
+import com.almagest_dev.tacobank_core_server.domain.friend.model.Friend;
+import com.almagest_dev.tacobank_core_server.domain.friend.repository.FriendRepository;
 import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
 import com.almagest_dev.tacobank_core_server.infrastructure.sms.util.SmsAuthUtil;
@@ -27,6 +29,7 @@ public class MemberService {
     private final SmsAuthUtil smsAuthUtil;
     private final RedisSessionUtil redisSessionUtil;
     private final PasswordEncoder passwordEncoder;
+    private final FriendRepository friendRepository;
 
     /**
      * ID로 Member 조회
@@ -282,16 +285,35 @@ public class MemberService {
     /**
      * 이메일로 친구 검색
      */
-    public MemberSearchResponseDto searchMemberByEmail(String email) {
+    public MemberSearchResponseDto searchMemberByEmail(String email, Long memberId) {
         Member member = memberRepository.findByEmail(email)
-                .filter(m -> "N".equals(m.getDeleted())) // deleted가 "N"인 경우만
+                .filter(m -> "N".equals(m.getDeleted()))
                 .orElseThrow(() -> new IllegalArgumentException("해당 이메일로 회원을 찾을 수 없습니다."));
 
-        // Member 데이터를 MemberResponseDto로 변환하여 반환
+        if (member.getId().equals(memberId)) {
+            throw new IllegalArgumentException("자신은 검색할 수 없습니다.");
+        }
+
+        boolean isBlocked = friendRepository.findByRequesterIdAndReceiverId(memberId, member.getId())
+                .map(Friend::getStatus)
+                .filter(status -> "BLOCKED".equals(status) || "BLOCKED_BY".equals(status))
+                .isPresent();
+
+        if (isBlocked) {
+            throw new IllegalArgumentException("해당 회원은 차단 상태이므로 검색할 수 없습니다.");
+        }
+
+        // 친구 상태 조회
+        String friendStatus = friendRepository.findByRequesterIdAndReceiverId(memberId, member.getId())
+                .map(Friend::getStatus)
+                .orElse("NONE"); // 상태가 없으면 "NONE" 반환
+
+        // Member 데이터를 MemberSearchResponseDto로 변환하여 반환
         return new MemberSearchResponseDto(
                 member.getId(),
                 member.getName(),
-                member.getEmail()
+                member.getEmail(),
+                friendStatus // 친구 상태 추가
         );
     }
 }
