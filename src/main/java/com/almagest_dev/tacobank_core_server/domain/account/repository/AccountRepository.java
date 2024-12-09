@@ -17,7 +17,6 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     List<Account> findByMember_IdAndVerified(Long memberId, String verified); // 특정 멤버의 출금 가능한 계좌 조회
 
-    List<Account> findAllByAccountNum(String accountNum);
 
 
 }
