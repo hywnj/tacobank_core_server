@@ -353,5 +353,50 @@ public class GroupService {
         );
     }
 
+    /**
+     * 내가 리더로 설정된 그룹 조회
+     */
+    public List<MyGroupsResponseDto> getGroupsWhereLeader(Long leaderId) {
+        // 리더로 설정된 그룹만 조회
+        List<Group> leaderGroups = groupRepository.findByLeaderIdAndActivated(leaderId, "Y");
+
+        // 그룹 데이터를 DTO로 변환
+        return leaderGroups.stream().map(group -> {
+            MyGroupsResponseDto response = new MyGroupsResponseDto();
+            response.setGroupId(group.getId());
+            response.setGroupName(group.getName());
+            response.setCustomized(group.getCustomized());
+            response.setActivated(group.getActivated());
+            response.setLeaderId(group.getLeader().getId());
+
+            // 리더 이름 조회
+            Member leader = memberRepository.findById(group.getLeader().getId())
+                    .filter(member -> "N".equals(member.getDeleted())) // 삭제되지 않은 리더만 조회
+                    .orElseThrow(() -> new IllegalArgumentException("리더를 찾을 수 없습니다."));
+            response.setLeaderName(leader.getName());
+
+            // 그룹 멤버 정보 조회 및 필터링
+            List<MyGroupsResponseDto.MemberInfo> members = group.getPayGroups().stream()
+                    .filter(pg -> "ACCEPTED".equals(pg.getStatus())) // ACCEPTED 상태인 멤버만 필터링
+                    .map(pg -> {
+                        MyGroupsResponseDto.MemberInfo memberInfo = new MyGroupsResponseDto.MemberInfo();
+                        memberInfo.setGroupId(pg.getPayGroup().getId());
+                        memberInfo.setMemberId(pg.getMember().getId());
+                        memberInfo.setStatus(pg.getStatus());
+
+                        // 멤버 이름 조회
+                        Member memberEntity = memberRepository.findById(pg.getMember().getId())
+                                .filter(m -> "N".equals(m.getDeleted())) // 삭제되지 않은 멤버만 포함
+                                .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
+                        memberInfo.setMemberName(memberEntity.getName());
+                        return memberInfo;
+                    })
+                    .collect(Collectors.toList());
+
+            response.setMembers(members);
+            return response;
+        }).collect(Collectors.toList());
+    }
+
 
 }

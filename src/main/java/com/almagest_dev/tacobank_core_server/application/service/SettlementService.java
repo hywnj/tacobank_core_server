@@ -81,8 +81,8 @@ public class SettlementService {
             group = createTemporaryGroup(request);
         } else {
             // 기존 그룹 조회
-            group = groupRepository.findById(request.getGroupId())
-                    .orElseThrow(() -> new IllegalArgumentException("그룹이 존재하지 않습니다."));
+            group = groupRepository.findByIdAndLeaderId(request.getGroupId(), request.getLeaderId())
+                    .orElseThrow(() -> new IllegalArgumentException("그룹이 존재하지 않거나 요청한 사용자가 그룹 리더가 아닙니다."));
         }
 
         // 선택된 계좌 확인
