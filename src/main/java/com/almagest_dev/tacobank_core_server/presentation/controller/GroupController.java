@@ -140,4 +140,13 @@ public class GroupController {
         );
     }
 
+    // 내가 리더인 그룹 목록 조회
+    @GetMapping("/leader-group/list/{memberId}")
+    public ResponseEntity<CoreResponseDto<List<MyGroupsResponseDto>>> getLeaderGroups(@PathVariable Long memberId) {
+        List<MyGroupsResponseDto> leaderGroups = groupService.getGroupsWhereLeader(memberId);
+        return ResponseEntity.ok(
+                new CoreResponseDto<>("SUCCESS", "내가 리더인 그룹 목록 조회 성공", leaderGroups)
+        );
+    }
+
 }
