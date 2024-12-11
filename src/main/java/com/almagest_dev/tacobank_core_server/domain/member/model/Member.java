@@ -76,6 +76,8 @@ public class Member {
     // 회원 탈퇴 처리(비활성화)
     public void deactivate() {
         this.deleted = "Y";
+        this.email = this.email + "_OUT";
+        this.tel = this.tel + "_OUT";
     }
 
     // 회원 정보 수정, 값 변경
