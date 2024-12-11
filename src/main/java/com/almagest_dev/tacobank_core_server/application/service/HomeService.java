@@ -69,6 +69,7 @@ public class HomeService {
             // 최초 요청 - memberId 기반으로 계좌 조회
             accountResponseDto = fetchAccountsFromApi(member.getId().toString(), userName);
             member.setUserFinanceId(accountResponseDto.getUserFinanceId());
+            member.changeMydataLinked("Y");
             memberRepository.save(member);
         } else {
             // 이후 요청 - userFinanceId 기반으로 계좌 조회
