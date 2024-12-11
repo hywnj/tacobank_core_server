@@ -41,6 +41,9 @@ public class Member {
     @Column(columnDefinition = "VARCHAR(20) NOT NULL COMMENT '전화번호'")
     private String tel;
 
+    @Column(columnDefinition = "VARCHAR(1) NOT NULL COMMENT '최초 계좌연동 여부(Y, N)'")
+    private String mydataLinked;
+
     @Column(columnDefinition = "VARCHAR(1) DEFAULT 'N' NOT NULL COMMENT '탈퇴 여부(탈퇴시, Y)'")
     private String deleted;
 
