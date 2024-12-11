@@ -17,6 +17,7 @@ import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.cli
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.AccountInfoDto;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.IntegrateAccountApiRequestDto;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.IntegrateAccountApiResponseDto;
+import com.almagest_dev.tacobank_core_server.presentation.dto.account.Account2Dto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.MainAccountRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.home.AccountResponseDto;
@@ -167,8 +168,8 @@ public class AccountService {
 
         // 즐겨찾기 계좌 (모두 조회)
         List<FavoriteAccount> favoriteAccounts = favoriteAccountRepository.findAllByMember(member);
-        List<AccountDto> favoriteAccountDtos = favoriteAccounts.stream()
-                .map(account -> new AccountDto(
+        List<Account2Dto> favoriteAccountDtos = favoriteAccounts.stream()
+                .map(account -> new Account2Dto(
                         account.getAccountHolderName(),
                         account.getAccountNum(),
                         account.getBankCode()
@@ -178,8 +179,8 @@ public class AccountService {
         // 타코뱅크 서비스에서 최근 이체한 내역 5개 조회
         Pageable pageable = PageRequest.of(0, 5); // 최근 5개
         List<Transfer> recentTransfers = transferRepository.findTop5DistinctByMemberIdAndStatus(memberId, "S", pageable);
-        List<AccountDto> recentAccountDtos = recentTransfers.stream()
-                .map(transfer -> new AccountDto(
+        List<Account2Dto> recentAccountDtos = recentTransfers.stream()
+                .map(transfer -> new Account2Dto(
                         transfer.getReceiverAccountHolder(),
                         transfer.getReceiverAccountNum(),
                         transfer.getReceiverBankCode()
@@ -188,7 +189,7 @@ public class AccountService {
 
         // 친구 메인 계좌 (모두 조회)
         List<Friend> friends = friendRepository.findByRequesterIdAndStatus(memberId, "ACC");
-        List<AccountDto> friendsAccountDtos = new ArrayList<>();
+        List<Account2Dto> friendsAccountDtos = new ArrayList<>();
         for (Friend friend : friends) {
             Long friendId = friend.getReceiverId();
             // Get Main Account
@@ -197,7 +198,7 @@ public class AccountService {
                         Long accountId = mainAccount.getAccount().getId();
                         accountRepository.findById(accountId) // 계좌 정보 조회
                                 .ifPresent(account -> {
-                                    friendsAccountDtos.add(new AccountDto( // DTO에 매핑
+                                    friendsAccountDtos.add(new Account2Dto( // DTO에 매핑
                                             account.getAccountHolderName(),
                                             account.getAccountNum(),
                                             account.getBankCode()
