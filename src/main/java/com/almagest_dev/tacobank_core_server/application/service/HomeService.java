@@ -243,6 +243,7 @@ public class HomeService {
                     TransactionResponseDto2 transactionDto = new TransactionResponseDto2();
                     transactionDto.setTranNum(transaction.getTranNum());
                     transactionDto.setInoutType(transaction.getInoutType());
+                    transactionDto.setPrintContent(transaction.getPrintContent());
 
                     // 출금(송금 포함)의 경우 금액을 음수로 변경
                     if ("출금".equals(transaction.getInoutType())) {

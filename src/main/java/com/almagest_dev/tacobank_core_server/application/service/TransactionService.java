@@ -113,12 +113,12 @@ public class TransactionService {
                     TransactionDetails responseDto = new TransactionDetails();
                     responseDto.setTranNum(transaction.getTranNum()); // 거래 ID가 없는 경우 null 처리
                     responseDto.setType(transaction.getTranType());
-                    responseDto.setAmount(Double.valueOf(transaction.getTranAmt()));
                     responseDto.setAfterBalanceAmount(Double.valueOf(transaction.getAfterBalanceAmt()));
                     responseDto.setTranDateTime(transaction.getTranDate() + " " + transaction.getTranTime());
                     String tranAmt = "출금".equals(transaction.getInoutType()) ? "-" + transaction.getTranAmt() : transaction.getTranAmt();
                     responseDto.setTranAmt(tranAmt);
                     responseDto.setInoutType(transaction.getInoutType());
+                    responseDto.setPrintContent(transaction.getPrintContent());
                     return responseDto;
                 })
                 .collect(Collectors.toList());
