@@ -92,6 +92,10 @@ public class Member {
         this.transferPin = transferPin;
     }
 
+    public void changeMydataLinked(String mydataLinked) {
+        this.mydataLinked = mydataLinked;
+    }
+
     public Long getMainAccountId() {
         return mainAccount != null ? mainAccount.getId() : null;
     }
