@@ -24,7 +24,11 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final MemberLockFilter memberLockFilter;
 
-    private static final String[] PUBLIC_API_URL = { "/taco/auth/**", "/taco/core/auth/**", "/taco/core/**" }; // 인증 없이도 접근 가능한 경로
+    private static final String[] PUBLIC_API_URL = { // 인증 없이도 접근 가능한 경로
+            "/taco/core/auth/**"
+            , "/taco/core/members/email-recovery"
+            , "/taco/core/members/password-recovery/**"
+    };
     private static final String ADMIN_API_URL = "/taco/core/admin/**"; // 관리자만 접근 가능한 경로
     private static final String MANAGE_API_URL = "/taco/core/manage/**"; // 관리자 + 매니저만 접근 가능한 경로
 
