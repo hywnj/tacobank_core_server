@@ -100,12 +100,13 @@ public class SettlementService {
                 .mapToLong(SettlementMemberDto::getAmount)
                 .sum();
 
-        if (calculatedTotalAmount != request.getTotalAmount()) {
+        if (calculatedTotalAmount != request.getTotalAmount() || calculatedTotalAmount == 0) {
             throw new IllegalArgumentException(String.format(
-                    "총 정산 금액(%d)과 개별 금액 합계(%d)가 일치하지 않습니다.",
+                    "총 정산 금액(%d)과 개별 금액 합계(%d)가 일치하지 않거나 총액이 0입니다.",
                     request.getTotalAmount(), calculatedTotalAmount
             ));
         }
+
 
         // 3. 정산 데이터 생성 및 저장
         Settlement settlement = new Settlement();
