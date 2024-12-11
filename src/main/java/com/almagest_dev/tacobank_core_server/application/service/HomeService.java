@@ -242,10 +242,10 @@ public class HomeService {
                 .map(transaction -> {
                     TransactionResponseDto2 transactionDto = new TransactionResponseDto2();
                     transactionDto.setTranNum(transaction.getTranNum());
-                    transactionDto.setPrintContent(transaction.getPrintContent());
+                    transactionDto.setInoutType(transaction.getInoutType());
 
                     // 출금(송금 포함)의 경우 금액을 음수로 변경
-                    if ("출금".equals(transaction.getPrintContent()) || "송금 출금".equals(transaction.getPrintContent())) {
+                    if ("출금".equals(transaction.getInoutType())) {
                         transactionDto.setTranAmt("-" + transaction.getTranAmt());
                     } else {
                         transactionDto.setTranAmt(transaction.getTranAmt());

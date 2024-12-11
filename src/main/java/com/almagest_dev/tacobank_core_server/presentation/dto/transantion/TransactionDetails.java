@@ -11,4 +11,5 @@ public class TransactionDetails {
     private Double afterBalanceAmount; // 거래 후 잔액
     private String tranDateTime; // 거래 일시 (YYYY.MM.DD HH:mm:ss)
     private String tranAmt;
+    private String inoutType;
 }
