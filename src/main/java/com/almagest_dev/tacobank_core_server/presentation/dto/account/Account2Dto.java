@@ -7,8 +7,8 @@ import lombok.NoArgsConstructor;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class AccountDto {
+public class Account2Dto {
     private String accountHolder;
     private String accountNum;
-    private String bankName;
+    private String bankCode;
 }
