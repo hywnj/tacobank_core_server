@@ -12,5 +12,6 @@ public class AccountMemberReponseDto {
     private String tel;
     private Long mainAccountId;
     private boolean pinSet;
+    private String mydataLinked;
     private List<AccountResponseDto> accountList;
 }

@@ -77,6 +77,7 @@ public class HomeService {
         }
 
         // 계좌 정보 저장 (최초 요청 시)
+        // @TODO 계좌 정보 저장 로직 수정 - 새로운 계좌만 추가
         if (accountRepository.countByMember(member) == 0) {
             saveAccounts(accountResponseDto.getResList(), member);
         }
@@ -130,6 +131,7 @@ public class HomeService {
         response.setEmail(member.getEmail());
         response.setName(member.getName());
         response.setTel(member.getTel());
+        response.setMydataLinked(member.getMydataLinked());
 
         boolean isPinSet = member.getTransferPin() != null;
         response.setPinSet(isPinSet);
