@@ -365,9 +365,10 @@ public class FriendService {
                     String liked = friend.getLiked();
                     String friendName = memberRepository.findByIdAndDeleted(friendId,"N")
                             .map(Member::getName)
-                            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+                            .orElse(null);
                     return new FriendResponseDto(friendId, friendName, liked);
                 })
+                .filter(dto -> dto.getFriendName() != null)
                 .distinct() // 중복 제거
                 .collect(Collectors.toList());
     }
@@ -384,9 +385,10 @@ public class FriendService {
                     Long friendId = friend.getReceiverId(); // 차단된 친구의 ID
                     String friendName = memberRepository.findByIdAndDeleted(friendId,"N")
                             .map(Member::getName)
-                            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+                            .orElse(null);
                     return new FriendResponseDto2(friendId, friendName); // DTO 생성
                 })
+                .filter(dto -> dto.getFriendName() != null)
                 .collect(Collectors.toList());
     }
 
@@ -402,9 +404,10 @@ public class FriendService {
                     Long friendId = friend.getReceiverId(); // 수신자 ID
                     String friendName = memberRepository.findByIdAndDeleted(friendId,"N")
                             .map(Member::getName)
-                            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+                            .orElse(null);
                     return new FriendResponseDto2(friendId, friendName);
                 })
+                .filter(dto -> dto.getFriendName() != null)
                 .collect(Collectors.toList());
     }
 
