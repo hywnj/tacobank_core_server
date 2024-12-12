@@ -7,6 +7,7 @@ public class RedisKeyConstants { // Redis Key 상수
     public static final String SMS_SUCCESS_PREFIX = "sms:success:";
     public static final String SMS_REQUEST_CNT_PREFIX = "sms:request:";
     public static final String PIN_FAILURE_PREFIX = "pin:failures:";
+    public static final String BLACKLIST_PREFIX = "token:blacklist:";
 
     private RedisKeyConstants() {
 
