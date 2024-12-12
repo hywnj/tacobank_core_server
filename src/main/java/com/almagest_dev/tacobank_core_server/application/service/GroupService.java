@@ -141,10 +141,9 @@ public class GroupService {
                     Long friendId = friend.getRequesterId().equals(memberId)
                             ? friend.getReceiverId()
                             : friend.getRequesterId();
-                    String friendName = memberRepository.findById(friendId)
-                            .filter(member -> "N".equals(member.getDeleted())) // deleted 필터링 추가
+                    String friendName = memberRepository.findByIdAndDeleted(friendId,"N")
                             .map(Member::getName)
-                            .orElse("Unknown");
+                            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
                     Map<String, Object> friendInfo = new HashMap<>();
                     friendInfo.put("friendId", friendId);
                     friendInfo.put("name", friendName);
@@ -274,14 +273,14 @@ public class GroupService {
             response.setLeaderId(group.getLeader().getId());
 
             // 리더 이름 조회
-            Member leader = memberRepository.findById(group.getLeader().getId())
-                    .filter(member -> "N".equals(member.getDeleted())) // 삭제되지 않은 리더만 조회
+            Member leader = memberRepository.findByIdAndDeleted(group.getLeader().getId(),"N")
                     .orElseThrow(() -> new IllegalArgumentException("리더를 찾을 수 없습니다."));
             response.setLeaderName(leader.getName());
 
             // 그룹 멤버 정보 조회 및 필터링
             List<MyGroupsResponseDto.MemberInfo> members = group.getPayGroups().stream()
                     .filter(pg -> "ACCEPTED".equals(pg.getStatus())) // ACCEPTED 상태인 멤버만 필터링
+                    .filter(pg -> "N".equals(pg.getMember().getDeleted()))
                     .map(pg -> {
                         MyGroupsResponseDto.MemberInfo memberInfo = new MyGroupsResponseDto.MemberInfo();
                         memberInfo.setGroupId(pg.getPayGroup().getId());
@@ -289,8 +288,7 @@ public class GroupService {
                         memberInfo.setStatus(pg.getStatus());
 
                         // 멤버 이름 조회
-                        Member memberEntity = memberRepository.findById(pg.getMember().getId())
-                                .filter(m -> "N".equals(m.getDeleted())) // 삭제되지 않은 멤버만 포함
+                        Member memberEntity = memberRepository.findByIdAndDeleted(pg.getMember().getId(),"N")
                                 .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
                         memberInfo.setMemberName(memberEntity.getName());
                         return memberInfo;
@@ -332,8 +330,7 @@ public class GroupService {
                 .filter(groupMember -> "ACCEPTED".equals(groupMember.getStatus())) // ACCEPTED 상태 필터링
                 .map(groupMember -> {
                     // 멤버 정보 조회 시 deleted 필터링 추가
-                    Member member = memberRepository.findById(groupMember.getMember().getId())
-                            .filter(m -> "N".equals(m.getDeleted())) // deleted 필터링
+                    Member member = memberRepository.findByIdAndDeleted(groupMember.getMember().getId(),"N")
                             .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
 
                     return new GroupMemberSearchResponseDto(
@@ -370,8 +367,7 @@ public class GroupService {
             response.setLeaderId(group.getLeader().getId());
 
             // 리더 이름 조회
-            Member leader = memberRepository.findById(group.getLeader().getId())
-                    .filter(member -> "N".equals(member.getDeleted())) // 삭제되지 않은 리더만 조회
+            Member leader = memberRepository.findByIdAndDeleted(group.getLeader().getId(),"N")
                     .orElseThrow(() -> new IllegalArgumentException("리더를 찾을 수 없습니다."));
             response.setLeaderName(leader.getName());
 
@@ -385,8 +381,7 @@ public class GroupService {
                         memberInfo.setStatus(pg.getStatus());
 
                         // 멤버 이름 조회
-                        Member memberEntity = memberRepository.findById(pg.getMember().getId())
-                                .filter(m -> "N".equals(m.getDeleted())) // 삭제되지 않은 멤버만 포함
+                        Member memberEntity = memberRepository.findByIdAndDeleted(group.getLeader().getId(),"N")
                                 .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
                         memberInfo.setMemberName(memberEntity.getName());
                         return memberInfo;

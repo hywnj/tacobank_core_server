@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -362,15 +363,15 @@ public class FriendService {
                 .map(friend -> {
                     Long friendId = friend.getReceiverId(); // requester_id가 요청자로 있는 친구의 receiver_id 가져오기
                     String liked = friend.getLiked();
-                    String friendName = memberRepository.findById(friendId)
-                            .filter(member -> "N".equals(member.getDeleted())) // deleted가 "N"인 경우만
+                    String friendName = memberRepository.findByIdAndDeleted(friendId,"N")
                             .map(Member::getName)
-                            .orElse("Unknown");
+                            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
                     return new FriendResponseDto(friendId, friendName, liked);
                 })
                 .distinct() // 중복 제거
                 .collect(Collectors.toList());
     }
+
 
     /**
      * 자신이 차단한 친구 목록 조회
@@ -381,10 +382,9 @@ public class FriendService {
         return blockedFriends.stream()
                 .map(friend -> {
                     Long friendId = friend.getReceiverId(); // 차단된 친구의 ID
-                    String friendName = memberRepository.findById(friendId)
-                            .filter(member -> "N".equals(member.getDeleted())) // deleted가 "N"인 경우만
-                            .map(Member::getName) // 친구의 이름 가져오기
-                            .orElse("Unknown");
+                    String friendName = memberRepository.findByIdAndDeleted(friendId,"N")
+                            .map(Member::getName)
+                            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
                     return new FriendResponseDto2(friendId, friendName); // DTO 생성
                 })
                 .collect(Collectors.toList());
@@ -400,9 +400,9 @@ public class FriendService {
         return receivedRequests.stream()
                 .map(friend -> {
                     Long friendId = friend.getReceiverId(); // 수신자 ID
-                    String friendName = memberRepository.findById(friendId)
+                    String friendName = memberRepository.findByIdAndDeleted(friendId,"N")
                             .map(Member::getName)
-                            .orElse("Unknown");
+                            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
                     return new FriendResponseDto2(friendId, friendName);
                 })
                 .collect(Collectors.toList());
