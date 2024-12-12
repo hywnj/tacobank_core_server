@@ -143,12 +143,13 @@ public class GroupService {
                             : friend.getRequesterId();
                     String friendName = memberRepository.findByIdAndDeleted(friendId,"N")
                             .map(Member::getName)
-                            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+                            .orElse(null);
                     Map<String, Object> friendInfo = new HashMap<>();
                     friendInfo.put("friendId", friendId);
                     friendInfo.put("name", friendName);
                     return friendInfo;
                 })
+                .filter(friendInfo -> friendInfo.get("name") != null)
                 .collect(Collectors.toSet());
 
         return new ArrayList<>(uniqueFriends);
@@ -274,7 +275,7 @@ public class GroupService {
 
             // 리더 이름 조회
             Member leader = memberRepository.findByIdAndDeleted(group.getLeader().getId(),"N")
-                    .orElseThrow(() -> new IllegalArgumentException("리더를 찾을 수 없습니다."));
+                    .orElse(null);
             response.setLeaderName(leader.getName());
 
             // 그룹 멤버 정보 조회 및 필터링
@@ -289,10 +290,11 @@ public class GroupService {
 
                         // 멤버 이름 조회
                         Member memberEntity = memberRepository.findByIdAndDeleted(pg.getMember().getId(),"N")
-                                .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
+                                .orElse(null);
                         memberInfo.setMemberName(memberEntity.getName());
                         return memberInfo;
                     })
+                    .filter(memberInfo -> memberInfo.getMemberName() != null)
                     .collect(Collectors.toList());
 
             response.setMembers(members);
@@ -331,7 +333,7 @@ public class GroupService {
                 .map(groupMember -> {
                     // 멤버 정보 조회 시 deleted 필터링 추가
                     Member member = memberRepository.findByIdAndDeleted(groupMember.getMember().getId(),"N")
-                            .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
+                            .orElse(null);
 
                     return new GroupMemberSearchResponseDto(
                             member.getId(),
@@ -339,6 +341,7 @@ public class GroupService {
                             groupMember.getStatus()
                     );
                 })
+                .filter(memberInfo -> memberInfo.getMemberName() != null)
                 .collect(Collectors.toList());
 
 
@@ -368,7 +371,7 @@ public class GroupService {
 
             // 리더 이름 조회
             Member leader = memberRepository.findByIdAndDeleted(group.getLeader().getId(),"N")
-                    .orElseThrow(() -> new IllegalArgumentException("리더를 찾을 수 없습니다."));
+                    .orElse(null);
             response.setLeaderName(leader.getName());
 
             // 그룹 멤버 정보 조회 및 필터링
@@ -382,10 +385,11 @@ public class GroupService {
 
                         // 멤버 이름 조회
                         Member memberEntity = memberRepository.findByIdAndDeleted(group.getLeader().getId(),"N")
-                                .orElseThrow(() -> new IllegalArgumentException("멤버를 찾을 수 없습니다."));
+                                .orElse(null);
                         memberInfo.setMemberName(memberEntity.getName());
                         return memberInfo;
                     })
+                    .filter(memberInfo -> memberInfo.getMemberName() != null)
                     .collect(Collectors.toList());
 
             response.setMembers(members);
