@@ -80,12 +80,6 @@ public class FriendService {
                 }
                 break;
 
-            case "DEL":
-                // 삭제 상태에서는 재요청만 가능
-                if (!action.equals("request")) {
-                    throw new IllegalStateException("삭제 상태에서는 재요청만 가능합니다.");
-                }
-                break;
 
             default:
                 throw new IllegalArgumentException("알 수 없는 상태입니다."+  friend.getStatus());
@@ -139,11 +133,7 @@ public class FriendService {
                 friend.saveStatus("ACC");
                 reverseFriend.saveStatus("ACC");
             }
-            else if ("DEL".equals(reverseFriend.getStatus())) {
-                // 둘 다 DEL 상태일 경우, 요청-수락 상태로 전환
-                friend.saveStatus("REQ");
-                reverseFriend.saveStatus("REQ_RECEIVED");
-            }
+
             // 둘 다 NONE 상태일 경우, REQ - REQ_RECEIVED 상태로 설정
             else if ("NONE".equals(friend.getStatus()) && "NONE".equals(reverseFriend.getStatus())) {
                 friend.saveStatus("REQ");
@@ -409,6 +399,66 @@ public class FriendService {
                 })
                 .filter(dto -> dto.getFriendName() != null)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 자신이 삭제한 친구 목록 조회
+     */
+    public List<FriendResponseDto2> getDeletedFriends(Long requesterId) {
+        // requesterId 기준으로 요청 상태가 "DEL"인 데이터 조회
+        List<Friend> deletedFriends = friendRepository.findByRequesterIdAndStatus(requesterId, "DEL");
+
+        return deletedFriends.stream()
+                .map(friend -> {
+                    Long friendId = friend.getReceiverId(); // 삭제된 친구의 ID
+                    String friendName = memberRepository.findByIdAndDeleted(friendId, "N")
+                            .map(Member::getName)
+                            .orElse(null);
+                    return new FriendResponseDto2(friendId, friendName); // DTO 생성
+                })
+                .filter(dto -> dto.getFriendName() != null)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 친구 삭제 취소
+     */
+    @Transactional
+    public void undoDeleteFriend(Long userId, FriendRequestDto requestDto) {
+        validateUserId(userId, requestDto.getRequesterId());
+
+        Friend friend = friendRepository.findByRequesterIdAndReceiverId(
+                requestDto.getRequesterId(), requestDto.getReceiverId()
+        ).orElseThrow(() -> new IllegalArgumentException("삭제된 친구 관계가 존재하지 않습니다."));
+
+        // 요청자의 상태가 DEL인지 확인
+        if (!"DEL".equals(friend.getStatus())) {
+            throw new IllegalStateException("삭제된 상태에서만 삭제 취소를 할 수 있습니다.");
+        }
+
+        // 반대 관계의 상태 확인
+        Friend reverseFriend = friendRepository.findByRequesterIdAndReceiverId(
+                requestDto.getReceiverId(), requestDto.getRequesterId()
+        ).orElseThrow(() -> new IllegalArgumentException("반대 관계가 존재하지 않습니다."));
+
+        // 삭제 상태에서 삭제 취소 처리
+        if ("DEL".equals(reverseFriend.getStatus())) {
+            // 둘 다 DEL 상태라면 ACC로 복구
+            friend.saveStatus("ACC");
+            reverseFriend.saveStatus("DEL");
+        } else if ("ACC".equals(reverseFriend.getStatus())) {
+            // 상대방이 ACC 상태인 경우에도 ACC로 복구
+            friend.saveStatus("ACC");
+        } else {
+            throw new IllegalStateException("현재 상태에서는 삭제 취소를 수행할 수 없습니다.");
+        }
+
+        // 변경된 상태 저장
+        friendRepository.save(friend);
+        friendRepository.save(reverseFriend);
+
+        friend.updateGroup();
+        reverseFriend.updateGroup();
     }
 
 }
