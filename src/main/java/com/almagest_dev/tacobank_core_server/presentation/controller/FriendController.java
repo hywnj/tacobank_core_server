@@ -119,4 +119,30 @@ public class FriendController {
         );
     }
 
+    // 삭제한 친구 목록 조회
+    @GetMapping("/deleted/list/{requesterId}")
+    public ResponseEntity<CoreResponseDto<List<FriendResponseDto2>>> getDeletedFriends(@PathVariable Long requesterId) {
+        List<FriendResponseDto2> deletedFriends = friendService.getDeletedFriends(requesterId);
+        return ResponseEntity.ok(
+                new CoreResponseDto<>(
+                        "SUCCESS",
+                        "삭제한 친구 목록 조회 성공",
+                        deletedFriends
+                )
+        );
+    }
+
+    // 삭제 취소 기능
+    @PostMapping("/undo-delete")
+    public ResponseEntity<CoreResponseDto<Void>> undoDeleteFriend(@RequestBody FriendRequestDto requestDto) {
+        friendService.undoDeleteFriend(requestDto.getRequesterId(), requestDto);
+        return ResponseEntity.ok(
+                new CoreResponseDto<>(
+                        "SUCCESS",
+                        "삭제 취소가 성공적으로 완료되었습니다.",
+                        null
+                )
+        );
+    }
+
 }

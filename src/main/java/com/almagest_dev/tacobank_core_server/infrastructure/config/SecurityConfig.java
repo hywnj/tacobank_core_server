@@ -28,7 +28,6 @@ public class SecurityConfig {
             "/taco/core/auth/**"
             , "/taco/core/members/email-recovery"
             , "/taco/core/members/password-recovery/**"
-            , "/taco/core/**"
     };
     private static final String ADMIN_API_URL = "/taco/core/admin/**"; // 관리자만 접근 가능한 경로
     private static final String MANAGE_API_URL = "/taco/core/manage/**"; // 관리자 + 매니저만 접근 가능한 경로

@@ -303,6 +303,15 @@ public class MemberService {
             throw new IllegalArgumentException("해당 회원은 차단 상태이므로 검색할 수 없습니다.");
         }
 
+        boolean isDeleted = friendRepository.findByRequesterIdAndReceiverId(memberId, member.getId())
+                .map(Friend::getStatus)
+                .filter("DEL"::equals)
+                .isPresent();
+
+        if (isDeleted) {
+            throw new IllegalArgumentException("해당 회원은 삭제 상태이므로 검색할 수 없습니다.");
+        }
+
         // 친구 상태 조회
         String friendStatus = friendRepository.findByRequesterIdAndReceiverId(memberId, member.getId())
                 .map(Friend::getStatus)
