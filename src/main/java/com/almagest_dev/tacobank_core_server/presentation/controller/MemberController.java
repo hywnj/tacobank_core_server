@@ -5,6 +5,7 @@ import com.almagest_dev.tacobank_core_server.common.dto.CoreResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.member.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -45,7 +46,18 @@ public class MemberController {
     @PutMapping("/{id}/deactivation")
     public ResponseEntity<?> deleteMember(@PathVariable Long id) {
         memberService.deactivateMember(id);
-        return ResponseEntity.ok(new CoreResponseDto<>("SUCCESS", "회원 탈퇴가 완료되었습니다."));
+
+        // 쿠키 삭제를 위한 ResponseCookie 생성
+        ResponseCookie cookie = ResponseCookie.from("Authorization", "")
+                .path("/")
+                .httpOnly(true)
+                .maxAge(0) // 쿠키 만료
+                .build();
+
+        // 응답에 쿠키 추가
+        return ResponseEntity.ok()
+                .header("Set-Cookie", cookie.toString()) // Set-Cookie 헤더 추가
+                .body(new CoreResponseDto<>("SUCCESS", "회원 탈퇴가 완료되었습니다."));
     }
 
     /**
