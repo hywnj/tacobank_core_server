@@ -178,9 +178,9 @@ public class ReceiptOcrService {
      */
     private int parsePrice(BaseDetail baseDetail) {
         if (baseDetail.getFormatted() != null && baseDetail.getFormatted().getValue() != null) {
-            return Integer.parseInt(baseDetail.getFormatted().getValue());
+            return Integer.parseInt(baseDetail.getFormatted().getValue().replaceAll("[^0-9]", ""));
         } else if (baseDetail.getText() != null) {
-            return Integer.parseInt(baseDetail.getText().replace(",", ""));
+            return Integer.parseInt(baseDetail.getText().replaceAll("[^0-9]", ""));
         }
         return 0; // 기본값
     }
