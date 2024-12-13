@@ -384,7 +384,7 @@ public class GroupService {
                         memberInfo.setStatus(pg.getStatus());
 
                         // 멤버 이름 조회
-                        Member memberEntity = memberRepository.findByIdAndDeleted(group.getLeader().getId(),"N")
+                        Member memberEntity = memberRepository.findByIdAndDeleted(pg.getMember().getId(),"N")
                                 .orElse(null);
                         memberInfo.setMemberName(memberEntity.getName());
                         return memberInfo;
