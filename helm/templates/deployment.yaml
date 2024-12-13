@@ -44,10 +44,10 @@ spec:
           ports:
             - containerPort: 9002
           args:
-            - "--spring.config.location=/config/"
+            - "--spring.config.location=/config/core/"
           volumeMounts:
             - name: config-volume
-              mountPath: /config
+              mountPath: /config/core
           env:
             - name: DDL_TYPE
               value: "{{ .Values.env.DDL_TYPE }}"
