@@ -27,6 +27,14 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+	// Logging
+	implementation 'org.springframework.boot:spring-boot-starter-logging'
+
+	// AWS
+	implementation 'software.amazon.awssdk:s3:2.20.50' // AWS SDK S3
+	implementation 'software.amazon.awssdk:auth:2.20.50' // AWS 인증
 
 	// JWT Dependencies
 	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
@@ -43,8 +51,12 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'io.micrometer:micrometer-registry-prometheus'
 
+	// logback - Janino
+	implementation 'org.codehaus.janino:janino:3.1.9' // 최신 버전 확인 후 업데이트
+
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
+	implementation 'org.mariadb.jdbc:mariadb-java-client:3.1.2'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
