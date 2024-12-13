@@ -361,40 +361,49 @@ public class GroupService {
         List<Group> leaderGroups = groupRepository.findByLeaderIdAndActivated(leaderId, "Y");
 
         // 그룹 데이터를 DTO로 변환
-        return leaderGroups.stream().map(group -> {
-            MyGroupsResponseDto response = new MyGroupsResponseDto();
-            response.setGroupId(group.getId());
-            response.setGroupName(group.getName());
-            response.setCustomized(group.getCustomized());
-            response.setActivated(group.getActivated());
-            response.setLeaderId(group.getLeader().getId());
+        return leaderGroups.stream()
+                .map(group -> {
+                    MyGroupsResponseDto response = new MyGroupsResponseDto();
+                    response.setGroupId(group.getId());
+                    response.setGroupName(group.getName());
+                    response.setCustomized(group.getCustomized());
+                    response.setActivated(group.getActivated());
+                    response.setLeaderId(group.getLeader().getId());
 
-            // 리더 이름 조회
-            Member leader = memberRepository.findByIdAndDeleted(group.getLeader().getId(),"N")
-                    .orElse(null);
-            response.setLeaderName(leader.getName());
+                    // 리더 이름 조회
+                    Member leader = memberRepository.findByIdAndDeleted(group.getLeader().getId(), "N")
+                            .orElseThrow(() -> new IllegalArgumentException("해당 리더를 찾을 수 없습니다. (리더 ID: " + group.getLeader().getId() + ")"));
+                    response.setLeaderName(leader.getName());
 
-            // 그룹 멤버 정보 조회 및 필터링
-            List<MyGroupsResponseDto.MemberInfo> members = group.getPayGroups().stream()
-                    .filter(pg -> "ACCEPTED".equals(pg.getStatus())) // ACCEPTED 상태인 멤버만 필터링
-                    .map(pg -> {
-                        MyGroupsResponseDto.MemberInfo memberInfo = new MyGroupsResponseDto.MemberInfo();
-                        memberInfo.setGroupId(pg.getPayGroup().getId());
-                        memberInfo.setMemberId(pg.getMember().getId());
-                        memberInfo.setStatus(pg.getStatus());
+                    // 그룹 멤버 정보 조회 및 필터링
+                    List<MyGroupsResponseDto.MemberInfo> members = group.getPayGroups().stream()
+                            .filter(pg -> "ACCEPTED".equals(pg.getStatus())) // ACCEPTED 상태인 멤버만 필터링
+                            .map(pg -> {
+                                MyGroupsResponseDto.MemberInfo memberInfo = new MyGroupsResponseDto.MemberInfo();
+                                memberInfo.setGroupId(pg.getPayGroup().getId());
+                                memberInfo.setMemberId(pg.getMember().getId());
+                                memberInfo.setStatus(pg.getStatus());
 
-                        // 멤버 이름 조회
-                        Member memberEntity = memberRepository.findByIdAndDeleted(pg.getMember().getId(),"N")
-                                .orElse(null);
-                        memberInfo.setMemberName(memberEntity.getName());
-                        return memberInfo;
-                    })
-                    .filter(memberInfo -> memberInfo.getMemberName() != null)
-                    .collect(Collectors.toList());
+                                // 멤버 상태 확인 및 이름 조회
+                                Member memberEntity = memberRepository.findByIdAndDeleted(pg.getMember().getId(), "N")
+                                        .orElse(null);
 
-            response.setMembers(members);
-            return response;
-        }).collect(Collectors.toList());
+                                if (memberEntity == null || "Y".equals(memberEntity.getDeleted())) {
+                                    // 상태가 Y(비활성화)이면 null 반환 -> 필터링됨
+                                    return null;
+                                }
+
+                                memberInfo.setMemberName(memberEntity.getName());
+                                return memberInfo;
+                            })
+                            .filter(Objects::nonNull) // null 값 필터링
+                            .collect(Collectors.toList());
+
+                    response.setMembers(members);
+                    return response;
+                })
+                .filter(response -> response.getLeaderName() != null) // 리더가 비활성화된 그룹은 제외
+                .collect(Collectors.toList());
     }
 
 
