@@ -18,10 +18,10 @@ data:
         username: {{ .Values.env.DB_USERNAME }}
         password: {{ .Values.env.DB_PASSWORD }}
         hikari:
-        maximum-pool-size: 8
-        connection-timeout: 30000
-        max-lifetime: 1800000
-        idle-timeout: 30000
+          maximum-pool-size: 8
+          connection-timeout: 30000
+          max-lifetime: 1800000
+          idle-timeout: 30000
 
       jpa:
         hibernate:
