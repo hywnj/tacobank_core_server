@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -26,7 +28,7 @@ public class TestbedApiClient {
         // Set Request Entity (+Header)
         HttpHeaders headers = testbedApiUtil.createHeaders();
         HttpEntity<?> requestEntity = new HttpEntity<>(requestBody, headers);
-        log.info("TestbedApiClient::requestApi Request Header - " + headers + " | Body - " + requestBody);
+        log.info("TestbedApiClient::requestApi Request Header - {} | Body - {}", headers, requestBody);
 
         try {
             R response = restTemplate.postForObject(
@@ -39,7 +41,7 @@ public class TestbedApiClient {
                 throw new TestbedApiException("API 응답이 없습니다.");
             }
 
-            log.info("TestbedApiClient::requestApi Response - " + response);
+            log.info("TestbedApiClient::requestApi Response - {}", response);
             return response;
 
         } catch (HttpClientErrorException | HttpServerErrorException ex) {

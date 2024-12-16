@@ -20,9 +20,8 @@ import com.almagest_dev.tacobank_core_server.domain.transfer.repository.Transfer
 import com.almagest_dev.tacobank_core_server.domain.transfer.repository.TransferRepository;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.client.TestbedApiClient;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.*;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.util.TestbedApiExceptionHandler;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.*;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -88,71 +87,83 @@ public class TransferService {
                 withdrawalMember.getName(), // 출금 회원명
                 "0"
         );
-        // Testbed 수취인 조회 API 요청
-        log.info("TransferService - [{}] inquireReceiverAccount CALL 수취인 조회 API", sessionId);
-        ReceiverInquiryApiResponseDto receiverInquiryApiResponse = testbedApiClient.requestApi(
-                receiverInquiryApiRequest,
-                "/openbank/recipient",
-                ReceiverInquiryApiResponseDto.class
-        );
-        log.info("TransferService - [{}] inquireReceiverAccount 수취인 조회 Response: {} ", sessionId, receiverInquiryApiResponse);
-        // 수취인 조회 실패
-        if (receiverInquiryApiResponse.getApiTranId() == null || !receiverInquiryApiResponse.getRspCode().equals("A0000") || receiverInquiryApiResponse.getRecvAccountFintechUseNum() == null) {
-            throw new TransferException("FAILURE", "확인되지 않는 계좌입니다. 다시 입력해주세요.", HttpStatus.BAD_REQUEST);
+
+        try {
+
+            // Testbed 수취인 조회 API 요청
+            log.info("TransferService - [{}] inquireReceiverAccount CALL 수취인 조회 API", sessionId);
+            ReceiverInquiryApiResponseDto receiverInquiryApiResponse = testbedApiClient.requestApi(
+                    receiverInquiryApiRequest,
+                    "/openbank/recipient",
+                    ReceiverInquiryApiResponseDto.class
+            );
+            log.info("TransferService - [{}] inquireReceiverAccount 수취인 조회 Response: {} ", sessionId, receiverInquiryApiResponse);
+            // 수취인 조회 실패
+            if (receiverInquiryApiResponse.getApiTranId() == null || !receiverInquiryApiResponse.getRspCode().equals("A0000") || receiverInquiryApiResponse.getRecvAccountFintechUseNum() == null) {
+                throw new TransferException("FAILURE", "확인되지 않는 계좌입니다. 다시 입력해주세요.", HttpStatus.BAD_REQUEST);
+            }
+
+            BalanceInquiryApiRequestDto balanceInquiryApiRequest = new BalanceInquiryApiRequestDto(
+                    withdrawalMember.getUserFinanceId(),
+                    withdrawalAccount.getFintechUseNum(),
+                    LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+            );
+            log.info("TransferService - [{}] inquireReceiverAccount CALL 잔액 조회 API", sessionId);
+            BalanceInquiryApiResponseDto balanceInquiryApiResponse = testbedApiClient.requestApi(
+                    balanceInquiryApiRequest,
+                    "/openbank/account",
+                    BalanceInquiryApiResponseDto.class
+            );
+            log.info("TransferService - [{}] inquireReceiverAccount 잔액 조회 Response: {} ", sessionId, balanceInquiryApiResponse);
+            if (balanceInquiryApiResponse.getApiTranId() == null || !balanceInquiryApiResponse.getRspCode().equals("A0000") || balanceInquiryApiResponse.getBalanceAmt() == null) {
+                throw new TransferException("TERMINATED", "계좌 잔액 조회에 실패했습니다. - " + balanceInquiryApiResponse.getRspMessage(), HttpStatus.BAD_REQUEST);
+            }
+
+            // 수취인 조회 성공시 Redis Set (TTL: 10분)
+            TransferSessionData data = new TransferSessionData(
+                    requestDto.getIdempotencyKey(),             // 중복 방지 키(클라이언트에서 생성)
+                    requestDto.getWithdrawalMemberId(),         // 출금 사용자 ID
+                    settlementId,                               // 정산 ID
+                    withdrawalMember.getUserFinanceId(),        // 출금 사용자 금융 식별번호
+                    withdrawalAccount.getFintechUseNum(),       // 출금 계좌 핀테크 이용번호
+                    new WithdrawalDetails(
+                            requestDto.getWithdrawalAccountId(),        // 출금 계좌 아이디
+                            withdrawalAccount.getAccountNum(),       // 출금 계좌 번호
+                            withdrawalAccount.getAccountHolderName(),   // 출금 예금주
+                            withdrawalAccount.getBankCode()             // 출금 은행 코드
+                    ),
+                    receiverInquiryApiResponse.getRecvAccountFintechUseNum(),  // 입금(수취) 계좌 핀테크 이용번호
+                    new ReceiverDetails(
+                            requestDto.getReceiverAccountNum(),                     // 입금(수취) 계좌 번호
+                            receiverInquiryApiResponse.getAccountHolderName(),      // 입금(수취) 예금주(수취인)
+                            requestDto.getReceiverBankCode()                        // 입금(수취) 은행 코드
+                    ),
+                    0,
+                    false
+            );
+            redisSessionUtil.storeSessionData(TRANSFER_SESSION_PREFIX + sessionId, data, 10, TimeUnit.MINUTES, true);
+            log.info("TransferService - [{}] inquireReceiverAccount Redis Set : {} ", sessionId, receiverInquiryApiResponse);
+
+            // 클라이언트에 응답 반환
+            ReceiverInquiryResponseDto response = new ReceiverInquiryResponseDto(
+                    requestDto.getIdempotencyKey(),
+                    receiverInquiryApiResponse.getAccountHolderName(),
+                    withdrawalAccount.getId(),
+                    withdrawalAccount.getAccountNum(),
+                    Integer.parseInt(balanceInquiryApiResponse.getBalanceAmt())
+            );
+            log.info("TransferService - [{}] inquireReceiverAccount 수취인 조회 응답 : {} ", sessionId, response);
+            log.info("TransferService - [{}] inquireReceiverAccount END", sessionId);
+            return response;
+
+        } catch (TestbedApiException ex) {
+            // 테스트베드 예외 발생시 파싱
+            TestbedApiExceptionHandler.ParsedError error = TestbedApiExceptionHandler.parseException(ex);
+
+            log.error("TransferService - [{}] inquireReceiverAccount Testbed Exception : apiTranId - {} | rspCode - {} | rspMessage - {}", sessionId, error.getApiTranId(), error.getRspCode(), error.getRspMessage());
+
+            throw new TestbedApiException(error.getRspMessage());
         }
-
-        BalanceInquiryApiRequestDto balanceInquiryApiRequest = new BalanceInquiryApiRequestDto(
-                withdrawalMember.getUserFinanceId(),
-                withdrawalAccount.getFintechUseNum(),
-                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
-        );
-        log.info("TransferService - [{}] inquireReceiverAccount CALL 잔액 조회 API", sessionId);
-        BalanceInquiryApiResponseDto balanceInquiryApiResponse = testbedApiClient.requestApi(
-                balanceInquiryApiRequest,
-                "/openbank/account",
-                BalanceInquiryApiResponseDto.class
-        );
-        log.info("TransferService - [{}] inquireReceiverAccount 잔액 조회 Response: {} ", sessionId, balanceInquiryApiResponse);
-        if (balanceInquiryApiResponse.getApiTranId() == null || !balanceInquiryApiResponse.getRspCode().equals("A0000") || balanceInquiryApiResponse.getBalanceAmt() == null) {
-            throw new TransferException("TERMINATED", "계좌 잔액 조회에 실패했습니다. - " + balanceInquiryApiResponse.getRspMessage(), HttpStatus.BAD_REQUEST);
-        }
-
-        // 수취인 조회 성공시 Redis Set (TTL: 10분)
-        TransferSessionData data = new TransferSessionData(
-                requestDto.getIdempotencyKey(),             // 중복 방지 키(클라이언트에서 생성)
-                requestDto.getWithdrawalMemberId(),         // 출금 사용자 ID
-                settlementId,                               // 정산 ID
-                withdrawalMember.getUserFinanceId(),        // 출금 사용자 금융 식별번호
-                withdrawalAccount.getFintechUseNum(),       // 출금 계좌 핀테크 이용번호
-                new WithdrawalDetails(
-                        requestDto.getWithdrawalAccountId(),        // 출금 계좌 아이디
-                        withdrawalAccount.getAccountNum(),       // 출금 계좌 번호
-                        withdrawalAccount.getAccountHolderName(),   // 출금 예금주
-                        withdrawalAccount.getBankCode()             // 출금 은행 코드
-                ),
-                receiverInquiryApiResponse.getRecvAccountFintechUseNum(),  // 입금(수취) 계좌 핀테크 이용번호
-                new ReceiverDetails(
-                        requestDto.getReceiverAccountNum(),                     // 입금(수취) 계좌 번호
-                        receiverInquiryApiResponse.getAccountHolderName(),      // 입금(수취) 예금주(수취인)
-                        requestDto.getReceiverBankCode()                        // 입금(수취) 은행 코드
-                ),
-                0,
-                false
-        );
-        redisSessionUtil.storeSessionData(TRANSFER_SESSION_PREFIX + sessionId, data, 10, TimeUnit.MINUTES, true);
-        log.info("TransferService - [{}] inquireReceiverAccount Redis Set : {} ", sessionId, receiverInquiryApiResponse);
-
-        // 클라이언트에 응답 반환
-        ReceiverInquiryResponseDto response = new ReceiverInquiryResponseDto(
-                requestDto.getIdempotencyKey(),
-                receiverInquiryApiResponse.getAccountHolderName(),
-                withdrawalAccount.getId(),
-                withdrawalAccount.getAccountNum(),
-                Integer.parseInt(balanceInquiryApiResponse.getBalanceAmt())
-        );
-        log.info("TransferService - [{}] inquireReceiverAccount 수취인 조회 응답 : {} ", sessionId, response);
-        log.info("TransferService - [{}] inquireReceiverAccount END", sessionId);
-        return response;
     }
 
     /**
@@ -486,27 +497,15 @@ public class TransferService {
 
         } catch (TestbedApiException ex) {
             log.error("TransferService - [{}] transfer processTransferTransaction Exception : {}", sessionId, ex.getMessage());
-            try {
-                // JSON 파싱
-                String responseBody = ex.getResponseBody(); // TestbedApiException에 responseBody 저장
-                ObjectMapper objectMapper = new ObjectMapper();
-                JsonNode rootNode = objectMapper.readTree(responseBody);
 
-                String apiTranId = rootNode.has("apiTranId") ? rootNode.get("apiTranId").asText("") : "";
-                String rspMessage = rootNode.has("rspMessage") ? rootNode.get("rspMessage").asText("") : "송금 처리 중 오류 발생";
-                String rspCode = rootNode.has("rspCode") ? rootNode.get("rspCode").asText("") : "ERR001";
+            // 테스트베드 예외 발생시 파싱
+            TestbedApiExceptionHandler.ParsedError error = TestbedApiExceptionHandler.parseException(ex);
 
-                log.error("Error Response Parsed - rspMessage: {}, rspCode: {}", rspMessage, rspCode);
+            // Transfer Status UPDATE
+            updateTransferStatus(transfer, error.getApiTranId(), "F", error.getRspCode(), error.getRspMessage(), null);
 
-                // 필요한 로직 처리
-                updateTransferStatus(transfer, apiTranId, "F", rspCode, rspMessage, null);
+            return new CoreResponseDto<>("TERMINATED", error.getRspMessage());
 
-                return new CoreResponseDto<>("TERMINATED", rspMessage);
-
-            } catch (Exception parseException) {
-                log.error("TransferService - [{}] JSON Parsing Error: {}", sessionId, parseException.getMessage());
-                return new CoreResponseDto<>("TERMINATED", "서버 에러가 발생했습니다.");
-            }
         } finally {
             // 송금 세션 모두 삭제
             redisSessionUtil.cleanupRedisKeys("TransferService", TRANSFER_SESSION_PREFIX + sessionId, PIN_FAILURE_PREFIX + sessionId);
