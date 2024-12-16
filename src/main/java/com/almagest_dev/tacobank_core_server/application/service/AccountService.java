@@ -1,5 +1,6 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
+import com.almagest_dev.tacobank_core_server.common.exception.TestbedApiException;
 import com.almagest_dev.tacobank_core_server.domain.account.model.FavoriteAccount;
 import com.almagest_dev.tacobank_core_server.domain.account.model.MainAccount;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.FavoriteAccountRepository;
@@ -17,8 +18,8 @@ import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.cli
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.AccountInfoDto;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.IntegrateAccountApiRequestDto;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.IntegrateAccountApiResponseDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.util.TestbedApiExceptionHandler;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.Account2Dto;
-import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.MainAccountRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.home.AccountResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transfer.TransferOptionsResponseDto;
@@ -100,7 +101,17 @@ public class AccountService {
         requestDto.setUserName(userName);
         requestDto.setInquiryBankType("A");
 
-        return testbedApiClient.requestApi(requestDto, "/openbank/accounts", IntegrateAccountApiResponseDto.class);
+        try {
+            return testbedApiClient.requestApi(requestDto, "/openbank/accounts", IntegrateAccountApiResponseDto.class);
+
+        } catch (TestbedApiException ex) {
+            // 테스트베드 예외 발생시 파싱
+            TestbedApiExceptionHandler.ParsedError error = TestbedApiExceptionHandler.parseException(ex);
+
+            log.error("AccountService::fetchAccountsFromApi Testbed Exception : apiTranId - {} | rspCode - {} | rspMessage - {}", error.getApiTranId(), error.getRspCode(), error.getRspMessage());
+
+            throw new TestbedApiException(error.getRspMessage());
+        }
     }
 
     private void saveAccounts(List<AccountInfoDto> accountInfoList, Member member) {

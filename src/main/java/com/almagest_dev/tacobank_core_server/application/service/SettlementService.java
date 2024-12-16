@@ -1,5 +1,6 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
+import com.almagest_dev.tacobank_core_server.common.exception.TestbedApiException;
 import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.AccountRepository;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.MainAccountRepository;
@@ -17,6 +18,7 @@ import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.Settle
 import com.almagest_dev.tacobank_core_server.domain.settlememt.repository.SettlementRepository;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.client.TestbedApiClient;
 
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.util.TestbedApiExceptionHandler;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountInfoWithBalance;
 import com.almagest_dev.tacobank_core_server.presentation.dto.account.AccountDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.receipt.ProductMemberDetails;
@@ -373,53 +375,63 @@ public class SettlementService {
 
         // TestBed 잔액조회 호출
         log.info("SettlementService::validateSettlementsAndGetAvailableBalances 다건 잔액 조회");
-        List<AccountInfoWithBalance> accountInfoWithBalances = new ArrayList<>();
-        for (Account account : availableAccounts) {
-            BalanceInquiryApiRequestDto apiRequestDto = new BalanceInquiryApiRequestDto(
-                    member.getUserFinanceId(),
-                    account.getFintechUseNum(),
-                    LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
-            );
-            // API 호출
-            BalanceInquiryApiResponseDto apiResponse = testbedApiClient.requestApi(
-                    apiRequestDto,
-                    "/openbank/account",
-                    BalanceInquiryApiResponseDto.class
-            );
-            log.info("SettlementService::validateSettlementsAndGetAvailableBalances 잔액 조회 Response: {} ", apiResponse);
+        try {
+            List<AccountInfoWithBalance> accountInfoWithBalances = new ArrayList<>();
+            for (Account account : availableAccounts) {
+                BalanceInquiryApiRequestDto apiRequestDto = new BalanceInquiryApiRequestDto(
+                        member.getUserFinanceId(),
+                        account.getFintechUseNum(),
+                        LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+                );
+                // API 호출
+                BalanceInquiryApiResponseDto apiResponse = testbedApiClient.requestApi(
+                        apiRequestDto,
+                        "/openbank/account",
+                        BalanceInquiryApiResponseDto.class
+                );
+                log.info("SettlementService::validateSettlementsAndGetAvailableBalances 잔액 조회 Response: {} ", apiResponse);
 
-            // 개별 계좌 잔액 조회 실패 - 해당 계좌 잔액 0원으로 Return
-            if (apiResponse.getApiTranId() == null || !apiResponse.getRspCode().equals("A0000") || apiResponse.getBalanceAmt() == null) {
-                log.warn("계좌 잔액 조회에 실패했습니다. - " + apiResponse.getRspMessage());
+                // 개별 계좌 잔액 조회 실패 - 해당 계좌 잔액 0원으로 Return
+                if (apiResponse.getApiTranId() == null || !apiResponse.getRspCode().equals("A0000") || apiResponse.getBalanceAmt() == null) {
+                    log.warn("계좌 잔액 조회에 실패했습니다. - " + apiResponse.getRspMessage());
+                    accountInfoWithBalances.add(new AccountInfoWithBalance(
+                                    account.getId()
+                                    , ""
+                                    , ""
+                                    , ""
+                                    , 0
+                            )
+                    );
+                    continue;
+                }
+                // 개별 계좌 잔액 조회 성공 - 계좌별 잔액 객체에 추가
+                int balance = (apiResponse.getBalanceAmt() == null) ? 0 : Integer.parseInt(apiResponse.getBalanceAmt());
+                String bankName = orgCodeService.getBankNameByCode(account.getBankCode());
+
                 accountInfoWithBalances.add(new AccountInfoWithBalance(
-                        account.getId()
-                        , ""
-                        , ""
-                        , ""
-                        , 0
+                                account.getId()
+                                , account.getAccountNum()
+                                , account.getBankCode()
+                                , bankName
+                                , balance
                         )
                 );
-                continue;
             }
-            // 개별 계좌 잔액 조회 성공 - 계좌별 잔액 객체에 추가
-            int balance = (apiResponse.getBalanceAmt() == null) ? 0 : Integer.parseInt(apiResponse.getBalanceAmt());
-            String bankName = orgCodeService.getBankNameByCode(account.getBankCode());
+            if (accountInfoWithBalances == null || accountInfoWithBalances.size() == 0) {
+                throw new IllegalArgumentException("출금 가능한 계좌의 잔액 조회 결과가 없습니다.");
+            }
 
-            accountInfoWithBalances.add(new AccountInfoWithBalance(
-                    account.getId()
-                    , account.getAccountNum()
-                    , account.getBankCode()
-                    , bankName
-                    , balance
-                    )
-            );
-        }
-        if (accountInfoWithBalances == null || accountInfoWithBalances.size() == 0) {
-            throw new IllegalArgumentException("출금 가능한 계좌의 잔액 조회 결과가 없습니다.");
-        }
+            // 응답 반환
+            log.info("SettlementService::validateSettlementsAndGetAvailableBalances END");
+            return new SettlementTransferResponseDto(requestDto.getIdempotencyKey(), accountInfoWithBalances);
 
-        // 응답 반환
-        log.info("SettlementService::validateSettlementsAndGetAvailableBalances END");
-        return new SettlementTransferResponseDto(requestDto.getIdempotencyKey(), accountInfoWithBalances);
+        } catch (TestbedApiException ex) {
+            // 테스트베드 예외 발생시 파싱
+            TestbedApiExceptionHandler.ParsedError error = TestbedApiExceptionHandler.parseException(ex);
+
+            log.error("SettlementService::validateSettlementsAndGetAvailableBalances Testbed Exception : apiTranId - {} | rspCode - {} | rspMessage - {}", error.getApiTranId(), error.getRspCode(), error.getRspMessage());
+
+            throw new TestbedApiException(error.getRspMessage());
+        }
     }
 }
