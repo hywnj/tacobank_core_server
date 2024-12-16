@@ -1,6 +1,7 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
 import com.almagest_dev.tacobank_core_server.common.exception.MemberAuthException;
+import com.almagest_dev.tacobank_core_server.common.exception.TestbedApiException;
 import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
 import com.almagest_dev.tacobank_core_server.domain.account.model.MainAccount;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.AccountRepository;
@@ -9,6 +10,7 @@ import com.almagest_dev.tacobank_core_server.domain.member.model.Member;
 import com.almagest_dev.tacobank_core_server.domain.member.repository.MemberRepository;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.client.TestbedApiClient;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.*;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.util.TestbedApiExceptionHandler;
 import com.almagest_dev.tacobank_core_server.presentation.dto.home.AccountMemberReponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.home.AccountResponseDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.home.TransactionResponseDto2;
@@ -100,7 +102,17 @@ public class HomeService {
         requestDto.setUserName(userName);
         requestDto.setInquiryBankType("A");
 
-        return testbedApiClient.requestApi(requestDto, "/openbank/accounts", IntegrateAccountApiResponseDto.class);
+        try {
+            return testbedApiClient.requestApi(requestDto, "/openbank/accounts", IntegrateAccountApiResponseDto.class);
+
+        } catch (TestbedApiException ex) {
+            // 테스트베드 예외 발생시 파싱
+            TestbedApiExceptionHandler.ParsedError error = TestbedApiExceptionHandler.parseException(ex);
+
+            log.error("HomeService::fetchAccountsFromApi Testbed Exception : apiTranId - {} | rspCode - {} | rspMessage - {}", error.getApiTranId(), error.getRspCode(), error.getRspMessage());
+
+            throw new TestbedApiException(error.getRspMessage());
+        }
     }
 
     /**
@@ -235,29 +247,39 @@ public class HomeService {
         apiRequestDto.setDataLength("5"); // 기본값
 
 
-        TransactionListApiResponseDto responseDto = testbedApiClient.requestApi(apiRequestDto, "/openbank/tranlist", TransactionListApiResponseDto.class);
+        try {
+            TransactionListApiResponseDto responseDto = testbedApiClient.requestApi(apiRequestDto, "/openbank/tranlist", TransactionListApiResponseDto.class);
 
-        if (responseDto.getResList() == null || responseDto.getResList().isEmpty()) {
-            return List.of();
+            if (responseDto.getResList() == null || responseDto.getResList().isEmpty()) {
+                return List.of();
+            }
+
+            return responseDto.getResList().stream()
+                    .map(transaction -> {
+                        TransactionResponseDto2 transactionDto = new TransactionResponseDto2();
+                        transactionDto.setTranNum(transaction.getTranNum());
+                        transactionDto.setInoutType(transaction.getInoutType());
+                        transactionDto.setPrintContent(transaction.getPrintContent());
+
+                        // 출금(송금 포함)의 경우 금액을 음수로 변경
+                        if ("출금".equals(transaction.getInoutType())) {
+                            transactionDto.setTranAmt("-" + transaction.getTranAmt());
+                        } else {
+                            transactionDto.setTranAmt(transaction.getTranAmt());
+                        }
+
+                        transactionDto.setTranDateTime(transaction.getTranDate() + " " + transaction.getTranTime());
+                        return transactionDto;
+                    })
+                    .collect(Collectors.toList());
+        } catch (TestbedApiException ex) {
+            // 테스트베드 예외 발생시 파싱
+            TestbedApiExceptionHandler.ParsedError error = TestbedApiExceptionHandler.parseException(ex);
+
+            log.error("HomeService::fetchTransactionList Testbed Exception : apiTranId - {} | rspCode - {} | rspMessage - {}", error.getApiTranId(), error.getRspCode(), error.getRspMessage());
+
+            throw new TestbedApiException(error.getRspMessage());
         }
 
-        return responseDto.getResList().stream()
-                .map(transaction -> {
-                    TransactionResponseDto2 transactionDto = new TransactionResponseDto2();
-                    transactionDto.setTranNum(transaction.getTranNum());
-                    transactionDto.setInoutType(transaction.getInoutType());
-                    transactionDto.setPrintContent(transaction.getPrintContent());
-
-                    // 출금(송금 포함)의 경우 금액을 음수로 변경
-                    if ("출금".equals(transaction.getInoutType())) {
-                        transactionDto.setTranAmt("-" + transaction.getTranAmt());
-                    } else {
-                        transactionDto.setTranAmt(transaction.getTranAmt());
-                    }
-
-                    transactionDto.setTranDateTime(transaction.getTranDate() + " " + transaction.getTranTime());
-                    return transactionDto;
-                })
-                .collect(Collectors.toList());
-        }
+    }
 }

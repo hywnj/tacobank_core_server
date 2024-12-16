@@ -1,5 +1,6 @@
 package com.almagest_dev.tacobank_core_server.application.service;
 
+import com.almagest_dev.tacobank_core_server.common.exception.TestbedApiException;
 import com.almagest_dev.tacobank_core_server.domain.account.model.Account;
 import com.almagest_dev.tacobank_core_server.domain.account.repository.AccountRepository;
 import com.almagest_dev.tacobank_core_server.domain.bankCode.OrgCode;
@@ -8,11 +9,13 @@ import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.cli
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.TransactionDetailApiDto;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.TransactionListApiRequestDto;
 import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.dto.TransactionListApiResponseDto;
+import com.almagest_dev.tacobank_core_server.infrastructure.external.testbed.util.TestbedApiExceptionHandler;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transantion.TransactionListRequestDto;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transantion.TransactionDetails;
 import com.almagest_dev.tacobank_core_server.presentation.dto.transantion.TransactionResponseDto;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -20,6 +23,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TransactionService {
@@ -84,21 +88,32 @@ public class TransactionService {
         apiRequestDto.setTranDtime(tranDtime); // 디폴트 값
         apiRequestDto.setDataLength(""); // 기본값
 
-        // API 호출
-        TransactionListApiResponseDto responseDto = testbedApiClient.requestApi(
-                apiRequestDto,
-                "/openbank/tranlist",
-                TransactionListApiResponseDto.class
-        );
+        try {
+            // API 호출
+            TransactionListApiResponseDto responseDto = testbedApiClient.requestApi(
+                    apiRequestDto,
+                    "/openbank/tranlist",
+                    TransactionListApiResponseDto.class
+            );
 
-        // 거래 내역 확인
-        if (responseDto.getResList() == null || responseDto.getResList().isEmpty()) {
-            System.out.println("API 응답의 거래 내역이 비어 있습니다.");
-        } else {
-            System.out.println("API 응답의 거래 내역: " + responseDto.getResList());
+            // 거래 내역 확인
+            if (responseDto.getResList() == null || responseDto.getResList().isEmpty()) {
+                log.info("TransactionService::fetchTransactionListFromApi - API 응답의 거래 내역이 비어 있습니다.");
+            } else {
+                log.info("TransactionService::fetchTransactionListFromApi - API 응답의 거래 내역: {} ", responseDto.getResList());
+            }
+
+            return responseDto;
+
+        } catch (TestbedApiException ex) {
+            // 테스트베드 예외 발생시 파싱
+            TestbedApiExceptionHandler.ParsedError error = TestbedApiExceptionHandler.parseException(ex);
+
+            log.error("TransactionService::fetchTransactionListFromApi Testbed Exception : apiTranId - {} | rspCode - {} | rspMessage - {}", error.getApiTranId(), error.getRspCode(), error.getRspMessage());
+
+            throw new TestbedApiException(error.getRspMessage());
         }
 
-        return responseDto;
     }
 
     private List<TransactionDetails> mapToTransactionResponseDto(List<TransactionDetailApiDto> transactions) {
