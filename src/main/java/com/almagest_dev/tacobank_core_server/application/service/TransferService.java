@@ -226,9 +226,10 @@ public class TransferService {
             /**
              * 송금 요청 데이터, 출금 비밀번호 검증 완료
              */
-            // 입금 인자 내역, 출금 인자 내역 (Default: 보내는 사람 이름)
+            // 출금 인자 내역(Default: 받는 사람 이름)
             String wdPrintContent = (!StringUtils.isBlank(requestDto.getWdPrintContent())) ?
-                    requestDto.getWdPrintContent() : sessionData.getWithdrawalDetails().getAccountHolder();
+                    requestDto.getWdPrintContent() : sessionData.getReceiverDetails().getAccountHolder();
+            // 입금 인자 내역(Default: 보내는 사람 이름)
             String rcvPrintContent = (!StringUtils.isBlank(requestDto.getRcvPrintContent())) ?
                     requestDto.getRcvPrintContent() : sessionData.getWithdrawalDetails().getAccountHolder();
 
