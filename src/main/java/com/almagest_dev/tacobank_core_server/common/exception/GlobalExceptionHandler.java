@@ -11,6 +11,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.io.UnsupportedEncodingException;
@@ -77,6 +78,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex) {
         log.warn("HttpRequestMethodNotSupportedException - " + ex.getMessage());
         CoreResponseDto response = new CoreResponseDto("FAILURE", "지원하지 않는 요청입니다.");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<?> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException ex) {
+        log.warn("MaxUploadSizeExceededException - " + ex.getMessage());
+        CoreResponseDto response = new CoreResponseDto("FAILURE", "최대 업로드 용량을 초과했습니다. (최대 5MB).");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
