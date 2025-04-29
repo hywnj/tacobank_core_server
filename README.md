@@ -1,5 +1,7 @@
 # TacoBank - Core Server (비즈니스 서버)  
 타코뱅크는 영수증 OCR 인식을 통해 품목별 정산 기능을 제공하는 오픈뱅킹 서비스 프로젝트입니다.<br>
+[↗️TacoBank 프로젝트 바로가기 ](https://github.com/TacoBankOrg/TacoBank)
+
 타코뱅크는 다음과 같이 두 개의 주요 서버로 구성됩니다 :
 1. **인증 서버 (`auth_server`)**: 사용자 인증 및 토큰 기반 보안을 담당
 2. **코어 서버 (`core_server`)**: 송금, 문자인증, 멤버 관리, 영수증 더치페이 기능과 같은 비즈니스 로직을 담당
